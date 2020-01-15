@@ -1,0 +1,176 @@
+{
+	"info": {
+		"_postman_id": "ebc85d87-f6f8-4e65-bcf4-025a52f0e63e",
+		"name": "akkauser",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "get users",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "localhost:8000/users",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get users - user-bbb",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "localhost:8000/users/user-bbb",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"users",
+						"user-bbb"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get users - user-ddd",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {},
+				"url": {
+					"raw": "localhost:8000/users/user-ddd",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"users",
+						"user-ddd"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create user aaa",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"aaa\", \"email\": \"aaa@aaa.com\",\"pass\":\"poass\"}"
+				},
+				"url": {
+					"raw": "localhost:8000/user",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create user bbb",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"bbb\", \"email\": \"bbb@aaa.com\",\"pass\":\"poass\"}"
+				},
+				"url": {
+					"raw": "localhost:8000/user",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create user ccc",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"ccc\", \"email\": \"ccc@aaa.com\",\"pass\":\"poass\", \"address\":{\"street\":\"s\",\"number\":\"1\",\"city\":\"c\",\"state\":\"state\",\"zip\":\"1234\",\"country\":\"country\"}}"
+				},
+				"url": {
+					"raw": "localhost:8000/user",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "create user ddd",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"ddd\", \"email\": \"ddd@aaa.com\",\"pass\":\"pddoass\", \"address\":{\"street\":\"stret\",\"number\":\"1\",\"city\":\"c\",\"state\":\"state\",\"zip\":\"1234\",\"country\":\"country\"}}"
+				},
+				"url": {
+					"raw": "localhost:8000/user",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"user"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
