@@ -6,7 +6,7 @@ import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.typed.scaladsl.{EventSourcedBehavior, RetentionCriteria}
 import akka.persistence.typed.{RecoveryCompleted, RecoveryFailed}
-import c.cqrs.{CommandProcessor, EntityCommand, EntityEvent, EventApplier, InitialCommandProcessor, InitialEventApplier, PersistentEntity}
+import c.cqrs.{CommandProcessor, EntityCommand, EntityEvent, EventApplier, InitialCommandProcessor, InitialEventApplier, PersistentEntity, ShardedEntityEventTagger}
 import io.circe.{Decoder, Encoder}
 import shapeless.tag
 import shapeless.tag.@@
@@ -193,13 +193,13 @@ object UserEntity {
         user
     }
 
-  //  final val EventTagger = ShardedEntityEventTagger.sharded[UserEvent](3)
+  final val userEventTagger = ShardedEntityEventTagger.sharded[UserEvent](3)
 
-  val userEventTagger: UserEvent => Set[String] = { event =>
-    //            val tags = EventTagger.tags(event)
-    val tags = Set(UserPersistentEntity.entityName)
-    tags
-  }
+//  val userEventTagger: UserEvent => Set[String] = { event =>
+//    //            val tags = EventTagger.tags(event)
+//    val tags = Set(UserPersistentEntity.entityName)
+//    tags
+//  }
 
 }
 
@@ -234,7 +234,7 @@ sealed class UserPersistentEntity()
         case (state, RecoveryFailed(error)) =>
           actorContext.log.error(s"Failed recovery of User entity $id in state $state: $error")
       }
-      .withTagger(UserEntity.userEventTagger)
+      .withTagger(UserEntity.userEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
       .onPersistFailure(
         SupervisorStrategy

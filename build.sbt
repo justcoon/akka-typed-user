@@ -1,6 +1,3 @@
-//name := "akka-user"
-//version := "1.0"
-//scalaVersion := "2.12.2"
 
 // *****************************************************************************
 // Projects
@@ -27,8 +24,6 @@ lazy val `c-user` =
           library.akkaClusterTyped,
           library.akkaPersistenceTyped,
           library.akkaClusterShardingTyped,
-//          library.akkaClusterTools,
-//          library.akkaPersistence,
           library.akkaHttp,
           library.akkaHttpCirce,
           library.akkaKryo,
@@ -65,7 +60,6 @@ lazy val library =
       val akkaHttpJson             = "1.29.1"
       val akkaPersistenceCassandra = "0.101" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
       val akkaPersistenceInmemory  = "2.5.15.2"
-      val akkaChill                = "0.9.4"
       val alpakka                  = "1.1.2"
       val circe                    = "0.12.3"
       val logback                  = "1.2.3"
@@ -77,10 +71,6 @@ lazy val library =
       val akkaKryo                 = "1.1.0"
     }
 
-//    val akkaClusterSharding = "com.typesafe.akka" %% "akka-cluster-sharding" % Version.akka
-//    val akkaClusterTools    = "com.typesafe.akka" %% "akka-cluster-tools"    % Version.akka
-//    val akkaPersistence     = "com.typesafe.akka" %% "akka-persistence"      % Version.akka
-
     val akkaPersistenceQuery     = "com.typesafe.akka"   %% "akka-persistence-query"     % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
     val akkaPersistenceInmemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.akkaPersistenceInmemory
@@ -89,7 +79,6 @@ lazy val library =
     val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
     val akkaClusterShardingTyped = "com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka
 
-//    val akkaChill       = "com.twitter"       %% "chill-akka"              % Version.akkaChill
     val akkaKryo        = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
     val akkaHttp        = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
     val akkaHttpCirce   = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
@@ -126,7 +115,6 @@ lazy val settings =
 
 lazy val commonSettings =
   Seq(
-//    scalaVersion := "2.12.10",
     scalaVersion := "2.13.1",
     organization := "c",
     licenses += ("Apache 2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
@@ -165,6 +153,6 @@ lazy val dockerSettings =
     maintainer.in(Docker) := "justcoon",
     version.in(Docker) := "latest",
     dockerBaseImage := "openjdk:8",
-    dockerExposedPorts := Vector(2552, 8000),
+    dockerExposedPorts := Vector(2551, 8000),
     dockerRepository := Some("justcoon")
   )

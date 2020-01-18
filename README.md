@@ -1,15 +1,16 @@
 # akka typed user
+
 ddd
 
 https://medium.com/bestmile/domain-driven-event-sourcing-with-akka-typed-5f5b8bbfb823
 
-#required
+# required
 
 elasticsearch
 cassandra
 
 
-### Application setup
+### application setup
 
 single node VM arguments
 

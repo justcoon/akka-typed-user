@@ -39,7 +39,7 @@ object ShardedEntityEventTagger {
       numShards: Int
   ): ShardedEntityEventTagger[E] = {
     val eventType = implicitly[ClassTag[E]].runtimeClass.asInstanceOf[Class[E]]
-    sharded[E](eventType.getName, numShards)
+    sharded[E](eventType.getSimpleName, numShards)
   }
 
   def sharded[E <: EntityEvent[_]: ClassTag](
