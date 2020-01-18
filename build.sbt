@@ -7,7 +7,7 @@ lazy val `akka-typed-user` =
   project
     .in(file("."))
     .enablePlugins(GitVersioning)
-    .aggregate(`c-user`)
+    .aggregate(`core`, `user-svc`)
     .settings(settings)
     .settings(
       unmanagedSourceDirectories.in(Compile) := Seq.empty,
@@ -15,8 +15,40 @@ lazy val `akka-typed-user` =
       publishArtifact := false
     )
 
-lazy val `c-user` =
-  project
+
+lazy val `core` =
+  (project in file("modules/core"))
+    .settings(settings)
+    .settings(
+      libraryDependencies ++= Seq(
+        library.akkaClusterTyped,
+        library.akkaPersistenceTyped,
+        library.akkaClusterShardingTyped,
+        library.akkaHttp,
+        library.akkaHttpCirce,
+        library.akkaKryo,
+        library.akkaSlf4j,
+        library.akkaPersistenceQuery,
+        library.akkaPersistenceCassandra,
+        library.circeGeneric,
+        library.circeRefined,
+        library.logbackCore,
+        library.logbackClassic,
+        library.bcrypt,
+        library.pureconfig,
+        library.elastic4sClientAkka,
+        library.elastic4sCirce,
+        //        library.elastic4sEmbedded,
+        library.chimney,
+        library.akkaHttpTestkit         % Test,
+        library.akkaPersistenceInmemory % Test,
+        library.akkaTestkit             % Test,
+        library.scalaTest               % Test
+      )
+    )
+
+lazy val `user-svc` =
+  (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
     .settings(settings)
     .settings(
@@ -46,6 +78,7 @@ lazy val `c-user` =
           library.scalaTest               % Test
         )
     )
+    .dependsOn(`core`)
 
 // *****************************************************************************
 // Library dependencies
