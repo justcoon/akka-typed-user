@@ -5,9 +5,9 @@ import java.time.Instant
 import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.query.Offset
-import akka.persistence.typed.scaladsl.{EventSourcedBehavior, RetentionCriteria}
-import akka.persistence.typed.{RecoveryCompleted, RecoveryFailed}
-import io.circe.{Decoder, Encoder}
+import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, RetentionCriteria }
+import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed }
+import io.circe.{ Decoder, Encoder }
 import shapeless.tag
 import shapeless.tag.@@
 
@@ -34,53 +34,53 @@ object OffsetStoreEntity {
   sealed trait OffsetStoreCommand[R] extends EntityCommand[OffsetStoreEntity.OffsetStoreId, OffsetStore, R]
 
   final case class CreateOrUpdateOffsetStoreCommand(
-      entityID: OffsetStoreId,
+      entityId: OffsetStoreId,
       offset: Offset
   ) extends OffsetStoreCommand[CreateOrUpdateOffsetStoreReply] {
 
-    override def initializedReply: OffsetStore => CreateOrUpdateOffsetStoreReply = _ => OffsetStoreUpdatedReply(entityID)
+    override def initializedReply: OffsetStore => CreateOrUpdateOffsetStoreReply = _ => OffsetStoreUpdatedReply(entityId)
 
-    override def uninitializedReply: CreateOrUpdateOffsetStoreReply = OffsetStoreCreatedReply(entityID)
+    override def uninitializedReply: CreateOrUpdateOffsetStoreReply = OffsetStoreCreatedReply(entityId)
   }
 
-  final case class GetOffsetStoreCommand(entityID: OffsetStoreId) extends OffsetStoreCommand[GetOffsetStoreReply] {
+  final case class GetOffsetStoreCommand(entityId: OffsetStoreId) extends OffsetStoreCommand[GetOffsetStoreReply] {
 
     override def initializedReply: OffsetStore => GetOffsetStoreReply = offsetStore => OffsetStoreReply(offsetStore)
 
-    override def uninitializedReply: GetOffsetStoreReply = OffsetStoreNotExistsReply(entityID)
+    override def uninitializedReply: GetOffsetStoreReply = OffsetStoreNotExistsReply(entityId)
   }
 
   sealed trait CreateOrUpdateOffsetStoreReply
 
-  case class OffsetStoreCreatedReply(entityID: OffsetStoreId) extends CreateOrUpdateOffsetStoreReply
+  case class OffsetStoreCreatedReply(entityId: OffsetStoreId) extends CreateOrUpdateOffsetStoreReply
 
-  case class OffsetStoreUpdatedReply(entityID: OffsetStoreId) extends CreateOrUpdateOffsetStoreReply
+  case class OffsetStoreUpdatedReply(entityId: OffsetStoreId) extends CreateOrUpdateOffsetStoreReply
 
   sealed trait GetOffsetStoreReply
 
   case class OffsetStoreReply(offsetStore: OffsetStore) extends GetOffsetStoreReply
 
-  case class OffsetStoreNotExistsReply(entityID: OffsetStoreId) extends GetOffsetStoreReply
+  case class OffsetStoreNotExistsReply(entityId: OffsetStoreId) extends GetOffsetStoreReply
 
   sealed trait OffsetStoreEvent extends EntityEvent[OffsetStoreId]
 
   case class OffsetStoreCreatedEvent(
-      entityID: OffsetStoreId,
+      entityId: OffsetStoreId,
       offset: Offset,
       timestamp: Instant = Instant.now
   ) extends OffsetStoreEvent
 
   case class OffsetStoreUpdatedEvent(
-      entityID: OffsetStoreId,
+      entityId: OffsetStoreId,
       offset: Offset,
       timestamp: Instant = Instant.now
   ) extends OffsetStoreEvent
 
-  case class OffsetStoreRemovedEvent(entityID: OffsetStoreId, timestamp: Instant = Instant.now) extends OffsetStoreEvent
+  case class OffsetStoreRemovedEvent(entityId: OffsetStoreId, timestamp: Instant = Instant.now) extends OffsetStoreEvent
 
   implicit val initialCommandProcessor: InitialCommandProcessor[OffsetStoreCommand, OffsetStoreEvent] = {
-    case CreateOrUpdateOffsetStoreCommand(entityID, offset) =>
-      List(OffsetStoreCreatedEvent(entityID, offset))
+    case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
+      List(OffsetStoreCreatedEvent(entityId, offset))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
       Nil
@@ -89,16 +89,16 @@ object OffsetStoreEntity {
   implicit val commandProcessor: CommandProcessor[OffsetStore, OffsetStoreCommand, OffsetStoreEvent] =
     (state, command) =>
       command match {
-        case CreateOrUpdateOffsetStoreCommand(entityID, offset) =>
-          List(OffsetStoreUpdatedEvent(entityID, offset))
+        case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
+          List(OffsetStoreUpdatedEvent(entityId, offset))
         case GetOffsetStoreCommand(_) =>
           Nil
         case _ => Nil
       }
 
   implicit val initialEventApplier: InitialEventApplier[OffsetStore, OffsetStoreEvent] = {
-    case OffsetStoreCreatedEvent(entityID, offset, _) =>
-      Some(OffsetStore(entityID, offset))
+    case OffsetStoreCreatedEvent(entityId, offset, _) =>
+      Some(OffsetStore(entityId, offset))
     case otherEvent =>
       //      logError(s"Received offsetStore event $otherEvent before actual offsetStore booking")
       None
@@ -129,12 +129,12 @@ sealed class OffsetStorePersistentEntity()
 
   import scala.concurrent.duration._
 
-  def entityIDFromString(id: String): OffsetStoreEntity.OffsetStoreId = {
+  def entityIdFromString(id: String): OffsetStoreEntity.OffsetStoreId = {
     import OffsetStoreEntity._
     id.asOffsetStoreId
   }
 
-  def entityIDToString(id: OffsetStoreEntity.OffsetStoreId): String = id.toString
+  def entityIdToString(id: OffsetStoreEntity.OffsetStoreId): String = id.toString
 
   override def configureEntityBehavior(
       id: OffsetStoreEntity.OffsetStoreId,

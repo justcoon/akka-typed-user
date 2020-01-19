@@ -38,7 +38,7 @@ object UserApp {
       val config = sys.settings.config
 
       val userApiConfig =
-        ConfigSource.fromConfig(config).at("c-user.rest-api").loadOrThrow[RestApiConfig]
+        ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[RestApiConfig]
       val elasticsearchConfig =
         ConfigSource.fromConfig(config).at("elasticsearch").loadOrThrow[ElasticsearchConfig]
 
@@ -56,11 +56,9 @@ object UserApp {
         ElasticClient(akkaClient)
       }
 
-      val userRepositoryInitializer = new UserESRepositoryInitializer(elasticClient)
+      UserESRepositoryInitializer.init(elasticsearchConfig.indexName, elasticClient)
 
-      ClusterTask.create("UserESRepositoryInitializer", () => userRepositoryInitializer.init())
-
-      val userRepository = new UserESRepository(elasticClient)
+      val userRepository = new UserESRepository(elasticsearchConfig.indexName, elasticClient)
 
       UserViewBuilder.create(userRepository, offsetStoreService)
 
@@ -92,9 +90,9 @@ object UserApp {
   }
 
   def main(args: Array[String]): Unit =
-    ActorSystem[Nothing](RootBehavior(), "c-user")
+    ActorSystem[Nothing](RootBehavior(), "user")
 
-  case class ElasticsearchConfig(address: String, port: Int)
+  case class ElasticsearchConfig(address: String, port: Int, indexName: String)
 
   case class RestApiConfig(address: String, port: Int, repositoryTimeout: FiniteDuration)
 

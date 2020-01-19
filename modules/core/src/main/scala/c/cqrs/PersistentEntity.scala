@@ -2,9 +2,9 @@ package c.cqrs
 
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
-import akka.cluster.sharding.typed.scaladsl.{EntityContext, EntityTypeKey}
+import akka.cluster.sharding.typed.scaladsl.{ EntityContext, EntityTypeKey }
 import akka.persistence.typed.PersistenceId
-import akka.persistence.typed.scaladsl.{Effect, EffectBuilder, EventSourcedBehavior, ReplyEffect}
+import akka.persistence.typed.scaladsl.{ Effect, EffectBuilder, EventSourcedBehavior, ReplyEffect }
 import c.cqrs.PersistentEntity.CommandExpectingReply
 
 abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
@@ -53,15 +53,15 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
     }
   }
 
-  def entityIDFromString(id: String): ID
+  def entityIdFromString(id: String): ID
 
-  def entityIDToString(id: ID): String
+  def entityIdToString(id: ID): String
 
   def eventSourcedEntity(
       entityContext: EntityContext[Command],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, E, OuterState] = {
-    val id            = entityIDFromString(entityContext.entityId)
+    val id            = entityIdFromString(entityContext.entityId)
     val persistenceId = PersistenceId(entityContext.entityTypeKey.name, entityContext.entityId)
     configureEntityBehavior(
       id,

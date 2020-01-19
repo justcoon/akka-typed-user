@@ -12,9 +12,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 
 object UserApi {
 
-  final val Name = "user-api"
-
-  case class Address(
+  final case class Address(
       street: String,
       number: String,
       zip: String,
@@ -79,11 +77,11 @@ object UserApi {
                 def location(id: UserEntity.UserId) = Location(uri.withPath(uri.path / id.toString))
 
                 import UserEntity._
-                val cmd = addUser.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityID, u => u.username.asUserId).transform
+                val cmd = addUser.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, u => u.username.asUserId).transform
 
                 onSuccess(userService.sendCommand(cmd)) {
-                  case reply: UserEntity.UserCreatedReply       => complete(Created, List(location(reply.entityID)), reply.entityID)
-                  case reply: UserEntity.UserAlreadyExistsReply => complete(BadRequest, s"User with id: ${reply.entityID} already exists!")
+                  case reply: UserEntity.UserCreatedReply       => complete(Created, List(location(reply.entityId)), reply.entityId)
+                  case reply: UserEntity.UserAlreadyExistsReply => complete(BadRequest, s"User with id: ${reply.entityId} already exists!")
                 }
               }
             }
@@ -95,11 +93,11 @@ object UserApi {
               extractUri { uri =>
                 def location(id: UserEntity.UserId) = Location(uri.withPath(uri.path / id.toString / "email"))
 
-                val cmd = changeUserEmail.into[UserEntity.ChangeUserEmailCommand].withFieldComputed(_.entityID, u => u.id).transform
+                val cmd = changeUserEmail.into[UserEntity.ChangeUserEmailCommand].withFieldComputed(_.entityId, u => u.id).transform
 
                 onSuccess(userService.sendCommand(cmd)) {
-                  case reply: UserEntity.UserEmailChangedReply => complete(OK, List(location(reply.entityID)), reply.entityID)
-                  case reply: UserEntity.UserNotExistsReply    => complete(BadRequest, s"User with id: ${reply.entityID} not exists!")
+                  case reply: UserEntity.UserEmailChangedReply => complete(OK, List(location(reply.entityId)), reply.entityId)
+                  case reply: UserEntity.UserNotExistsReply    => complete(BadRequest, s"User with id: ${reply.entityId} not exists!")
                 }
               }
             }
@@ -111,11 +109,11 @@ object UserApi {
               extractUri { uri =>
                 def location(id: UserEntity.UserId) = Location(uri.withPath(uri.path / id.toString / "pass"))
 
-                val cmd = changeUserPassword.into[UserEntity.ChangeUserPasswordCommand].withFieldComputed(_.entityID, u => u.id).transform
+                val cmd = changeUserPassword.into[UserEntity.ChangeUserPasswordCommand].withFieldComputed(_.entityId, u => u.id).transform
 
                 onSuccess(userService.sendCommand(cmd)) {
-                  case reply: UserEntity.UserPasswordChangedReply => complete(OK, List(location(reply.entityID)), reply.entityID)
-                  case reply: UserEntity.UserNotExistsReply       => complete(BadRequest, s"User with id: ${reply.entityID} not exists!")
+                  case reply: UserEntity.UserPasswordChangedReply => complete(OK, List(location(reply.entityId)), reply.entityId)
+                  case reply: UserEntity.UserNotExistsReply       => complete(BadRequest, s"User with id: ${reply.entityId} not exists!")
                 }
               }
             }

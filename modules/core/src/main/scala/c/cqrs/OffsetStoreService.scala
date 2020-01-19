@@ -6,7 +6,7 @@ import akka.persistence.query.Offset
 import akka.util.Timeout
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class OffsetStoreService()(
     implicit val sharding: ClusterSharding,

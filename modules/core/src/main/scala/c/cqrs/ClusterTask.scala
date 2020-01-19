@@ -1,12 +1,12 @@
 package c.cqrs
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorRef, ActorSystem, Behavior, SupervisorStrategy}
-import akka.cluster.typed.{ClusterSingleton, SingletonActor}
+import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }
+import akka.cluster.typed.{ ClusterSingleton, SingletonActor }
 
 import scala.concurrent.Future
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.util.{Failure, Success}
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.util.{ Failure, Success }
 
 case class ClusterTaskConfig(
     taskTimeout: FiniteDuration = 5.seconds,

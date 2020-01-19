@@ -53,7 +53,7 @@ object ShardedEntityEventTagger {
     )
 
   def getShardNo[E <: EntityEvent[_]](numShards: Int, event: E): Int =
-    Math.abs(event.entityID.hashCode) % numShards
+    Math.abs(event.entityId.hashCode) % numShards
 
   def shardTag(baseTag: String, shardNo: Int): String =
     s"$baseTag$shardNo"

@@ -4,12 +4,23 @@ import java.time.Instant
 
 import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
-import akka.persistence.typed.scaladsl.{EventSourcedBehavior, RetentionCriteria}
-import akka.persistence.typed.{RecoveryCompleted, RecoveryFailed}
-import c.cqrs.{CommandProcessor, EntityCommand, EntityEvent, EventApplier, InitialCommandProcessor, InitialEventApplier, PersistentEntity, ShardedEntityEventTagger}
-import io.circe.{Decoder, Encoder}
+import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, RetentionCriteria }
+import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed }
+import c.cqrs.{
+  CommandProcessor,
+  EntityCommand,
+  EntityEvent,
+  EventApplier,
+  InitialCommandProcessor,
+  InitialEventApplier,
+  PersistentEntity,
+  ShardedEntityEventTagger
+}
+import io.circe.{ Decoder, Encoder }
 import shapeless.tag
 import shapeless.tag.@@
+import com.github.t3hnar.bcrypt._
+import c.user.domain.proto._
 
 object UserEntity {
 
@@ -26,76 +37,59 @@ object UserEntity {
 
   type UserId = String @@ UserIdTag
 
-  case class Address(
-      street: String,
-      number: String,
-      zip: String,
-      city: String,
-      state: String,
-      country: String
-  )
-
-  case class User(
-      id: UserId,
-      username: String,
-      email: String,
-      pass: String = "",
-      address: Option[Address] = None
-  )
-
   sealed trait UserCommand[R] extends EntityCommand[UserEntity.UserId, User, R]
 
   final case class CreateUserCommand(
-      entityID: UserId,
+      entityId: UserId,
       username: String,
       email: String,
       pass: String,
       address: Option[Address] = None
   ) extends UserCommand[CreateUserReply] {
 
-    override def initializedReply: User => CreateUserReply = _ => UserAlreadyExistsReply(entityID)
+    override def initializedReply: User => CreateUserReply = _ => UserAlreadyExistsReply(entityId)
 
-    override def uninitializedReply: CreateUserReply = UserCreatedReply(entityID)
+    override def uninitializedReply: CreateUserReply = UserCreatedReply(entityId)
   }
 
-  final case class GetUserCommand(entityID: UserId) extends UserCommand[GetUserReply] {
+  final case class GetUserCommand(entityId: UserId) extends UserCommand[GetUserReply] {
 
     override def initializedReply: User => GetUserReply = user => UserReply(user)
 
-    override def uninitializedReply: GetUserReply = UserNotExistsReply(entityID)
+    override def uninitializedReply: GetUserReply = UserNotExistsReply(entityId)
   }
 
-  final case class ChangeUserEmailCommand(entityID: UserId, email: String) extends UserCommand[ChangeUserEmailReply] {
+  final case class ChangeUserEmailCommand(entityId: UserId, email: String) extends UserCommand[ChangeUserEmailReply] {
 
     override def initializedReply: User => ChangeUserEmailReply =
-      _ => UserEmailChangedReply(entityID)
+      _ => UserEmailChangedReply(entityId)
 
-    override def uninitializedReply: ChangeUserEmailReply = UserNotExistsReply(entityID)
+    override def uninitializedReply: ChangeUserEmailReply = UserNotExistsReply(entityId)
   }
 
-  final case class ChangeUserPasswordCommand(entityID: UserId, pass: String) extends UserCommand[ChangeUserPasswordReply] {
+  final case class ChangeUserPasswordCommand(entityId: UserId, pass: String) extends UserCommand[ChangeUserPasswordReply] {
 
     override def initializedReply: User => ChangeUserPasswordReply =
-      _ => UserPasswordChangedReply(entityID)
+      _ => UserPasswordChangedReply(entityId)
 
-    override def uninitializedReply: ChangeUserPasswordReply = UserNotExistsReply(entityID)
+    override def uninitializedReply: ChangeUserPasswordReply = UserNotExistsReply(entityId)
   }
 
-  //  final case class DeleteUserCommand(entityID: UserId) extends Command
+  //  final case class DeleteUserCommand(entityId: UserId) extends Command
   //
-  final case class ChangeUserAddressCommand(entityID: UserId, address: Option[Address]) extends UserCommand[ChangeUserAddressReply] {
+  final case class ChangeUserAddressCommand(entityId: UserId, address: Option[Address]) extends UserCommand[ChangeUserAddressReply] {
 
     override def initializedReply: User => ChangeUserAddressReply =
-      _ => UserAddressChangedReply(entityID)
+      _ => UserAddressChangedReply(entityId)
 
-    override def uninitializedReply: ChangeUserAddressReply = UserNotExistsReply(entityID)
+    override def uninitializedReply: ChangeUserAddressReply = UserNotExistsReply(entityId)
   }
 
   sealed trait CreateUserReply
 
-  case class UserCreatedReply(entityID: UserId) extends CreateUserReply
+  case class UserCreatedReply(entityId: UserId) extends CreateUserReply
 
-  case class UserAlreadyExistsReply(entityID: UserId) extends CreateUserReply
+  case class UserAlreadyExistsReply(entityId: UserId) extends CreateUserReply
 
   sealed trait GetUserReply
 
@@ -103,56 +97,28 @@ object UserEntity {
 
   sealed trait ChangeUserEmailReply
 
-  case class UserEmailChangedReply(entityID: UserId) extends ChangeUserEmailReply
+  case class UserEmailChangedReply(entityId: UserId) extends ChangeUserEmailReply
 
   sealed trait ChangeUserPasswordReply
 
-  case class UserPasswordChangedReply(entityID: UserId) extends ChangeUserPasswordReply
+  case class UserPasswordChangedReply(entityId: UserId) extends ChangeUserPasswordReply
 
   sealed trait ChangeUserAddressReply
 
-  case class UserAddressChangedReply(entityID: UserId) extends ChangeUserAddressReply
+  case class UserAddressChangedReply(entityId: UserId) extends ChangeUserAddressReply
 
-  case class UserNotExistsReply(entityID: UserId)
+  case class UserNotExistsReply(entityId: UserId)
       extends GetUserReply
       with ChangeUserEmailReply
       with ChangeUserPasswordReply
       with ChangeUserAddressReply
 
-  sealed trait UserEvent extends EntityEvent[UserId]
-
-  case class UserCreatedEvent(
-      entityID: UserId,
-      username: String,
-      email: String,
-      pass: String,
-      address: Option[Address],
-      timestamp: Instant = Instant.now
-  ) extends UserEvent
-
-  case class UserPasswordChangedEvent(
-      entityID: UserId,
-      pass: String,
-      timestamp: Instant = Instant.now
-  ) extends UserEvent
-
-  case class UserEmailChangedEvent(
-      entityID: UserId,
-      email: String,
-      timestamp: Instant = Instant.now
-  ) extends UserEvent
-
-  case class UserAddressChangedEvent(
-      entityID: UserId,
-      address: Option[Address],
-      timestamp: Instant = Instant.now
-  ) extends UserEvent
-
-  case class UserRemovedEvent(entityID: UserId, timestamp: Instant = Instant.now) extends UserEvent
+  trait UserEvent extends EntityEvent[UserId]
 
   implicit val initialCommandProcessor: InitialCommandProcessor[UserCommand, UserEvent] = {
-    case CreateUserCommand(entityID, username, email, pass, address) =>
-      List(UserCreatedEvent(entityID, username, email, pass, address))
+    case CreateUserCommand(entityId, username, email, pass, address) =>
+      val encryptedPass = pass.bcrypt
+      List(UserCreatedEvent(entityId, username, email, encryptedPass, address, Instant.now))
     case _ =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
       Nil
@@ -161,12 +127,13 @@ object UserEntity {
   implicit val commandProcessor: CommandProcessor[User, UserCommand, UserEvent] =
     (state, command) =>
       command match {
-        case ChangeUserEmailCommand(entityID, email) =>
-          List(UserEmailChangedEvent(entityID, email))
-        case ChangeUserPasswordCommand(entityID, pass) =>
-          List(UserPasswordChangedEvent(entityID, pass))
-        case ChangeUserAddressCommand(entityID, addr) =>
-          List(UserAddressChangedEvent(entityID, addr))
+        case ChangeUserEmailCommand(entityId, email) =>
+          List(UserEmailChangedEvent(entityId, email, Instant.now))
+        case ChangeUserPasswordCommand(entityId, pass) =>
+          val encryptedPass = pass.bcrypt
+          List(UserPasswordChangedEvent(entityId, encryptedPass, Instant.now))
+        case ChangeUserAddressCommand(entityId, addr) =>
+          List(UserAddressChangedEvent(entityId, addr, Instant.now))
         case GetUserCommand(_) =>
           Nil
         case _ =>
@@ -174,8 +141,8 @@ object UserEntity {
       }
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEvent] = {
-    case UserCreatedEvent(entityID, username, email, pass, address, _) =>
-      Some(User(entityID, username, email, pass, address))
+    case UserCreatedEvent(entityId, username, email, pass, address, _) =>
+      Some(User(entityId, username, email, pass, address))
     case _ =>
       //      logError(s"Received user event $otherEvent before actual user booking")
       None
@@ -195,30 +162,24 @@ object UserEntity {
 
   final val userEventTagger = ShardedEntityEventTagger.sharded[UserEvent](3)
 
-//  val userEventTagger: UserEvent => Set[String] = { event =>
-//    //            val tags = EventTagger.tags(event)
-//    val tags = Set(UserPersistentEntity.entityName)
-//    tags
-//  }
-
 }
 
 sealed class UserPersistentEntity()
     extends PersistentEntity[
       UserEntity.UserId,
-      UserEntity.User,
+      User,
       UserEntity.UserCommand,
       UserEntity.UserEvent
     ](UserPersistentEntity.entityName) {
 
   import scala.concurrent.duration._
 
-  def entityIDFromString(id: String): UserEntity.UserId = {
+  def entityIdFromString(id: String): UserEntity.UserId = {
     import UserEntity._
     id.asUserId
   }
 
-  def entityIDToString(id: UserEntity.UserId): String = id.toString
+  def entityIdToString(id: UserEntity.UserId): String = id.toString
 
   override def configureEntityBehavior(
       id: UserEntity.UserId,

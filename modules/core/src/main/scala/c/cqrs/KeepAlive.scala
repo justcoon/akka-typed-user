@@ -1,9 +1,9 @@
 package c.cqrs
 
-import akka.actor.typed.{ActorSystem, Behavior}
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, EntityTypeKey}
-import akka.cluster.typed.{ClusterSingleton, ClusterSingletonSettings, SingletonActor}
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
+import akka.cluster.typed.{ ClusterSingleton, ClusterSingletonSettings, SingletonActor }
 
 import scala.concurrent.duration.FiniteDuration
 

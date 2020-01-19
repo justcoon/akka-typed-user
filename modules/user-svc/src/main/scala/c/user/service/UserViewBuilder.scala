@@ -41,7 +41,7 @@ object UserViewBuilder {
     val handleEvent: Flow[EventStreamElement[UserEntity.UserEvent], EventStreamElement[UserEntity.UserEvent], NotUsed] =
       Flow[EventStreamElement[UserEntity.UserEvent]].mapAsync(1) { element =>
         userRepository
-          .find(element.event.entityID)
+          .find(element.event.entityId)
           .flatMap {
             case u @ Some(_) => userRepository.update(getUpdatedUser(element.event, u))
             case None        => userRepository.insert(getUpdatedUser(element.event, None))
@@ -62,9 +62,29 @@ object UserViewBuilder {
     EventProcessor.create(UserViewBuilderName, UserEntity.userEventTagger, eventProcessorStream, keepAlive)
   }
 
-  def getUpdatedUser(event: UserEntity.UserEvent, user: Option[UserEntity.User]): UserEntity.User =
-    user match {
-      case Some(u) => UserEntity.eventApplier(u, event)
-      case None    => UserEntity.initialEventApplier(event).getOrElse(UserEntity.eventApplier(UserEntity.User(event.entityID, "", ""), event))
+  def getUpdatedUser(event: UserEntity.UserEvent, user: Option[UserRepository.User]): UserRepository.User = {
+    import io.scalaland.chimney.dsl._
+    val currentUser = user.getOrElse(UserRepository.User(event.entityId, "", "", ""))
+    import c.user.domain.proto._
+    event match {
+      case UserCreatedEvent(aid, u, e, p, a, _) =>
+        val na = a.map(_.transformInto[UserRepository.Address])
+        currentUser.copy(id = aid, username = u, email = e, pass = p, address = na)
+
+      case UserPasswordChangedEvent(_, p, _) =>
+        currentUser.copy(pass = p)
+
+      case UserEmailChangedEvent(_, e, _) =>
+        currentUser.copy(email = e)
+
+      case UserAddressChangedEvent(_, a, _) =>
+        val na = a.map(_.transformInto[UserRepository.Address])
+        currentUser.copy(address = na)
+
+      case UserRemovedEvent(_, _) =>
+        currentUser.copy(deleted = true)
+
+      case _ => currentUser
     }
+  }
 }

@@ -1,7 +1,7 @@
 package c.cqrs
 
 trait EntityCommand[ID, S, R] {
-  def entityID: ID
+  def entityId: ID
   def initializedReply: S => R
   def uninitializedReply: R
 }

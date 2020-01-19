@@ -1,4 +1,3 @@
-
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -15,44 +14,46 @@ lazy val `akka-typed-user` =
       publishArtifact := false
     )
 
-
 lazy val `core` =
   (project in file("modules/core"))
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-        library.akkaClusterTyped,
-        library.akkaPersistenceTyped,
-        library.akkaClusterShardingTyped,
-        library.akkaHttp,
-        library.akkaHttpCirce,
-        library.akkaKryo,
-        library.akkaSlf4j,
-        library.akkaPersistenceQuery,
-        library.akkaPersistenceCassandra,
-        library.circeGeneric,
-        library.circeRefined,
-        library.logbackCore,
-        library.logbackClassic,
-        library.bcrypt,
-        library.pureconfig,
-        library.elastic4sClientAkka,
-        library.elastic4sCirce,
-        //        library.elastic4sEmbedded,
-        library.chimney,
-        library.akkaHttpTestkit         % Test,
-        library.akkaPersistenceInmemory % Test,
-        library.akkaTestkit             % Test,
-        library.scalaTest               % Test
-      )
+          library.akkaClusterTyped,
+          library.akkaPersistenceTyped,
+          library.akkaClusterShardingTyped,
+          library.akkaHttp,
+          library.akkaHttpCirce,
+          library.akkaKryo,
+          library.akkaSlf4j,
+          library.akkaPersistenceQuery,
+          library.akkaPersistenceCassandra,
+          library.circeGeneric,
+          library.circeRefined,
+          library.logbackCore,
+          library.logbackClassic,
+          library.bcrypt,
+          library.pureconfig,
+          library.elastic4sClientAkka,
+          library.elastic4sCirce,
+          //        library.elastic4sEmbedded,
+          library.chimney,
+          library.akkaHttpTestkit         % Test,
+          library.akkaPersistenceInmemory % Test,
+          library.akkaTestkit             % Test,
+          library.scalaTest               % Test
+        )
     )
 
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
+    .enablePlugins(AkkaGrpcPlugin)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
+          library.scalaPbRuntime,
+          library.akkaDiscovery,
           library.akkaClusterTyped,
           library.akkaPersistenceTyped,
           library.akkaClusterShardingTyped,
@@ -107,6 +108,7 @@ lazy val library =
     val akkaPersistenceQuery     = "com.typesafe.akka"   %% "akka-persistence-query"     % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
     val akkaPersistenceInmemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.akkaPersistenceInmemory
+    val akkaDiscovery            = "com.typesafe.akka"   %% "akka-discovery"             % Version.akka
 
     val akkaClusterTyped         = "com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka
     val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
@@ -135,6 +137,7 @@ lazy val library =
 
     val chimney = "io.scalaland" %% "chimney" % Version.chimney
 
+    val scalaPbRuntime = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
   }
 
 // *****************************************************************************

@@ -1,6 +1,6 @@
 package c.cqrs
 
 trait EntityEvent[ID] {
-  def entityID: ID
+  def entityId: ID
   def timestamp: java.time.Instant
 }

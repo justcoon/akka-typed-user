@@ -2,14 +2,14 @@ package c.cqrs
 
 import akka.NotUsed
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Behavior, PostStop}
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityTypeKey}
+import akka.actor.typed.{ ActorSystem, Behavior, PostStop }
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.persistence.query.Offset
-import akka.stream.scaladsl.{Flow, RestartSource, Sink, Source}
-import akka.stream.{KillSwitches, Materializer, SharedKillSwitch}
+import akka.stream.scaladsl.{ Flow, RestartSource, Sink, Source }
+import akka.stream.{ KillSwitches, Materializer, SharedKillSwitch }
 
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.{ ExecutionContext, Future }
 
 object EventProcessor {
 
@@ -20,7 +20,7 @@ object EventProcessor {
       keepAliveInterval: FiniteDuration
   )(
       implicit system: ActorSystem[_]
-  ) {
+  ): Unit = {
     val eventProcessorEntityKey = EventProcessorActor.entityKey(name)
 
     ClusterSharding(system).init(
@@ -76,7 +76,6 @@ object EventProcessorActor {
 }
 
 case class EventStreamElement[E](offset: Offset, event: E)
-
 
 trait EventProcessorStream[E] {
 
