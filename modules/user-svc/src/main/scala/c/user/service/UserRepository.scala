@@ -113,6 +113,6 @@ object UserESRepositoryInitializer {
 
   def init(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext, system: ActorSystem[_]): Unit = {
     val userRepositoryInitializer = new UserESRepositoryInitializer(indexName, elasticClient)
-    ClusterTask.create("UserESRepositoryInitializer", () => userRepositoryInitializer.init())
+    ClusterTask.createSingleton("UserESRepositoryInitializer", () => userRepositoryInitializer.init())
   }
 }

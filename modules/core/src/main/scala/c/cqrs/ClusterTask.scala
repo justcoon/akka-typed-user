@@ -17,7 +17,7 @@ case class ClusterTaskConfig(
 
 object ClusterTask {
 
-  def create(
+  def createSingleton(
       name: String,
       task: () => Future[_],
       config: ClusterTaskConfig = ClusterTaskConfig()
@@ -34,6 +34,22 @@ object ClusterTask {
     )
 
     proxy ! ClusterTaskActor.ExecuteTask
+  }
+
+  def createLocal(
+      name: String,
+      task: () => Future[_],
+      config: ClusterTaskConfig = ClusterTaskConfig()
+  )(implicit system: ActorSystem[_]): Unit = {
+
+    val actor: ActorRef[ClusterTaskActor.Command] = system.systemActorOf(
+      Behaviors
+        .supervise(ClusterTaskActor(name, task))
+        .onFailure[Exception](SupervisorStrategy.restartWithBackoff(config.minBackoff, config.maxBackoff, config.randomBackoffFactor)),
+      s"ClusterTask-${name}"
+    )
+
+    actor ! ClusterTaskActor.ExecuteTask
   }
 }
 
