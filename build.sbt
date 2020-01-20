@@ -16,9 +16,12 @@ lazy val `akka-typed-user` =
 
 lazy val `core` =
   (project in file("modules/core"))
+    .enablePlugins(AkkaGrpcPlugin)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
+          library.scalaPbRuntime,
+          library.akkaDiscovery,
           library.akkaClusterTyped,
           library.akkaPersistenceTyped,
           library.akkaClusterShardingTyped,

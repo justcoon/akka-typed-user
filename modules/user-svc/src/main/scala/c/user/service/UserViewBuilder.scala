@@ -6,7 +6,8 @@ import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
 import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
-import c.cqrs.{ EventProcessor, EventProcessorStream, EventStreamElement, OffsetStore }
+import c.cqrs.offsetstore.OffsetStore
+import c.cqrs.{ EventProcessor, EventProcessorStream, EventStreamElement }
 import c.user.domain._
 
 import scala.concurrent.duration.{ FiniteDuration, _ }

@@ -1,9 +1,10 @@
-package c.cqrs
+package c.cqrs.offsetstore
 
 import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.persistence.query.Offset
 import akka.util.Timeout
+import c.cqrs.TypedActorEntityService
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -14,7 +15,7 @@ class OffsetStoreService()(
     val askTimeout: Timeout
 ) extends TypedActorEntityService[
       OffsetStoreEntity.OffsetStoreId,
-      OffsetStoreEntity.OffsetStore,
+      proto.OffsetStore,
       OffsetStoreEntity.OffsetStoreCommand,
       OffsetStorePersistentEntity
     ]

@@ -1,4 +1,4 @@
-package c.cqrs
+package c.cqrs.offsetstore
 
 trait OffsetStore[O, F[_]] {
 

@@ -1,4 +1,4 @@
-package c.cqrs
+package c.cqrs.offsetstore
 
 import java.time.Instant
 
@@ -7,6 +7,8 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.query.Offset
 import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, RetentionCriteria }
 import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed }
+import c.cqrs._
+import c.cqrs.offsetstore.proto._
 import io.circe.{ Decoder, Encoder }
 import shapeless.tag
 import shapeless.tag.@@
@@ -25,11 +27,6 @@ object OffsetStoreEntity {
   trait OffsetStoreIdTag
 
   type OffsetStoreId = String @@ OffsetStoreIdTag
-
-  case class OffsetStore(
-      id: OffsetStoreId,
-      offset: Offset
-  )
 
   sealed trait OffsetStoreCommand[R] extends EntityCommand[OffsetStoreEntity.OffsetStoreId, OffsetStore, R]
 
@@ -62,25 +59,11 @@ object OffsetStoreEntity {
 
   case class OffsetStoreNotExistsReply(entityId: OffsetStoreId) extends GetOffsetStoreReply
 
-  sealed trait OffsetStoreEvent extends EntityEvent[OffsetStoreId]
-
-  case class OffsetStoreCreatedEvent(
-      entityId: OffsetStoreId,
-      offset: Offset,
-      timestamp: Instant = Instant.now
-  ) extends OffsetStoreEvent
-
-  case class OffsetStoreUpdatedEvent(
-      entityId: OffsetStoreId,
-      offset: Offset,
-      timestamp: Instant = Instant.now
-  ) extends OffsetStoreEvent
-
-  case class OffsetStoreRemovedEvent(entityId: OffsetStoreId, timestamp: Instant = Instant.now) extends OffsetStoreEvent
+  trait OffsetStoreEvent extends EntityEvent[OffsetStoreId]
 
   implicit val initialCommandProcessor: InitialCommandProcessor[OffsetStoreCommand, OffsetStoreEvent] = {
     case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-      List(OffsetStoreCreatedEvent(entityId, offset))
+      List(OffsetStoreCreatedEvent(entityId, offset, Instant.now))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
       Nil
@@ -90,7 +73,7 @@ object OffsetStoreEntity {
     (state, command) =>
       command match {
         case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-          List(OffsetStoreUpdatedEvent(entityId, offset))
+          List(OffsetStoreUpdatedEvent(entityId, offset, Instant.now))
         case GetOffsetStoreCommand(_) =>
           Nil
         case _ => Nil
@@ -122,7 +105,7 @@ object OffsetStoreEntity {
 sealed class OffsetStorePersistentEntity()
     extends PersistentEntity[
       OffsetStoreEntity.OffsetStoreId,
-      OffsetStoreEntity.OffsetStore,
+      OffsetStore,
       OffsetStoreEntity.OffsetStoreCommand,
       OffsetStoreEntity.OffsetStoreEvent
     ](OffsetStorePersistentEntity.entityName) {

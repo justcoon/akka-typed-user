@@ -7,6 +7,7 @@ import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTyp
 import akka.persistence.query.Offset
 import akka.stream.scaladsl.{ Flow, RestartSource, Sink, Source }
 import akka.stream.{ KillSwitches, Materializer, SharedKillSwitch }
+import c.cqrs.offsetstore.OffsetStore
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.concurrent.{ ExecutionContext, Future }

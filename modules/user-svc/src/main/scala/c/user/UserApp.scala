@@ -10,7 +10,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import akka.util.Timeout
-import c.cqrs.{ ClusterTask, OffsetStoreService }
+import c.cqrs.offsetstore.OffsetStoreService
 import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserService, UserViewBuilder }
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
