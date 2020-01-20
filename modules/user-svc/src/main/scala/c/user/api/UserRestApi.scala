@@ -1,6 +1,6 @@
-package c.user
+package c.user.api
 
-import akka.http.scaladsl.model.StatusCodes._
+import akka.http.scaladsl.model.StatusCodes.{ BadRequest, Created, NotFound, OK }
 import akka.http.scaladsl.model.headers.Location
 import akka.http.scaladsl.server.{ Directives, Route }
 import akka.util.Timeout
@@ -10,7 +10,7 @@ import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-object UserApi {
+object UserRestApi {
 
   final case class Address(
       street: String,

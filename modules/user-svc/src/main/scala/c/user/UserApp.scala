@@ -11,6 +11,7 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import akka.util.Timeout
 import c.cqrs.offsetstore.OffsetStoreService
+import c.user.api.{ UserGrpcApi, UserRestApi }
 import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserService, UserViewBuilder }
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
@@ -37,8 +38,12 @@ object UserApp {
 
       val config = sys.settings.config
 
-      val userApiConfig =
-        ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[RestApiConfig]
+      val restApiConfig =
+        ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[HttpApiConfig]
+
+      val grpcApiConfig =
+        ConfigSource.fromConfig(config).at("grpc-api").loadOrThrow[HttpApiConfig]
+
       val elasticsearchConfig =
         ConfigSource.fromConfig(config).at("elasticsearch").loadOrThrow[ElasticsearchConfig]
 
@@ -62,10 +67,10 @@ object UserApp {
 
       UserViewBuilder.create(userRepository, offsetStoreService)
 
-      val userApiRoutes = UserApi.route(userService, userRepository)(userApiConfig.repositoryTimeout, ec)
+      val restApiRoutes = UserRestApi.route(userService, userRepository)(restApiConfig.repositoryTimeout, ec)
 
       Http(sys)
-        .bindAndHandle(userApiRoutes, userApiConfig.address, userApiConfig.port)
+        .bindAndHandle(restApiRoutes, restApiConfig.address, restApiConfig.port)
         .onComplete {
           case Success(binding) =>
             val address = binding.localAddress
@@ -83,6 +88,27 @@ object UserApp {
             sys.terminate()
         }
 
+      val grpcApiHandler = UserGrpcApi.handler(userService, userRepository)(grpcApiConfig.repositoryTimeout, ec, mat, classicSys)
+
+      Http(sys)
+        .bindAndHandleAsync(grpcApiHandler, grpcApiConfig.address, grpcApiConfig.port)
+        .onComplete {
+          case Success(binding) =>
+            val address = binding.localAddress
+            sys.log.info("grpc endpoint url: http://{}:{}/ - started", address.getHostString, address.getPort)
+
+            shutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone, "grpc-graceful-terminate") { () =>
+              binding.terminate(10.seconds).map { _ =>
+                sys.log
+                  .info("grpc endpoint url: http://{}:{}/ - graceful shutdown completed", address.getHostString, address.getPort)
+                Done
+              }
+            }
+          case Failure(ex) =>
+            sys.log.error("grpc endpoint - failed to bind, terminating system", ex)
+            sys.terminate()
+        }
+
       log.info("user up and running")
 
       Behaviors.empty[Nothing]
@@ -94,6 +120,6 @@ object UserApp {
 
   case class ElasticsearchConfig(address: String, port: Int, indexName: String)
 
-  case class RestApiConfig(address: String, port: Int, repositoryTimeout: FiniteDuration)
+  case class HttpApiConfig(address: String, port: Int, repositoryTimeout: FiniteDuration)
 
 }

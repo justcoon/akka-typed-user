@@ -3,6 +3,8 @@ syntax = "proto3";
 import "scalapb/scalapb.proto";
 import "google/protobuf/timestamp.proto";
 
+package c.cqrs.offsetstore.proto;
+
 option (scalapb.options) = {
   package_name: "c.cqrs.offsetstore.proto"
   import: "c.cqrs.offsetstore.proto._"

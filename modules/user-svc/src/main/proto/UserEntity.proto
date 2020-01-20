@@ -3,6 +3,8 @@ syntax = "proto3";
 import "scalapb/scalapb.proto";
 import "google/protobuf/timestamp.proto";
 
+package c.user.domain.proto;
+
 option (scalapb.options) = {
   package_name: "c.user.domain.proto"
   import: "c.user.domain.proto._"
