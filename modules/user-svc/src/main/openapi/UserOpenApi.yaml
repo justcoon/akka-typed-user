@@ -1,0 +1,251 @@
+openapi: 3.0.2
+servers:
+  - url: /v1
+info:
+  description: |-
+   User svc OpenAPI 3.0 specification.
+  version: 1.0.0-SNAPSHOT
+  title: User svc - OpenAPI 3.0
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    email: xxx@xxx.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: user
+    description: Access to users
+    externalDocs:
+      description: TODO
+      url: 'http://swagger.io'
+paths:
+  /user:
+    get:
+      tags:
+        - user
+      summary: Get users
+      description: ''
+      operationId: getUsers
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserArray'
+    post:
+      tags:
+        - user
+      summary: Create user
+      description: This can only be done by the logged in user.
+      operationId: createUser
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: failed operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        description: Created user object
+#  /user/login:
+#    get:
+#      tags:
+#        - user
+#      summary: Logs user into the system
+#      description: ''
+#      operationId: loginUser
+#      parameters:
+#        - name: username
+#          in: query
+#          description: The user name for login
+#          required: false
+#          schema:
+#            type: string
+#        - name: password
+#          in: query
+#          description: The password for login in clear text
+#          required: false
+#          schema:
+#            type: string
+#      responses:
+#        '200':
+#          description: successful operation
+#          headers:
+#            X-Rate-Limit:
+#              description: calls per hour allowed by the user
+#              schema:
+#                type: integer
+#                format: int32
+#            X-Expires-After:
+#              description: date in UTC when toekn expires
+#              schema:
+#                type: string
+#                format: date-time
+#          content:
+#            application/xml:
+#              schema:
+#                type: string
+#            application/json:
+#              schema:
+#                type: string
+#        '400':
+#          description: Invalid username/password supplied
+#  /user/logout:
+#    get:
+#      tags:
+#        - user
+#      summary: Logs out current logged in user session
+#      description: ''
+#      operationId: logoutUser
+#      parameters: []
+#      responses:
+#        default:
+#          description: successful operation
+  '/user/{id}':
+    get:
+      tags:
+        - user
+      summary: Get user by user id
+      description: ''
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          description: 'The id that needs to be fetched. Use user1 for testing. '
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: User not found
+    put:
+      tags:
+        - user
+      summary: Update user
+      x-swagger-router-controller: UserController
+      description: This can only be done by the logged in user.
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          description: id that need to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: failed operation
+      requestBody:
+        required: true
+        description: Update an existent user in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+    delete:
+      tags:
+        - user
+      summary: Delete user
+      description: This can only be done by the logged in user.
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          description: The id that needs to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '400':
+          description: Invalid username supplied
+        '404':
+          description: User not found
+externalDocs:
+  description: Find out more about Swagger
+  url: 'http://swagger.io'
+components:
+  schemas:
+    Address:
+      properties:
+        street:
+          type: string
+          example: Lytton
+        number:
+          type: string
+          example: 437
+        city:
+          type: string
+          example: Palo Alto
+        state:
+          type: string
+          example: CA
+        zip:
+          type: string
+          example: 94301
+        country:
+          type: string
+          example: USA
+      type: object
+      required:
+        - street
+        - number
+        - city
+        - state
+        - zip
+        - country
+    User:
+      x-swagger-router-model: io.swagger.user.model.User
+      properties:
+        id:
+          type: string
+          example: 10
+        username:
+          type: string
+          example: theUser
+        email:
+          type: string
+          example: john@email.com
+        pass:
+          type: string
+          example: 12345
+        address:
+          $ref: '#/components/schemas/Address'
+      type: object
+      required:
+        - username
+        - email
+        - pass
+    UserArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/User'
+      description: List of user object
+  securitySchemes:
+    user_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: 'https://users.swagger.io/oauth/authorize'
+          scopes:
+            'write:pets': modify users in your account
+            'read:pets': read your users
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header

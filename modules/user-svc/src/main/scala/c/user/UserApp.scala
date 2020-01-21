@@ -11,7 +11,7 @@ import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import akka.util.Timeout
 import c.cqrs.offsetstore.OffsetStoreService
-import c.user.api.{ UserGrpcApi, UserRestApi }
+import c.user.api.{ UserGrpcApi, UserOpenApi }
 import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserService, UserViewBuilder }
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
@@ -67,7 +67,7 @@ object UserApp {
 
       UserViewBuilder.create(userRepository, offsetStoreService)
 
-      val restApiRoutes = UserRestApi.route(userService, userRepository)(restApiConfig.repositoryTimeout, ec)
+      val restApiRoutes = UserOpenApi.route(userService, userRepository)(restApiConfig.repositoryTimeout, ec, mat)
 
       Http(sys)
         .bindAndHandle(restApiRoutes, restApiConfig.address, restApiConfig.port)

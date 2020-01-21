@@ -54,6 +54,11 @@ lazy val `user-svc` =
     .enablePlugins(AkkaGrpcPlugin)
     .settings(settings)
     .settings(
+      guardrailTasks.in(Compile) := List(
+          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "c.user.api.openapi", tracing = false)
+        )
+    )
+    .settings(
       libraryDependencies ++= Seq(
           library.scalaPbRuntime,
           library.akkaDiscovery,
