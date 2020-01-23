@@ -1,7 +1,7 @@
 package c.user.service
 
 import akka.actor.typed.ActorSystem
-import c.cqrs.ClusterTask
+import c.cqrs.support.ClusterTask
 import c.user.domain.UserEntity
 import com.sksamuel.elastic4s.ElasticClient
 

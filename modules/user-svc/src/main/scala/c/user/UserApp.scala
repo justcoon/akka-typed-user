@@ -12,7 +12,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import c.cqrs.offsetstore.OffsetStoreService
 import c.user.api.{ UserGrpcApi, UserOpenApi }
-import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserService, UserViewBuilder }
+import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserKafkaProducer, UserService, UserViewBuilder }
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
 import pureconfig._
@@ -47,6 +47,9 @@ object UserApp {
       val elasticsearchConfig =
         ConfigSource.fromConfig(config).at("elasticsearch").loadOrThrow[ElasticsearchConfig]
 
+      val kafkaConfig =
+        ConfigSource.fromConfig(config).at("kafka").loadOrThrow[KafkaConfig]
+
       implicit val askTimeout: Timeout = 3.seconds
 
       val userService = new UserService()
@@ -55,7 +58,7 @@ object UserApp {
 
       val elasticClient = {
         val akkaClient = AkkaHttpClient(
-          AkkaHttpClientSettings(Seq(s"${elasticsearchConfig.address}:${elasticsearchConfig.port}"))
+          AkkaHttpClientSettings(elasticsearchConfig.addresses)
         )
 
         ElasticClient(akkaClient)
@@ -66,6 +69,8 @@ object UserApp {
       val userRepository = new UserESRepository(elasticsearchConfig.indexName, elasticClient)
 
       UserViewBuilder.create(userRepository, offsetStoreService)
+
+      UserKafkaProducer.create(kafkaConfig.topic, kafkaConfig.addresses, offsetStoreService)
 
       val restApiRoutes = UserOpenApi.route(userService, userRepository)(restApiConfig.repositoryTimeout, ec, mat)
 
@@ -118,8 +123,9 @@ object UserApp {
   def main(args: Array[String]): Unit =
     ActorSystem[Nothing](RootBehavior(), "user")
 
-  case class ElasticsearchConfig(address: String, port: Int, indexName: String)
-
   case class HttpApiConfig(address: String, port: Int, repositoryTimeout: FiniteDuration)
 
+  case class ElasticsearchConfig(addresses: List[String], indexName: String)
+
+  case class KafkaConfig(addresses: List[String], topic: String)
 }

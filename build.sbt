@@ -31,6 +31,7 @@ lazy val `core` =
           library.akkaSlf4j,
           library.akkaPersistenceQuery,
           library.akkaPersistenceCassandra,
+          library.akkaStreamKafka,
           library.circeGeneric,
           library.circeRefined,
           library.logbackCore,
@@ -71,6 +72,7 @@ lazy val `user-svc` =
           library.akkaSlf4j,
           library.akkaPersistenceQuery,
           library.akkaPersistenceCassandra,
+          library.akkaStreamKafka,
           library.circeGeneric,
           library.circeRefined,
           library.logbackCore,
@@ -102,7 +104,7 @@ lazy val library =
       val akkaHttpJson             = "1.29.1"
       val akkaPersistenceCassandra = "0.101" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
       val akkaPersistenceInmemory  = "2.5.15.2"
-      val alpakka                  = "1.1.2"
+      val akkaStreamKafka          = "2.0.0"
       val circe                    = "0.12.3"
       val logback                  = "1.2.3"
       val scalaTest                = "3.1.0"
@@ -128,10 +130,10 @@ lazy val library =
     val akkaHttpTestkit = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
     val akkaSlf4j       = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
 
-    val alpakkaSse   = "com.lightbend.akka" %% "akka-stream-alpakka-sse" % Version.alpakka
-    val akkaTestkit  = "com.typesafe.akka"  %% "akka-testkit"            % Version.akka
-    val circeGeneric = "io.circe"           %% "circe-generic"           % Version.circe
-    val circeRefined = "io.circe"           %% "circe-refined"           % Version.circe
+    val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
+    val akkaTestkit     = "com.typesafe.akka" %% "akka-testkit"      % Version.akka
+    val circeGeneric    = "io.circe"          %% "circe-generic"     % Version.circe
+    val circeRefined    = "io.circe"          %% "circe-refined"     % Version.circe
 
     val logbackCore    = "ch.qos.logback" % "logback-core"    % Version.logback
     val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback

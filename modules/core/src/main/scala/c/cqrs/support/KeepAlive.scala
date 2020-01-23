@@ -1,7 +1,7 @@
-package c.cqrs
+package c.cqrs.support
 
-import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, EntityTypeKey }
 import akka.cluster.typed.{ ClusterSingleton, ClusterSingletonSettings, SingletonActor }
 
