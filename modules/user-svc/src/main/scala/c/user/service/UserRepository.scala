@@ -4,6 +4,7 @@ import akka.actor.typed.ActorSystem
 import c.cqrs.support.ClusterTask
 import c.user.domain.UserEntity
 import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.requests.searches.queries.{ NoopQuery, QueryStringQuery }
 
 import scala.concurrent.{ ExecutionContext, Future }
 
@@ -16,6 +17,8 @@ trait UserRepository[F[_]] {
   def find(id: UserEntity.UserId): F[Option[UserRepository.User]]
 
   def findAll(): F[Array[UserRepository.User]]
+
+  def search(query: Option[String], page: Int, pageSize: Int): F[UserRepository.PaginatedSequence[UserRepository.User]]
 }
 
 object UserRepository {
@@ -38,12 +41,13 @@ object UserRepository {
       deleted: Boolean = false
   )
 
+  final case class PaginatedSequence[T](items: Seq[T], page: Int, pageSize: Int, count: Int)
 }
 
 final class UserESRepository(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext)
     extends UserRepository[Future] {
 
-  import com.sksamuel.elastic4s.ElasticDsl.{ update => updateIndex, _ }
+  import com.sksamuel.elastic4s.ElasticDsl.{ update => updateIndex, search => searchIndex, _ }
   import com.sksamuel.elastic4s.circe._
   import io.circe.generic.auto._
 
@@ -76,9 +80,21 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
   override def findAll(): Future[Array[UserRepository.User]] =
     elasticClient
       .execute {
-        search(indexName).matchAllQuery
+        searchIndex(indexName).matchAllQuery
       }
       .map(_.result.to[UserRepository.User].toArray)
+
+  override def search(query: Option[String], page: Int, pageSize: Int): Future[UserRepository.PaginatedSequence[UserRepository.User]] = {
+    val q = query.map(QueryStringQuery(_)).getOrElse(NoopQuery)
+    elasticClient
+      .execute {
+        searchIndex(indexName).matchAllQuery.query(q).from(page).limit(pageSize)
+      }
+      .map { res =>
+        val items = res.result.to[UserRepository.User]
+        UserRepository.PaginatedSequence(items, page, pageSize, res.result.totalHits.toInt)
+      }
+  }
 }
 
 trait UserRepositoryInitializer[F[_]] {

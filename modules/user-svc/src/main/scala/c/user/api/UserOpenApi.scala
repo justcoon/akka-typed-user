@@ -2,9 +2,10 @@ package c.user.api
 
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
-import c.user.api.openapi.definitions.User
+import c.user.api.openapi.definitions.{ Address, User, UserSearchResponse }
 import c.user.api.openapi.user.{ UserHandler, UserResource }
 import c.user.domain.UserEntity
+import c.user.domain.proto
 import c.user.service.{ UserRepository, UserService }
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -47,13 +48,38 @@ object UserOpenApi {
         }
       }
 
-      override def updateUser(
-          respond: UserResource.updateUserResponse.type
-      )(id: String, body: User): Future[UserResource.updateUserResponse] =
-        Future.successful(UserResource.updateUserResponseBadRequest) // FIXME
+      override def updateUserAddress(
+          respond: UserResource.updateUserAddressResponse.type
+      )(id: String, body: Address): Future[UserResource.updateUserAddressResponse] = {
+        import UserEntity._
+        val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
+        userService.sendCommand(cmd).map {
+          case _: UserEntity.UserAddressChangedReply => UserResource.updateUserAddressResponseOK
+          case _: UserEntity.UserNotExistsReply      => UserResource.updateUserAddressResponseBadRequest
+        }
+      }
+
+      override def deleteUserAddress(
+          respond: UserResource.deleteUserAddressResponse.type
+      )(id: String): Future[UserResource.deleteUserAddressResponse] = {
+        import UserEntity._
+        val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
+        userService.sendCommand(cmd).map {
+          case _: UserEntity.UserAddressChangedReply => UserResource.deleteUserAddressResponseOK
+          case _: UserEntity.UserNotExistsReply      => UserResource.deleteUserAddressResponseBadRequest
+        }
+      }
 
       override def deleteUser(respond: UserResource.deleteUserResponse.type)(id: String): Future[UserResource.deleteUserResponse] =
         Future.successful(UserResource.deleteUserResponseBadRequest) // FIXME
+
+      override def searchUsers(
+          respond: UserResource.searchUsersResponse.type
+      )(query: Option[String], page: Int, pageSize: Int): Future[UserResource.searchUsersResponse] =
+        userRepository.search(query, page, pageSize).map { res =>
+          val items = res.items.map(_.transformInto[User]).toVector
+          UserResource.searchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
+        }
     }
   }
 }

@@ -3,7 +3,7 @@ servers:
   - url: /v1
 info:
   description: |-
-   User svc OpenAPI 3.0 specification.
+    User svc OpenAPI 3.0 specification.
   version: 1.0.0-SNAPSHOT
   title: User svc - OpenAPI 3.0
   termsOfService: 'http://swagger.io/terms/'
@@ -55,60 +55,60 @@ paths:
             schema:
               $ref: '#/components/schemas/User'
         description: Created user object
-#  /user/login:
-#    get:
-#      tags:
-#        - user
-#      summary: Logs user into the system
-#      description: ''
-#      operationId: loginUser
-#      parameters:
-#        - name: username
-#          in: query
-#          description: The user name for login
-#          required: false
-#          schema:
-#            type: string
-#        - name: password
-#          in: query
-#          description: The password for login in clear text
-#          required: false
-#          schema:
-#            type: string
-#      responses:
-#        '200':
-#          description: successful operation
-#          headers:
-#            X-Rate-Limit:
-#              description: calls per hour allowed by the user
-#              schema:
-#                type: integer
-#                format: int32
-#            X-Expires-After:
-#              description: date in UTC when toekn expires
-#              schema:
-#                type: string
-#                format: date-time
-#          content:
-#            application/xml:
-#              schema:
-#                type: string
-#            application/json:
-#              schema:
-#                type: string
-#        '400':
-#          description: Invalid username/password supplied
-#  /user/logout:
-#    get:
-#      tags:
-#        - user
-#      summary: Logs out current logged in user session
-#      description: ''
-#      operationId: logoutUser
-#      parameters: []
-#      responses:
-#        default:
-#          description: successful operation
+  #  /user/login:
+  #    get:
+  #      tags:
+  #        - user
+  #      summary: Logs user into the system
+  #      description: ''
+  #      operationId: loginUser
+  #      parameters:
+  #        - name: username
+  #          in: query
+  #          description: The user name for login
+  #          required: false
+  #          schema:
+  #            type: string
+  #        - name: password
+  #          in: query
+  #          description: The password for login in clear text
+  #          required: false
+  #          schema:
+  #            type: string
+  #      responses:
+  #        '200':
+  #          description: successful operation
+  #          headers:
+  #            X-Rate-Limit:
+  #              description: calls per hour allowed by the user
+  #              schema:
+  #                type: integer
+  #                format: int32
+  #            X-Expires-After:
+  #              description: date in UTC when toekn expires
+  #              schema:
+  #                type: string
+  #                format: date-time
+  #          content:
+  #            application/xml:
+  #              schema:
+  #                type: string
+  #            application/json:
+  #              schema:
+  #                type: string
+  #        '400':
+  #          description: Invalid username/password supplied
+  #  /user/logout:
+  #    get:
+  #      tags:
+  #        - user
+  #      summary: Logs out current logged in user session
+  #      description: ''
+  #      operationId: logoutUser
+  #      parameters: []
+  #      responses:
+  #        default:
+  #          description: successful operation
   '/user/{id}':
     get:
       tags:
@@ -132,32 +132,6 @@ paths:
                 $ref: '#/components/schemas/User'
         '404':
           description: User not found
-    put:
-      tags:
-        - user
-      summary: Update user
-      x-swagger-router-controller: UserController
-      description: This can only be done by the logged in user.
-      operationId: updateUser
-      parameters:
-        - name: id
-          in: path
-          description: id that need to be deleted
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: successful operation
-        '400':
-          description: failed operation
-      requestBody:
-        required: true
-        description: Update an existent user in the store
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
     delete:
       tags:
         - user
@@ -176,6 +150,89 @@ paths:
           description: Invalid username supplied
         '404':
           description: User not found
+  '/user/{id}/address':
+    put:
+      tags:
+        - user
+      summary: Update user adddress
+      x-swagger-router-controller: UserController
+      description: This can only be done by the logged in user.
+      operationId: updateUserAddress
+      parameters:
+        - name: id
+          in: path
+          description: id that need to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: failed operation
+      requestBody:
+        required: true
+        description: Update an existent user address in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+    delete:
+      tags:
+        - user
+      summary: Delete user address
+      description: This can only be done by the logged in user.
+      operationId: deleteUserAddress
+      parameters:
+        - name: id
+          in: path
+          description: The id that needs to be deleted
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: failed operation
+  /user/search:
+    get:
+      tags:
+        - user
+      summary: Search users
+      description: ''
+      operationId: searchUsers
+      parameters:
+        - name: query
+          description: search query
+          in: query
+          required: false
+          schema:
+            type: string
+          example: search
+        - name: page
+          description: page number
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 0
+        - name: pageSize
+          description: page size
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 10
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponse'
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
@@ -236,6 +293,31 @@ components:
       items:
         $ref: '#/components/schemas/User'
       description: List of user object
+    UserSearchResponse:
+      description: User search response
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          type: integer
+          format: int32
+          example: 0
+        pageSize:
+          type: integer
+          format: int32
+          example: 10
+        count:
+          type: integer
+          format: int32
+          example: 12
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - count
   securitySchemes:
     user_auth:
       type: oauth2
@@ -243,8 +325,8 @@ components:
         implicit:
           authorizationUrl: 'https://users.swagger.io/oauth/authorize'
           scopes:
-            'write:pets': modify users in your account
-            'read:pets': read your users
+            'write:users': modify users in your account
+            'read:users': read your users
     api_key:
       type: apiKey
       name: api_key

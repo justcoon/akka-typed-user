@@ -49,15 +49,29 @@ message UpdatePasswordReq {
     string pass = 2;
 }
 
+
+message UpdatePasswordRes {
+    string id = 1;
+}
+
+
 message UpdateAddressReq {
     string id = 1;
     c.user.domain.proto.Address address = 2;
 }
 
+message UpdateAddressRes {
+    string id = 1;
+}
 
 message UpdateEmailReq {
     string id = 1;
     string email = 2;
+}
+
+
+message UpdateEmailRes {
+    string id = 1;
 }
 
 message GetUserReq {
@@ -75,12 +89,43 @@ message GetUsersRes {
     repeated c.user.domain.proto.User users = 1;
 }
 
+
+message SearchUsersReq {
+    string query = 1 [(scalapb.field).no_box = false];
+    int32 page = 2;
+    int32 pageSize = 3;
+}
+
+
+message SearchUsersRes {
+    repeated c.user.domain.proto.User users = 1;
+    int32 page = 2;
+    int32 pageSize = 3;
+    int32 count = 4;
+}
+
+
 service UserApiService {
-//    rpc NewSession (stream Req) returns (stream Rsp) {}
+    //    rpc NewSession (stream Req) returns (stream Rsp) {}
 
-    rpc RegisterUser (RegisterUserReq) returns (RegisterUserRes) {}
+    rpc RegisterUser (RegisterUserReq) returns (RegisterUserRes) {
+    }
 
-    rpc GetUser (GetUserReq) returns (GetUserRes) {}
+    rpc UpdateUserEmail (UpdateEmailReq) returns (UpdateEmailRes) {
+    }
 
-    rpc GetUsers (GetUsersReq) returns (GetUsersRes) {}
+    rpc UpdateUserPassword (UpdatePasswordReq) returns (UpdatePasswordRes) {
+    }
+
+    rpc UpdateUserAddress (UpdateAddressReq) returns (UpdateAddressRes) {
+    }
+
+    rpc GetUser (GetUserReq) returns (GetUserRes) {
+    }
+
+    rpc GetUsers (GetUsersReq) returns (GetUsersRes) {
+    }
+
+    rpc SearchUsers (SearchUsersReq) returns (SearchUsersRes) {
+    }
 }
