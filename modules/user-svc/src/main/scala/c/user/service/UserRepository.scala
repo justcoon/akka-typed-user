@@ -1,7 +1,7 @@
 package c.user.service
 
 import akka.actor.typed.ActorSystem
-import c.cqrs.support.ClusterTask
+import c.support.ClusterTask
 import c.user.domain.UserEntity
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.requests.searches.queries.{ NoopQuery, QueryStringQuery }

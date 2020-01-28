@@ -1,4 +1,4 @@
-package c.cqrs.support
+package c.support
 
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorRef, ActorSystem, Behavior, SupervisorStrategy }

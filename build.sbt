@@ -1,3 +1,5 @@
+import com.lightbend.sbt.javaagent.Modules
+import sbt.Keys.javaOptions
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -38,9 +40,7 @@ lazy val `core` =
           library.logbackClassic,
           library.bcrypt,
           library.pureconfig,
-          library.elastic4sClientAkka,
-          library.elastic4sCirce,
-          //        library.elastic4sEmbedded,
+          library.pauldijouJwtCirce,
           library.chimney,
           library.akkaHttpTestkit         % Test,
           library.akkaPersistenceInmemory % Test,
@@ -53,8 +53,9 @@ lazy val `user-svc` =
   (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
     .enablePlugins(AkkaGrpcPlugin)
-    .settings(settings)
+    .settings(settings ++ javaAgentsSettings)
     .settings(
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
       guardrailTasks.in(Compile) := List(
           ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "c.user.api.openapi", tracing = false)
         )
@@ -81,7 +82,11 @@ lazy val `user-svc` =
           library.pureconfig,
           library.elastic4sClientAkka,
           library.elastic4sCirce,
-          //        library.elastic4sEmbedded,
+          library.pauldijouJwtCirce,
+          library.kamonAkka,
+          library.kamonAkkaHttp,
+          library.kamonPrometheus,
+          library.kamonSystem,
           library.chimney,
           library.akkaHttpTestkit         % Test,
           library.akkaPersistenceInmemory % Test,
@@ -99,7 +104,7 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.1"
+      val akka                     = "2.6.3"
       val akkaHttp                 = "10.1.11"
       val akkaHttpJson             = "1.29.1"
       val akkaPersistenceCassandra = "0.101" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
@@ -113,6 +118,14 @@ lazy val library =
       val pureconfig               = "0.12.1"
       val chimney                  = "0.3.5"
       val akkaKryo                 = "1.1.0"
+
+      val pauldijouJwt = "4.2.0"
+
+      val kamon           = "2.0.4"
+      val kamonPrometheus = "2.0.1"
+      val kamonAkka       = "2.0.2"
+      val kamonAkkaHttp   = "2.0.3"
+      val kamonKanela     = "1.0.4"
     }
 
     val akkaPersistenceQuery     = "com.typesafe.akka"   %% "akka-persistence-query"     % Version.akka
@@ -144,6 +157,14 @@ lazy val library =
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
     val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
     val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
+
+    val pauldijouJwtCirce = "com.pauldijou" %% "jwt-circe" % Version.pauldijouJwt
+
+    val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
+    val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
+    val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
+    val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
+    val kamonKanelaAgent = "io.kamon" % "kanela-agent"          % Version.kamonKanela
 
     val chimney = "io.scalaland" %% "chimney" % Version.chimney
 
@@ -201,4 +222,12 @@ lazy val dockerSettings =
     dockerBaseImage := "openjdk:8",
     dockerExposedPorts := Vector(2551, 8000),
     dockerRepository := Some("justcoon")
+  )
+
+// https://github.com/kamon-io/kamon-bundle/blob/master/build.sbt
+// http://kamon-io.github.io/kanela/
+lazy val javaAgentsSettings =
+  Seq(
+//    javaAgents += library.kamonKanelaAgent, // FIXME scala 2.13
+    javaOptions in Universal += "-Dorg.aspectj.tracing.factory=default"
   )

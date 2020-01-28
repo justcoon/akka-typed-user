@@ -4,8 +4,8 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.{ ActorSystem, Behavior, PostStop }
 import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
 import akka.stream.KillSwitches
-import c.cqrs.support.KeepAlive
 import c.cqrs.{ EntityEvent, EntityEventTagger }
+import c.support.KeepAlive
 
 import scala.concurrent.duration.FiniteDuration
 

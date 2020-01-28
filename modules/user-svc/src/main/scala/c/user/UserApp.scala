@@ -10,11 +10,13 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import akka.util.Timeout
+import c.auth.jwt.JwtConfig
 import c.cqrs.offsetstore.OffsetStoreService
 import c.user.api.{ UserGrpcApi, UserOpenApi }
 import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserKafkaProducer, UserService, UserViewBuilder }
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
+import kamon.Kamon
 import pureconfig._
 import pureconfig.generic.auto._
 
@@ -49,6 +51,12 @@ object UserApp {
 
       val kafkaConfig =
         ConfigSource.fromConfig(config).at("kafka").loadOrThrow[KafkaConfig]
+
+//      val jwtConfig =
+//        ConfigSource.fromConfig(config).at("jwt").loadOrThrow[JwtConfig]
+
+      sys.log.info("Kamon init")
+      Kamon.init()
 
       implicit val askTimeout: Timeout = 3.seconds
 
