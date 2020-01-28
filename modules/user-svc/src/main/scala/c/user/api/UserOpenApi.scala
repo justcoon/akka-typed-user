@@ -1,16 +1,52 @@
 package c.user.api
 
+import akka.Done
+import akka.actor.{ ActorSystem, CoordinatedShutdown }
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.util.Timeout
+import c.user.UserApp.HttpApiConfig
 import c.user.api.openapi.definitions.{ Address, User, UserSearchResponse }
 import c.user.api.openapi.user.{ UserHandler, UserResource }
 import c.user.domain.UserEntity
 import c.user.domain.proto
 import c.user.service.{ UserRepository, UserService }
-
+import org.slf4j.LoggerFactory
+import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 object UserOpenApi {
+
+  private final object BindFailure extends CoordinatedShutdown.Reason
+
+  def server(
+      userService: UserService,
+      userRepository: UserRepository[Future],
+      shutdown: CoordinatedShutdown,
+      config: HttpApiConfig
+  )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
+    val log           = LoggerFactory.getLogger(this.getClass)
+    val restApiRoutes = route(userService, userRepository)(config.repositoryTimeout, ec, mat)
+
+    Http(sys)
+      .bindAndHandle(restApiRoutes, config.address, config.port)
+      .onComplete {
+        case Success(binding) =>
+          val address = binding.localAddress
+          log.info("http endpoint url: http://{}:{}/ - started", address.getHostString, address.getPort)
+
+          shutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone, "http-graceful-terminate") { () =>
+            binding.terminate(10.seconds).map { _ =>
+              log.info("http endpoint url: http://{}:{}/ - graceful shutdown completed", address.getHostString, address.getPort)
+              Done
+            }
+          }
+        case Failure(ex) =>
+          log.error("http endpoint - failed to bind, terminating system", ex)
+          shutdown.run(BindFailure)
+      }
+  }
 
   def route(
       userService: UserService,

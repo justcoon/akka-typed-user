@@ -80,47 +80,9 @@ object UserApp {
 
       UserKafkaProducer.create(kafkaConfig.topic, kafkaConfig.addresses, offsetStoreService)
 
-      val restApiRoutes = UserOpenApi.route(userService, userRepository)(restApiConfig.repositoryTimeout, ec, mat)
+      UserOpenApi.server(userService, userRepository, shutdown, restApiConfig)(restApiConfig.repositoryTimeout, ec, mat, classicSys)
 
-      Http(sys)
-        .bindAndHandle(restApiRoutes, restApiConfig.address, restApiConfig.port)
-        .onComplete {
-          case Success(binding) =>
-            val address = binding.localAddress
-            sys.log.info("http endpoint url: http://{}:{}/ - started", address.getHostString, address.getPort)
-
-            shutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone, "http-graceful-terminate") { () =>
-              binding.terminate(10.seconds).map { _ =>
-                sys.log
-                  .info("http endpoint url: http://{}:{}/ - graceful shutdown completed", address.getHostString, address.getPort)
-                Done
-              }
-            }
-          case Failure(ex) =>
-            sys.log.error("http endpoint - failed to bind, terminating system", ex)
-            sys.terminate()
-        }
-
-      val grpcApiHandler = UserGrpcApi.handler(userService, userRepository)(grpcApiConfig.repositoryTimeout, ec, mat, classicSys)
-
-      Http(sys)
-        .bindAndHandleAsync(grpcApiHandler, grpcApiConfig.address, grpcApiConfig.port)
-        .onComplete {
-          case Success(binding) =>
-            val address = binding.localAddress
-            sys.log.info("grpc endpoint url: http://{}:{}/ - started", address.getHostString, address.getPort)
-
-            shutdown.addTask(CoordinatedShutdown.PhaseServiceRequestsDone, "grpc-graceful-terminate") { () =>
-              binding.terminate(10.seconds).map { _ =>
-                sys.log
-                  .info("grpc endpoint url: http://{}:{}/ - graceful shutdown completed", address.getHostString, address.getPort)
-                Done
-              }
-            }
-          case Failure(ex) =>
-            sys.log.error("grpc endpoint - failed to bind, terminating system", ex)
-            sys.terminate()
-        }
+      UserGrpcApi.server(userService, userRepository, shutdown, grpcApiConfig)(grpcApiConfig.repositoryTimeout, ec, mat, classicSys)
 
       log.info("user up and running")
 

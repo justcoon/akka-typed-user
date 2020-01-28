@@ -106,7 +106,7 @@ lazy val library =
     object Version {
       val akka                     = "2.6.3"
       val akkaHttp                 = "10.1.11"
-      val akkaHttpJson             = "1.29.1"
+      val akkaHttpJson             = "1.30.0"
       val akkaPersistenceCassandra = "0.101" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
       val akkaPersistenceInmemory  = "2.5.15.2"
       val akkaStreamKafka          = "2.0.0"
