@@ -32,6 +32,12 @@ option (scalapb.options) = {
 //    Address address = 5;
 //}
 
+//message ResResult {
+//    oneof result {
+//        string success = 1;
+//        string failure = 2;
+//    }
+//}
 
 message RegisterUserReq {
     string username = 1;
@@ -42,6 +48,10 @@ message RegisterUserReq {
 
 message RegisterUserRes {
     string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
 }
 
 message UpdatePasswordReq {
@@ -52,6 +62,10 @@ message UpdatePasswordReq {
 
 message UpdatePasswordRes {
     string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
 }
 
 
@@ -62,6 +76,10 @@ message UpdateAddressReq {
 
 message UpdateAddressRes {
     string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
 }
 
 message UpdateEmailReq {
@@ -72,6 +90,10 @@ message UpdateEmailReq {
 
 message UpdateEmailRes {
     string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
 }
 
 message GetUserReq {

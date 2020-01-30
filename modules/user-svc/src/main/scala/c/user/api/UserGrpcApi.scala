@@ -75,8 +75,10 @@ object UserGrpcApi {
         val cmd = in.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, _ => id).transform
 
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserCreatedReply       => RegisterUserRes(reply.entityId)
-          case reply: UserEntity.UserAlreadyExistsReply => RegisterUserRes(reply.entityId) // FIXME
+          case reply: UserEntity.UserCreatedReply =>
+            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
+          case reply: UserEntity.UserAlreadyExistsReply =>
+            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure("User already exits"))
         }
       }
 
@@ -84,8 +86,10 @@ object UserGrpcApi {
         import UserEntity._
         val cmd = UserEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserEmailChangedReply => UpdateEmailRes(reply.entityId)
-          case reply: UserEntity.UserNotExistsReply    => UpdateEmailRes(reply.entityId) // FIXME
+          case reply: UserEntity.UserEmailChangedReply =>
+            UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Success("User email updated"))
+          case reply: UserEntity.UserNotExistsReply =>
+            UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Failure("User not exits"))
         }
       }
 
@@ -93,8 +97,10 @@ object UserGrpcApi {
         import UserEntity._
         val cmd = UserEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserPasswordChangedReply => UpdatePasswordRes(reply.entityId)
-          case reply: UserEntity.UserNotExistsReply       => UpdatePasswordRes(reply.entityId) // FIXME
+          case reply: UserEntity.UserPasswordChangedReply =>
+            UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Success("User password updated"))
+          case reply: UserEntity.UserNotExistsReply =>
+            UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Failure("User not exists"))
         }
       }
 
@@ -102,8 +108,10 @@ object UserGrpcApi {
         import UserEntity._
         val cmd = UserEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply => UpdateAddressRes(reply.entityId)
-          case reply: UserEntity.UserNotExistsReply      => UpdateAddressRes(reply.entityId) // FIXME
+          case reply: UserEntity.UserAddressChangedReply =>
+            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Success("User address updated"))
+          case reply: UserEntity.UserNotExistsReply =>
+            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure("User not exists"))
         }
       }
 
