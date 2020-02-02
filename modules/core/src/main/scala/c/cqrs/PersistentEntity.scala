@@ -5,16 +5,10 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.cluster.sharding.typed.scaladsl.{ EntityContext, EntityTypeKey }
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{ Effect, EffectBuilder, EventSourcedBehavior, ReplyEffect }
-import c.cqrs.PersistentEntity.CommandExpectingReply
+import c.cqrs.BasicPersistentEntity.CommandExpectingReply
 
-abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
+abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
     val entityName: String
-)(
-    implicit
-    initialProcessor: InitialCommandProcessor[C, E],
-    processor: CommandProcessor[InnerState, C, E],
-    initialApplier: InitialEventApplier[InnerState, E],
-    applier: EventApplier[InnerState, E]
 ) {
 
   sealed trait OuterState
@@ -28,30 +22,9 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
   val entityTypeKey: EntityTypeKey[Command] =
     EntityTypeKey[Command](entityName)
 
-  private val commandHandler: (OuterState, Command) => ReplyEffect[E, OuterState] =
-    (entityState, command) => {
-      entityState match {
-        case _: Uninitialized =>
-          val events = initialProcessor.process(command.command)
-          command.uninitializedReplyAfter(
-            if (events.nonEmpty) Effect.persist(events) else Effect.none
-          )
-        case Initialized(innerState) =>
-          val events = processor.process(innerState, command.command)
-          command.initializedReplyAfter(
-            if (events.nonEmpty) Effect.persist(events) else Effect.none,
-            innerState
-          )
-      }
-    }
+  protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState]
 
-  private val eventHandler: (OuterState, E) => OuterState = { (entityState, event) =>
-    entityState match {
-      case uninitialized @ Uninitialized(_) =>
-        initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
-      case Initialized(state) => Initialized(applier.apply(state, event))
-    }
-  }
+  protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState
 
   def entityIdFromString(id: String): ID
 
@@ -84,26 +57,80 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
     EventSourcedBehavior[Command, E, OuterState](
       persistenceId,
       Uninitialized(id),
-      commandHandler,
-      eventHandler
+      commandHandler(actorContext),
+      eventHandler(actorContext)
     )
 }
 
-object PersistentEntity {
+abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
+    entityName: String
+)(
+    implicit
+    initialProcessor: InitialCommandProcessor[C, E],
+    processor: CommandProcessor[InnerState, C, E],
+    initialApplier: InitialEventApplier[InnerState, E],
+    applier: EventApplier[InnerState, E]
+) extends BasicPersistentEntity[ID, InnerState, C, E](entityName) {
 
-  case class CommandExpectingReply[R, InnerState, C[Reply] <: EntityCommand[_, InnerState, Reply]](
-      command: C[R]
-  )(
-      val replyTo: ActorRef[R]
-  ) /*extends ExpectingReply[R]*/ {
-    def initializedReplyAfter[E, S](
-        effect: EffectBuilder[E, S],
-        state: InnerState
-    ): ReplyEffect[E, S] =
-      effect.thenReply(replyTo)(_ => command.initializedReply(state))
+  protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState] =
+    (entityState, command) => {
+      entityState match {
+        case _: Uninitialized =>
+          val result = initialProcessor.process(command.command)
+          BasicPersistentEntity.handleProcessResult(result, command.replyTo)
+        case Initialized(innerState) =>
+          val result = processor.process(innerState, command.command)
+          BasicPersistentEntity.handleProcessResult(result, command.replyTo)
+      }
+    }
 
-    def uninitializedReplyAfter[E, S](effect: EffectBuilder[E, S]): ReplyEffect[E, S] =
-      effect.thenReply(replyTo)(_ => command.uninitializedReply)
+  protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState = { (entityState, event) =>
+    entityState match {
+      case uninitialized @ Uninitialized(_) =>
+        initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
+      case Initialized(state) => Initialized(applier.apply(state, event))
+    }
+  }
+}
+
+object BasicPersistentEntity {
+
+  case class CommandExpectingReply[R, InnerState, C[R] <: EntityCommand[_, InnerState, R]](command: C[R])(val replyTo: ActorRef[R])
+
+//  def initializedReplyAfter[R, InnerState, C[R] <: EntityCommand[_, InnerState, R], E, S](
+//      command: CommandExpectingReply[R, InnerState, C],
+//      effect: EffectBuilder[E, S],
+//      state: InnerState
+//  ): ReplyEffect[E, S] =
+//    command.command.reply match {
+//      case commandReply: EntityCommandReply.Reply[InnerState, R] =>
+//        effect.thenReply(command.replyTo)(_ => commandReply.initializedReply(state))
+//      case EntityCommandReply.NoReply =>
+//        effect.thenNoReply()
+//    }
+//
+//  def uninitializedReplyAfter[R, InnerState, C[R] <: EntityCommand[_, InnerState, R], E, S](
+//      command: CommandExpectingReply[R, InnerState, C],
+//      effect: EffectBuilder[E, S]
+//  ): ReplyEffect[E, S] =
+//    command.command.reply match {
+//      case commandReply: EntityCommandReply.Reply[InnerState, R] =>
+//        effect.thenReply(command.replyTo)(_ => commandReply.uninitializedReply)
+//      case EntityCommandReply.NoReply =>
+//        effect.thenNoReply()
+//    }
+
+  def handleProcessResult[R, E <: EntityEvent[_], S](
+      result: CommandProcessResult[E],
+      replyTo: ActorRef[R]
+  ): ReplyEffect[E, S] = {
+    val effect: EffectBuilder[E, S] = if (result.events.nonEmpty) Effect.persist(result.events) else Effect.none
+    result.reply match {
+      case commandReply: CommandReply.Reply[R] =>
+        effect.thenReply(replyTo)(_ => commandReply.reply)
+      case CommandReply.NoReply =>
+        effect.thenNoReply()
+    }
   }
 
 }

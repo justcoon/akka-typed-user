@@ -33,19 +33,9 @@ object OffsetStoreEntity {
   final case class CreateOrUpdateOffsetStoreCommand(
       entityId: OffsetStoreId,
       offset: Offset
-  ) extends OffsetStoreCommand[CreateOrUpdateOffsetStoreReply] {
+  ) extends OffsetStoreCommand[CreateOrUpdateOffsetStoreReply]
 
-    override def initializedReply: OffsetStore => CreateOrUpdateOffsetStoreReply = _ => OffsetStoreUpdatedReply(entityId)
-
-    override def uninitializedReply: CreateOrUpdateOffsetStoreReply = OffsetStoreCreatedReply(entityId)
-  }
-
-  final case class GetOffsetStoreCommand(entityId: OffsetStoreId) extends OffsetStoreCommand[GetOffsetStoreReply] {
-
-    override def initializedReply: OffsetStore => GetOffsetStoreReply = offsetStore => OffsetStoreReply(offsetStore)
-
-    override def uninitializedReply: GetOffsetStoreReply = OffsetStoreNotExistsReply(entityId)
-  }
+  final case class GetOffsetStoreCommand(entityId: OffsetStoreId) extends OffsetStoreCommand[GetOffsetStoreReply]
 
   sealed trait CreateOrUpdateOffsetStoreReply
 
@@ -63,20 +53,23 @@ object OffsetStoreEntity {
 
   implicit val initialCommandProcessor: InitialCommandProcessor[OffsetStoreCommand, OffsetStoreEvent] = {
     case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-      List(OffsetStoreCreatedEvent(entityId, offset, Instant.now))
+      val events = List(OffsetStoreCreatedEvent(entityId, offset, Instant.now))
+      val reply  = CommandReply.Reply[CreateOrUpdateOffsetStoreReply](OffsetStoreCreatedReply(entityId))
+      CommandProcessResult(events, reply)
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
-      Nil
+      CommandProcessResult(Nil, CommandReply.Reply(OffsetStoreNotExistsReply(otherCommand.entityId)))
   }
 
   implicit val commandProcessor: CommandProcessor[OffsetStore, OffsetStoreCommand, OffsetStoreEvent] =
     (state, command) =>
       command match {
         case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-          List(OffsetStoreUpdatedEvent(entityId, offset, Instant.now))
+          val events = List(OffsetStoreUpdatedEvent(entityId, offset, Instant.now))
+          val reply  = CommandReply.Reply[CreateOrUpdateOffsetStoreReply](OffsetStoreUpdatedReply(entityId))
+          CommandProcessResult(events, reply)
         case GetOffsetStoreCommand(_) =>
-          Nil
-        case _ => Nil
+          CommandProcessResult(Nil, CommandReply.Reply(state))
       }
 
   implicit val initialEventApplier: InitialEventApplier[OffsetStore, OffsetStoreEvent] = {

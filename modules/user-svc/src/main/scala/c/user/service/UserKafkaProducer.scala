@@ -38,7 +38,7 @@ object UserKafkaProducer {
     val handleEvent: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
       FlowWithContext[UserEntity.UserEvent, Offset]
         .map { event =>
-          val key     = getKafkaPartitionKey(event)
+          val key     = userEventKafkaPartitionKey(event)
           val record  = new ProducerRecord(kafkaTopic, key, event)
           val message = ProducerMessage.single(record)
           message
@@ -55,8 +55,7 @@ object UserKafkaProducer {
     )
   }
 
-  def getKafkaPartitionKey(event: UserEntity.UserEvent): String =
-    event.entityId
+  val userEventKafkaPartitionKey: (UserEntity.UserEvent => String) = event => event.entityId
 
   val userEventProtoKafkaSerializer: Serializer[UserEntity.UserEvent] = (_: String, data: UserEntity.UserEvent) => {
     data.asInstanceOf[scalapb.GeneratedMessage].toByteArray

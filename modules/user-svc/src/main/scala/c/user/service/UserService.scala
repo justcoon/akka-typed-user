@@ -8,6 +8,7 @@ import c.user.domain.{ UserEntity, UserPersistentEntity }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import c.user.domain.proto._
+
 class UserService()(
     implicit val sharding: ClusterSharding,
     val actorSystem: ActorSystem[_],

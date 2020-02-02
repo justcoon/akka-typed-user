@@ -1,28 +1,22 @@
 package c.user
 
-import akka.Done
 import akka.actor.CoordinatedShutdown
-import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
+import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
-import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.RouteResult._
 import akka.stream.Materializer
 import akka.util.Timeout
-import c.auth.jwt.JwtConfig
 import c.cqrs.offsetstore.OffsetStoreService
 import c.user.api.{ UserGrpcApi, UserOpenApi }
-import c.user.service.{ UserESRepository, UserESRepositoryInitializer, UserKafkaProducer, UserService, UserViewBuilder }
+import c.user.service._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
 import kamon.Kamon
 import pureconfig._
 import pureconfig.generic.auto._
 
-import scala.concurrent.duration._
-import scala.concurrent.duration.FiniteDuration
-import scala.util.{ Failure, Success }
+import scala.concurrent.duration.{ FiniteDuration, _ }
 
 object UserApp {
 
