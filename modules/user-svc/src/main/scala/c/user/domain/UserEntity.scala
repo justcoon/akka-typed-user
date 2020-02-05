@@ -99,33 +99,29 @@ object UserEntity {
     case CreateUserCommand(entityId, username, email, pass, address) =>
       val encryptedPass = pass.bcrypt
       val events        = List(UserCreatedEvent(entityId, username, email, encryptedPass, address, Instant.now))
-      val reply         = CommandReply.Reply[CreateUserReply](UserCreatedReply(entityId))
-      CommandProcessResult(events, reply)
+      CommandProcessResult.withReply(events, UserCreatedReply(entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
-      CommandProcessResult(Nil, CommandReply.Reply(UserNotExistsReply(otherCommand.entityId)))
+      CommandProcessResult.withReply(UserNotExistsReply(otherCommand.entityId))
   }
 
   implicit val commandProcessor: CommandProcessor[User, UserCommand, UserEvent] =
     (state, command) =>
       command match {
         case CreateUserCommand(entityId, _, _, _, _) =>
-          CommandProcessResult(Nil, CommandReply.Reply(UserAlreadyExistsReply(entityId)))
+          CommandProcessResult.withReply(UserAlreadyExistsReply(entityId))
         case ChangeUserEmailCommand(entityId, email) =>
           val events = List(UserEmailChangedEvent(entityId, email, Instant.now))
-          val reply  = CommandReply.Reply[ChangeUserEmailReply](UserEmailChangedReply(entityId))
-          CommandProcessResult(events, reply)
+          CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
         case ChangeUserPasswordCommand(entityId, pass) =>
           val encryptedPass = pass.bcrypt
           val events        = List(UserPasswordChangedEvent(entityId, encryptedPass, Instant.now))
-          val reply         = CommandReply.Reply[ChangeUserEmailReply](UserEmailChangedReply(entityId))
-          CommandProcessResult(events, reply)
+          CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
         case ChangeUserAddressCommand(entityId, addr) =>
           val events = List(UserAddressChangedEvent(entityId, addr, Instant.now))
-          val reply  = CommandReply.Reply[ChangeUserAddressReply](UserAddressChangedReply(entityId))
-          CommandProcessResult(events, reply)
+          CommandProcessResult.withReply(events, UserAddressChangedReply(entityId))
         case GetUserCommand(_) =>
-          CommandProcessResult(Nil, CommandReply.Reply[GetUserReply](UserReply(state)))
+          CommandProcessResult.withReply(UserReply(state))
       }
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEvent] = {
