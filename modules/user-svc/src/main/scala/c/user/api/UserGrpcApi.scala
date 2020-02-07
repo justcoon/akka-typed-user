@@ -79,6 +79,8 @@ object UserGrpcApi {
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
           case reply: UserEntity.UserAlreadyExistsReply =>
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure("User already exits"))
+          case reply: UserEntity.UserCreatedFailedReply =>
+            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure(s"User register error (${reply.error})"))
         }
       }
 
@@ -112,6 +114,8 @@ object UserGrpcApi {
             UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Success("User address updated"))
           case reply: UserEntity.UserNotExistsReply =>
             UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure("User not exists"))
+          case reply: UserEntity.UserAddressChangedFailedReply =>
+            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure(s"User address update error (${reply.error})"))
         }
       }
 

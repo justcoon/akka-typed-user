@@ -4,7 +4,7 @@ import akka.actor.typed.ActorSystem
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.util.Timeout
 import c.cqrs.TypedActorEntityService
-import c.user.domain.{ UserEntity, UserPersistentEntity }
+import c.user.domain.{ SimpleAddressValidator, UserEntity, UserPersistentEntity }
 
 import scala.concurrent.{ ExecutionContext, Future }
 import c.user.domain.proto._
@@ -17,6 +17,6 @@ class UserService()(
     //  with UserService[Future]
     {
   implicit val executionContext: ExecutionContext = actorSystem.executionContext
-  lazy val persistentEntity                       = UserPersistentEntity()
+  lazy val persistentEntity                       = UserPersistentEntity(new SimpleAddressValidator)
 
 }

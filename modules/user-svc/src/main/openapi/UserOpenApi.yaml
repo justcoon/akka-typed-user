@@ -48,6 +48,10 @@ paths:
                 type: string
         '400':
           description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
       requestBody:
         required: true
         content:
@@ -152,6 +156,10 @@ paths:
           description: Invalid username supplied
         '404':
           description: User not found
+          content:
+            application/json:
+              schema:
+                type: string
   '/user/{id}/address':
     put:
       tags:
@@ -170,8 +178,16 @@ paths:
       responses:
         '200':
           description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
         '400':
           description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
       requestBody:
         required: true
         description: Update an existent user address in the store
@@ -195,8 +211,16 @@ paths:
       responses:
         '200':
           description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
         '400':
           description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
   /user/search:
     get:
       tags:

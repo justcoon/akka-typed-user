@@ -65,8 +65,10 @@ object UserOpenApi {
         val id  = body.id.getOrElse(body.username).asUserId
         val cmd = body.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, _ => id).transform
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserCreatedReply   => UserResource.createUserResponseOK(reply.entityId)
-          case _: UserEntity.UserAlreadyExistsReply => UserResource.createUserResponseBadRequest
+          case reply: UserEntity.UserCreatedReply => UserResource.createUserResponseOK(reply.entityId)
+          case reply: UserEntity.UserCreatedFailedReply =>
+            UserResource.createUserResponseBadRequest(s"User register error (${reply.error})")
+          case _: UserEntity.UserAlreadyExistsReply => UserResource.createUserResponseBadRequest("User already exits")
         }
       }
 
@@ -90,8 +92,10 @@ object UserOpenApi {
         import UserEntity._
         val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
         userService.sendCommand(cmd).map {
-          case _: UserEntity.UserAddressChangedReply => UserResource.updateUserAddressResponseOK
-          case _: UserEntity.UserNotExistsReply      => UserResource.updateUserAddressResponseBadRequest
+          case reply: UserEntity.UserAddressChangedReply => UserResource.updateUserAddressResponseOK(reply.entityId)
+          case reply: UserEntity.UserAddressChangedFailedReply =>
+            UserResource.updateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
+          case _: UserEntity.UserNotExistsReply => UserResource.updateUserAddressResponseBadRequest("User not exists")
         }
       }
 
@@ -101,8 +105,8 @@ object UserOpenApi {
         import UserEntity._
         val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
         userService.sendCommand(cmd).map {
-          case _: UserEntity.UserAddressChangedReply => UserResource.deleteUserAddressResponseOK
-          case _: UserEntity.UserNotExistsReply      => UserResource.deleteUserAddressResponseBadRequest
+          case reply: UserEntity.UserAddressChangedReply => UserResource.deleteUserAddressResponseOK(reply.entityId)
+          case _: UserEntity.UserNotExistsReply          => UserResource.deleteUserAddressResponseBadRequest("User not exists")
         }
       }
 
