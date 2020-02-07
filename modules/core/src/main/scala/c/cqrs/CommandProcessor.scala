@@ -6,8 +6,7 @@ trait CommandProcessor[S, C[R] <: EntityCommand[_, _, R], E <: EntityEvent[_]] {
 }
 
 trait InitialCommandProcessor[C[R] <: EntityCommand[_, _, R], E <: EntityEvent[_]] {
-  case class Result(events: List[E], reply: CommandReply[_])
-
+  
   def process(command: C[_]): CommandProcessResult[E]
 }
 
