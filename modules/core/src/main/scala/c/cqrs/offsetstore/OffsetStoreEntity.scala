@@ -53,7 +53,9 @@ object OffsetStoreEntity {
 
   implicit val initialCommandProcessor: InitialCommandProcessor[OffsetStoreCommand, OffsetStoreEvent] = {
     case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-      val events = List(OffsetStoreCreatedEvent(entityId, offset, Instant.now))
+      val events = List(
+        (OffsetStorePayloadEvent(entityId, Instant.now, OffsetStorePayloadEvent.Payload.Created(OffsetStoreCreatedPayload(offset))))
+      )
       CommandProcessResult.withReply(events, OffsetStoreCreatedReply(entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
@@ -64,24 +66,27 @@ object OffsetStoreEntity {
     (state, command) =>
       command match {
         case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-          val events = List(OffsetStoreUpdatedEvent(entityId, offset, Instant.now))
+          val events = List(
+            (OffsetStorePayloadEvent(entityId, Instant.now, OffsetStorePayloadEvent.Payload.Updated(OffsetStoreUpdatedPayload(offset))))
+          )
           CommandProcessResult.withReply(events, OffsetStoreUpdatedReply(entityId))
         case GetOffsetStoreCommand(_) =>
           CommandProcessResult.withReply(OffsetStoreReply(state))
       }
 
-  implicit val initialEventApplier: InitialEventApplier[OffsetStore, OffsetStoreEvent] = {
-    case OffsetStoreCreatedEvent(entityId, offset, _) =>
-      Some(OffsetStore(entityId, offset))
-    case otherEvent =>
-      //      logError(s"Received offsetStore event $otherEvent before actual offsetStore booking")
-      None
-  }
+  implicit val initialEventApplier: InitialEventApplier[OffsetStore, OffsetStoreEvent] = event =>
+    event match {
+      case OffsetStorePayloadEvent(entityId, _, payload: OffsetStorePayloadEvent.Payload.Created) =>
+        Some(OffsetStore(entityId, payload.value.offset))
+      case otherEvent =>
+        //      logError(s"Received offsetStore event $otherEvent before actual offsetStore booking")
+        None
+    }
 
   implicit val eventApplier: EventApplier[OffsetStore, OffsetStoreEvent] = (offsetStore, event) =>
     event match {
-      case OffsetStoreUpdatedEvent(_, offset, _) =>
-        offsetStore.copy(offset = offset)
+      case OffsetStorePayloadEvent(_, _, payload: OffsetStorePayloadEvent.Payload.Updated) =>
+        offsetStore.copy(offset = payload.value.offset)
       case _ =>
         offsetStore
     }

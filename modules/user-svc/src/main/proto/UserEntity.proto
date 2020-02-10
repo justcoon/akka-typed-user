@@ -28,51 +28,41 @@ message User {
     Address address = 5;
 }
 
-
-message UserCreatedEvent {
-
-    option (scalapb.message).extends = "c.user.domain.UserEntity.UserEvent";
-
-    string entityId = 1 [(scalapb.field).type = "c.user.domain.UserEntity.UserId"];
-    string username = 2;
-    string email = 3;
-    string pass = 4;
-    Address address = 5;
-    google.protobuf.Timestamp timestamp = 6 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
-}
-
-
-message UserRemovedEvent {
+message UserPayloadEvent {
 
     option (scalapb.message).extends = "c.user.domain.UserEntity.UserEvent";
-
     string entityId = 1 [(scalapb.field).type = "c.user.domain.UserEntity.UserId"];
     google.protobuf.Timestamp timestamp = 2 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
+
+    oneof payload {
+        UserCreatedPayload created = 3;
+        UserRemovedPayload removed = 4;
+        UserAddressUpdatedPayload addressUpdated = 5;
+        UserPasswordUpdatedPayload passwordUpdated = 6;
+        UserEmailUpdatedPayload emailUpdated = 7;
+    }
 }
 
-message UserAddressChangedEvent {
-
-    option (scalapb.message).extends = "c.user.domain.UserEntity.UserEvent";
-
-    string entityId = 1 [(scalapb.field).type = "c.user.domain.UserEntity.UserId"];
-    Address address = 2;
-    google.protobuf.Timestamp timestamp = 3 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
-}
-
-message UserPasswordChangedEvent {
-
-    option (scalapb.message).extends = "c.user.domain.UserEntity.UserEvent";
-
-    string entityId = 1 [(scalapb.field).type = "c.user.domain.UserEntity.UserId"];
-    string pass = 2;
-    google.protobuf.Timestamp timestamp = 3 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
-}
-
-message UserEmailChangedEvent {
-
-    option (scalapb.message).extends = "c.user.domain.UserEntity.UserEvent";
-
-    string entityId = 1 [(scalapb.field).type = "c.user.domain.UserEntity.UserId"];
+message UserCreatedPayload {
+    string username = 1;
     string email = 2;
-    google.protobuf.Timestamp timestamp = 3 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
+    string pass = 3;
+    Address address = 4;
+}
+
+
+message UserRemovedPayload {
+
+}
+
+message UserAddressUpdatedPayload {
+    Address address = 1;
+}
+
+message UserPasswordUpdatedPayload {
+    string pass = 1;
+}
+
+message UserEmailUpdatedPayload {
+    string email = 1;
 }

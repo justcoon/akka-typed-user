@@ -114,7 +114,13 @@ object UserEntity {
   implicit val initialCommandProcessor: InitialCommandProcessor[UserCommand, UserEvent] = {
     case CreateUserCommand(entityId, username, email, pass, address) =>
       val encryptedPass = pass.bcrypt
-      val events        = List(UserCreatedEvent(entityId, username, email, encryptedPass, address, Instant.now))
+      val events = List(
+        UserPayloadEvent(
+          entityId,
+          Instant.now,
+          UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, address))
+        )
+      )
       CommandProcessResult.withReply(events, UserCreatedReply(entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
@@ -127,22 +133,40 @@ object UserEntity {
         case CreateUserCommand(entityId, _, _, _, _) =>
           CommandProcessResult.withReply(UserAlreadyExistsReply(entityId))
         case ChangeUserEmailCommand(entityId, email) =>
-          val events = List(UserEmailChangedEvent(entityId, email, Instant.now))
+          val events = List(
+            UserPayloadEvent(
+              entityId,
+              Instant.now,
+              UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(email))
+            )
+          )
           CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
         case ChangeUserPasswordCommand(entityId, pass) =>
           val encryptedPass = pass.bcrypt
-          val events        = List(UserPasswordChangedEvent(entityId, encryptedPass, Instant.now))
+          val events = List(
+            UserPayloadEvent(
+              entityId,
+              Instant.now,
+              UserPayloadEvent.Payload.PasswordUpdated(UserPasswordUpdatedPayload(encryptedPass))
+            )
+          )
           CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
         case ChangeUserAddressCommand(entityId, addr) =>
-          val events = List(UserAddressChangedEvent(entityId, addr, Instant.now))
+          val events = List(
+            UserPayloadEvent(
+              entityId,
+              Instant.now,
+              UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
+            )
+          )
           CommandProcessResult.withReply(events, UserAddressChangedReply(entityId))
         case GetUserCommand(_) =>
           CommandProcessResult.withReply(UserReply(state))
       }
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEvent] = {
-    case UserCreatedEvent(entityId, username, email, pass, address, _) =>
-      Some(User(entityId, username, email, pass, address))
+    case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created) =>
+      Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address))
     case _ =>
       //      logError(s"Received user event $otherEvent before actual user booking")
       None
@@ -150,12 +174,12 @@ object UserEntity {
 
   implicit val eventApplier: EventApplier[User, UserEvent] = (user, event) =>
     event match {
-      case UserEmailChangedEvent(_, email, _) =>
-        user.copy(email = email)
-      case UserPasswordChangedEvent(_, pass, _) =>
-        user.copy(pass = pass)
-      case UserAddressChangedEvent(_, addr, _) =>
-        user.copy(address = addr)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated) =>
+        user.copy(email = payload.value.email)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated) =>
+        user.copy(pass = payload.value.pass)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated) =>
+        user.copy(address = payload.value.address)
       case _ =>
         user
     }
@@ -163,7 +187,6 @@ object UserEntity {
   final val userEventTagger = ShardedEntityEventTagger.sharded[UserEvent](3)
 
 }
-
 
 sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
     implicit
@@ -246,7 +269,13 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
           CommandProcessResult.withReply(UserEntity.UserCreatedFailedReply(entityId, errors.mkString(",")))
         } else {
           val encryptedPass = pass.bcrypt
-          val events        = List(UserCreatedEvent(entityId, username, email, encryptedPass, addr, Instant.now))
+          val events = List(
+            UserPayloadEvent(
+              entityId,
+              Instant.now,
+              UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, addr))
+            )
+          )
           CommandProcessResult.withReply(events, UserEntity.UserCreatedReply(entityId))
         }
       case otherCommand =>
@@ -262,11 +291,23 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
   ): (User, Command) => ReplyEffect[UserEntity.UserEvent, OuterState] = (state, command) => {
     val result = command.command match {
       case UserEntity.ChangeUserEmailCommand(entityId, email) =>
-        val events = List(UserEmailChangedEvent(entityId, email, Instant.now))
+        val events = List(
+          UserPayloadEvent(
+            entityId,
+            Instant.now,
+            UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(email))
+          )
+        )
         CommandProcessResult.withReply(events, UserEntity.UserEmailChangedReply(entityId))
       case UserEntity.ChangeUserPasswordCommand(entityId, pass) =>
         val encryptedPass = pass.bcrypt
-        val events        = List(UserPasswordChangedEvent(entityId, encryptedPass, Instant.now))
+        val events = List(
+          UserPayloadEvent(
+            entityId,
+            Instant.now,
+            UserPayloadEvent.Payload.PasswordUpdated(UserPasswordUpdatedPayload(encryptedPass))
+          )
+        )
         CommandProcessResult.withReply(events, UserEntity.UserEmailChangedReply(entityId))
       case UserEntity.ChangeUserAddressCommand(entityId, addr) =>
         actorContext.pipeToSelf(validateAddress(addr)) {
@@ -282,7 +323,13 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
         if (errors.nonEmpty) {
           CommandProcessResult.withReply(UserEntity.UserAddressChangedFailedReply(entityId, errors.mkString(",")))
         } else {
-          val events = List(UserAddressChangedEvent(entityId, addr, Instant.now))
+          val events = List(
+            UserPayloadEvent(
+              entityId,
+              Instant.now,
+              UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
+            )
+          )
           CommandProcessResult.withReply(events, UserEntity.UserAddressChangedReply(entityId))
         }
       case UserEntity.CreateUserCommand(entityId, _, _, _, _) =>

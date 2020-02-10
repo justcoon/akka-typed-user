@@ -50,21 +50,27 @@ object UserViewBuilder {
     val currentUser = user.getOrElse(UserRepository.User(event.entityId, "", "", ""))
     import c.user.domain.proto._
     event match {
-      case UserCreatedEvent(aid, u, e, p, a, _) =>
-        val na = a.map(_.transformInto[UserRepository.Address])
-        currentUser.copy(id = aid, username = u, email = e, pass = p, address = na)
+      case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created) =>
+        val na = payload.value.address.map(_.transformInto[UserRepository.Address])
+        currentUser.copy(
+          id = entityId,
+          username = payload.value.username,
+          email = payload.value.email,
+          pass = payload.value.pass,
+          address = na
+        )
 
-      case UserPasswordChangedEvent(_, p, _) =>
-        currentUser.copy(pass = p)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated) =>
+        currentUser.copy(pass = payload.value.pass)
 
-      case UserEmailChangedEvent(_, e, _) =>
-        currentUser.copy(email = e)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated) =>
+        currentUser.copy(email = payload.value.email)
 
-      case UserAddressChangedEvent(_, a, _) =>
-        val na = a.map(_.transformInto[UserRepository.Address])
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated) =>
+        val na = payload.value.address.map(_.transformInto[UserRepository.Address])
         currentUser.copy(address = na)
 
-      case UserRemovedEvent(_, _) =>
+      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed) =>
         currentUser.copy(deleted = true)
 
       case _ => currentUser

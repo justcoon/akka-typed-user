@@ -10,6 +10,7 @@ import akka.stream.scaladsl.FlowWithContext
 import c.cqrs.offsetstore.OffsetStore
 import c.cqrs.processor.CassandraJournalEventProcessor
 import c.user.domain.UserEntity
+import c.user.domain.proto.UserPayloadEvent
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
 
@@ -58,6 +59,6 @@ object UserKafkaProducer {
   val userEventKafkaPartitionKey: (UserEntity.UserEvent => String) = event => event.entityId
 
   val userEventProtoKafkaSerializer: Serializer[UserEntity.UserEvent] = (_: String, data: UserEntity.UserEvent) => {
-    data.asInstanceOf[scalapb.GeneratedMessage].toByteArray
+    data.asInstanceOf[UserPayloadEvent].toByteArray
   }
 }
