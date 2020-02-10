@@ -7,6 +7,7 @@ inspired by:
 * https://github.com/akka/akka-samples/tree/2.6/akka-sample-cqrs-scala
 * https://medium.com/bestmile/domain-driven-event-sourcing-with-akka-typed-5f5b8bbfb823
 * https://blog.softwaremill.com/painlessly-passing-message-context-through-akka-streams-1615b11efc2c
+* https://tudorzgureanu.com/define-topic-schema-for-kafka-using-protobuf-with-examples-in-scala/
 
 # required
 
