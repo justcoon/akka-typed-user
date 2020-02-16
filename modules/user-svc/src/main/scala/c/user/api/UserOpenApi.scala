@@ -115,11 +115,22 @@ object UserOpenApi {
 
       override def searchUsers(
           respond: UserResource.searchUsersResponse.type
-      )(query: Option[String], page: Int, pageSize: Int): Future[UserResource.searchUsersResponse] =
-        userRepository.search(query, page, pageSize).map { res =>
+      )(query: Option[String], page: Int, pageSize: Int, sort: Option[Iterable[String]] = None): Future[UserResource.searchUsersResponse] = {
+        // sort - field:order (username:asc,email:desc)
+        // TODO improve parsing
+        val ss = sort.getOrElse(Seq.empty).map { sort =>
+          sort.split(":").toList match {
+            case p :: o :: Nil if o.toLowerCase == "desc" =>
+              (p, false)
+            case _ =>
+              (sort, true)
+          }
+        }
+        userRepository.search(query, page, pageSize, ss).map { res =>
           val items = res.items.map(_.transformInto[User]).toVector
           UserResource.searchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
         }
+      }
     }
   }
 }

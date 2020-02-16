@@ -131,10 +131,14 @@ object UserGrpcApi {
           GetUsersRes(r.map(_.transformInto[proto.User]))
         }
 
-      override def searchUsers(in: SearchUsersReq): Future[SearchUsersRes] =
-        userRepository.search(Some(in.query), in.page, in.pageSize).map { r =>
+      override def searchUsers(in: SearchUsersReq): Future[SearchUsersRes] = {
+        val ss = in.sorts.map { sort =>
+          (sort.field, sort.order.isAsc)
+        }
+        userRepository.search(Some(in.query), in.page, in.pageSize, ss).map { r =>
           SearchUsersRes(r.items.map(_.transformInto[proto.User]), r.page, r.pageSize, r.count)
         }
+      }
 
     }
   }
