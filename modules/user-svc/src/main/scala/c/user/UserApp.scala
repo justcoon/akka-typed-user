@@ -14,7 +14,7 @@ import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
 import kamon.Kamon
 import pureconfig._
-import pureconfig.generic.auto._
+import pureconfig.generic.semiauto._
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 
@@ -33,6 +33,10 @@ object UserApp {
       val shutdown            = CoordinatedShutdown(classicSys)
 
       val config = sys.settings.config
+
+      implicit lazy val elasticsearchConfigReader = deriveReader[ElasticsearchConfig]
+      implicit lazy val kafkaConfigReader = deriveReader[KafkaConfig]
+      implicit lazy val httpApiConfigReader = deriveReader[HttpApiConfig]
 
       val restApiConfig =
         ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[HttpApiConfig]
@@ -92,4 +96,5 @@ object UserApp {
   case class ElasticsearchConfig(addresses: List[String], indexName: String)
 
   case class KafkaConfig(addresses: List[String], topic: String)
+
 }
