@@ -3,11 +3,11 @@ syntax = "proto3";
 import "scalapb/scalapb.proto";
 import "google/protobuf/timestamp.proto";
 
-package c.cqrs.offsetstore.proto;
+package com.jc.cqrs.offsetstore.proto;
 
 option (scalapb.options) = {
-  package_name: "c.cqrs.offsetstore.proto"
-  import: "c.cqrs.offsetstore.proto._"
+  package_name: "com.jc.cqrs.offsetstore.proto"
+  import: "com.jc.cqrs.offsetstore.proto._"
   flat_package: true
 };
 
@@ -19,15 +19,15 @@ message OffsetProto {
 }
 
 message OffsetStore {
-    string id = 1 [(scalapb.field).type = "c.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreId"];
+    string id = 1 [(scalapb.field).type = "com.jc.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreId"];
     OffsetProto offset = 2 [(scalapb.field).type = "akka.persistence.query.Offset", (scalapb.field).no_box = true];
 }
 
 message OffsetStorePayloadEvent {
 
-    option (scalapb.message).extends = "c.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreEvent";
+    option (scalapb.message).extends = "com.jc.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreEvent";
 
-    string entityId = 1 [(scalapb.field).type = "c.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreId"];
+    string entityId = 1 [(scalapb.field).type = "com.jc.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreId"];
     google.protobuf.Timestamp timestamp = 2 [(scalapb.field).type = "java.time.Instant", (scalapb.field).no_box = true];
 
     oneof payload {

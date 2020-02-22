@@ -4,16 +4,16 @@ import "scalapb/scalapb.proto";
 //import "google/protobuf/timestamp.proto";
 import "UserEntity.proto";
 
-package c.user.api.proto;
+package com.jc.user.api.proto;
 
 option (scalapb.options) = {
-  package_name: "c.user.api.proto"
-//  import: "c.user.api.proto._"
+  package_name: "com.jc.user.api.proto"
+//  import: "com.jc.user.api.proto._"
   flat_package: true
 };
 
 //option java_multiple_files = true;
-//option java_package = "c.user.api.proto";
+//option java_package = "com.jc.user.api.proto";
 
 //message Address {
 //    string street = 1;
@@ -43,7 +43,7 @@ message RegisterUserReq {
     string username = 1;
     string email = 2;
     string pass = 3;
-    c.user.domain.proto.Address address = 4;
+    com.jc.user.domain.proto.Address address = 4;
 }
 
 message RegisterUserRes {
@@ -71,7 +71,7 @@ message UpdatePasswordRes {
 
 message UpdateAddressReq {
     string id = 1;
-    c.user.domain.proto.Address address = 2;
+    com.jc.user.domain.proto.Address address = 2;
 }
 
 message UpdateAddressRes {
@@ -101,14 +101,14 @@ message GetUserReq {
 }
 
 message GetUserRes {
-    c.user.domain.proto.User user = 1;
+    com.jc.user.domain.proto.User user = 1;
 }
 
 message GetUsersReq {
 }
 
 message GetUsersRes {
-    repeated c.user.domain.proto.User users = 1;
+    repeated com.jc.user.domain.proto.User users = 1;
 }
 
 enum SortOrder {
@@ -130,7 +130,7 @@ message SearchUsersReq {
 
 
 message SearchUsersRes {
-    repeated c.user.domain.proto.User users = 1;
+    repeated com.jc.user.domain.proto.User users = 1;
     int32 page = 2;
     int32 pageSize = 3;
     int32 count = 4;

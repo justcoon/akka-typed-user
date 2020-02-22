@@ -57,7 +57,7 @@ lazy val `user-svc` =
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
       guardrailTasks.in(Compile) := List(
-          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "c.user.api.openapi", tracing = false)
+          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "com.jc.user.api.openapi", tracing = false)
         )
     )
     .settings(
