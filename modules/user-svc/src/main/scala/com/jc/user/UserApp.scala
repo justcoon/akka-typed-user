@@ -53,7 +53,7 @@ object UserApp {
 //      val jwtConfig =
 //        ConfigSource.fromConfig(config).at("jwt").loadOrThrow[JwtConfig]
 
-      sys.log.info("Kamon init")
+      log.info("kamon - init")
       Kamon.init()
 
       implicit val askTimeout: Timeout = 3.seconds
@@ -70,16 +70,21 @@ object UserApp {
         ElasticClient(akkaClient)
       }
 
+      log.info("user repo - init")
       UserESRepositoryInitializer.init(elasticsearchConfig.indexName, elasticClient)
 
       val userRepository = new UserESRepository(elasticsearchConfig.indexName, elasticClient)
 
+      log.info("user view builder - create")
       UserViewBuilder.create(userRepository, offsetStoreService)
 
+      log.info("user kafka producer - create")
       UserKafkaProducer.create(kafkaConfig.topic, kafkaConfig.addresses, offsetStoreService)
 
+      log.info("user rest api server - create")
       UserOpenApi.server(userService, userRepository, shutdown, restApiConfig)(restApiConfig.repositoryTimeout, ec, mat, classicSys)
 
+      log.info("user grpc api server - create")
       UserGrpcApi.server(userService, userRepository, shutdown, grpcApiConfig)(grpcApiConfig.repositoryTimeout, ec, mat, classicSys)
 
       log.info("user up and running")
