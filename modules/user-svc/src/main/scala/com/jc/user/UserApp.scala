@@ -35,8 +35,8 @@ object UserApp {
       val config = sys.settings.config
 
       implicit lazy val elasticsearchConfigReader = deriveReader[ElasticsearchConfig]
-      implicit lazy val kafkaConfigReader = deriveReader[KafkaConfig]
-      implicit lazy val httpApiConfigReader = deriveReader[HttpApiConfig]
+      implicit lazy val kafkaConfigReader         = deriveReader[KafkaConfig]
+      implicit lazy val httpApiConfigReader       = deriveReader[HttpApiConfig]
 
       val restApiConfig =
         ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[HttpApiConfig]

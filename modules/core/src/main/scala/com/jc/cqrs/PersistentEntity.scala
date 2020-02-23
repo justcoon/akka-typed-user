@@ -15,7 +15,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
 
   case class Initialized(state: InnerState) extends OuterState
 
-  case class Uninitialized(id: ID) extends OuterState
+  case object Uninitialized extends OuterState
 
   type Command = CommandExpectingReply[_, InnerState, C]
 
@@ -56,7 +56,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
   ) =
     EventSourcedBehavior[Command, E, OuterState](
       persistenceId,
-      Uninitialized(id),
+      Uninitialized,
       commandHandler(actorContext),
       eventHandler(actorContext)
     )
@@ -75,7 +75,7 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
   protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState] =
     (entityState, command) => {
       entityState match {
-        case _: Uninitialized =>
+        case Uninitialized =>
           val result = initialProcessor.process(command.command)
           BasicPersistentEntity.handleProcessResult(result, command.replyTo)
         case Initialized(innerState) =>
@@ -86,7 +86,7 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
 
   protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState = { (entityState, event) =>
     entityState match {
-      case uninitialized @ Uninitialized(_) =>
+      case uninitialized @ Uninitialized =>
         initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
       case Initialized(state) => Initialized(applier.apply(state, event))
     }

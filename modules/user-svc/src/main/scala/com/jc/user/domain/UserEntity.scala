@@ -6,7 +6,7 @@ import akka.actor.typed.ActorRef
 import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, ReplyEffect, RetentionCriteria }
-import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed }
+import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed, SnapshotAdapter }
 import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 import com.jc.cqrs.{
   BasicPersistentEntity,
@@ -208,6 +208,20 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
 
   def entityIdToString(id: UserEntity.UserId): String = id.toString
 
+  val snapshotAdapter: SnapshotAdapter[OuterState] = new SnapshotAdapter[OuterState] {
+    override def toJournal(state: OuterState): Any =
+      state match {
+        case Uninitialized       => UserEntityState(None)
+        case Initialized(entity) => UserEntityState(Some(entity))
+      }
+
+    override def fromJournal(from: Any): OuterState =
+      from match {
+        case UserEntityState(Some(entity)) => Initialized(entity)
+        case _                             => Uninitialized
+      }
+  }
+
   override def configureEntityBehavior(
       id: UserEntity.UserId,
       behavior: EventSourcedBehavior[Command, UserEntity.UserEvent, OuterState],
@@ -217,13 +231,14 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>
           actorContext.log.info(s"Successful recovery of User entity $id in state $state")
-        case (Uninitialized(_), _) =>
+        case (Uninitialized, _) =>
           actorContext.log.info(s"User entity $id created in uninitialized state")
         case (state, RecoveryFailed(error)) =>
           actorContext.log.error(s"Failed recovery of User entity $id in state $state: $error")
       }
       .withTagger(UserEntity.userEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
+      .snapshotAdapter(snapshotAdapter)
       .onPersistFailure(
         SupervisorStrategy
           .restartWithBackoff(
@@ -239,7 +254,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
   ): (OuterState, Command) => ReplyEffect[UserEntity.UserEvent, OuterState] =
     (entityState, command) => {
       entityState match {
-        case _: Uninitialized =>
+        case Uninitialized =>
           commandHandlerUninitialized(actorContext)(command)
         case Initialized(innerState) =>
           commandHandlerInitialized(actorContext)(innerState, command)
@@ -353,7 +368,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
   override protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, UserEntity.UserEvent) => OuterState = {
     (entityState, event) =>
       entityState match {
-        case uninitialized @ Uninitialized(_) =>
+        case uninitialized @ Uninitialized =>
           initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
         case Initialized(state) => Initialized(applier.apply(state, event))
       }

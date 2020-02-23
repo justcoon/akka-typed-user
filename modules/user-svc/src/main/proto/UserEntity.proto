@@ -28,6 +28,10 @@ message User {
     Address address = 5;
 }
 
+message UserEntityState {
+    User entity = 1;
+}
+
 message UserPayloadEvent {
 
     option (scalapb.message).extends = "com.jc.user.domain.UserEntity.UserEvent";

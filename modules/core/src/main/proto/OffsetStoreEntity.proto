@@ -23,6 +23,10 @@ message OffsetStore {
     OffsetProto offset = 2 [(scalapb.field).type = "akka.persistence.query.Offset", (scalapb.field).no_box = true];
 }
 
+message OffsetStoreEntityState {
+    OffsetStore entity = 1;
+}
+
 message OffsetStorePayloadEvent {
 
     option (scalapb.message).extends = "com.jc.cqrs.offsetstore.OffsetStoreEntity.OffsetStoreEvent";

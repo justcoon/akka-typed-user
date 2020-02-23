@@ -5,15 +5,14 @@ import com.jc.support.ClusterTask
 import com.sksamuel.elastic4s.ElasticClient
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.{ExecutionContext, Future}
-
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait UserRepositoryInitializer[F[_]] {
   def init(): F[Boolean]
 }
 
 final class UserESRepositoryInitializer(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext)
-  extends UserRepositoryInitializer[Future] {
+    extends UserRepositoryInitializer[Future] {
 
   import com.sksamuel.elastic4s.ElasticDsl._
 

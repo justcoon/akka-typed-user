@@ -115,7 +115,12 @@ object UserOpenApi {
 
       override def searchUsers(
           respond: UserResource.searchUsersResponse.type
-      )(query: Option[String], page: Int, pageSize: Int, sort: Option[Iterable[String]] = None): Future[UserResource.searchUsersResponse] = {
+      )(
+          query: Option[String],
+          page: Int,
+          pageSize: Int,
+          sort: Option[Iterable[String]] = None
+      ): Future[UserResource.searchUsersResponse] = {
         // sort - field:order (username:asc,email:desc)
         // TODO improve parsing
         val ss = sort.getOrElse(Seq.empty).map { sort =>

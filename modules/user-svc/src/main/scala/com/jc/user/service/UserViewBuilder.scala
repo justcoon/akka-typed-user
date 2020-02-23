@@ -12,8 +12,8 @@ import com.jc.cqrs.offsetstore.OffsetStore
 import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain.proto.UserPayloadEvent.Payload.Created
 
-import scala.concurrent.duration.{FiniteDuration, _}
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.{ ExecutionContext, Future }
 
 object UserViewBuilder {
 

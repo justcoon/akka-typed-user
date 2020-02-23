@@ -6,7 +6,7 @@ import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
 import akka.persistence.query.Offset
 import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, RetentionCriteria }
-import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed }
+import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed, SnapshotAdapter }
 import com.jc.cqrs._
 import com.jc.cqrs.offsetstore.proto._
 import io.circe.{ Decoder, Encoder }
@@ -115,6 +115,20 @@ sealed class OffsetStorePersistentEntity()
 
   def entityIdToString(id: OffsetStoreEntity.OffsetStoreId): String = id.toString
 
+  val snapshotAdapter: SnapshotAdapter[OuterState] = new SnapshotAdapter[OuterState] {
+    override def toJournal(state: OuterState): Any =
+      state match {
+        case Uninitialized       => OffsetStoreEntityState(None)
+        case Initialized(entity) => OffsetStoreEntityState(Some(entity))
+      }
+
+    override def fromJournal(from: Any): OuterState =
+      from match {
+        case OffsetStoreEntityState(Some(entity)) => Initialized(entity)
+        case _                                    => Uninitialized
+      }
+  }
+
   override def configureEntityBehavior(
       id: OffsetStoreEntity.OffsetStoreId,
       behavior: EventSourcedBehavior[Command, OffsetStoreEntity.OffsetStoreEvent, OuterState],
@@ -124,13 +138,14 @@ sealed class OffsetStorePersistentEntity()
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>
           actorContext.log.info(s"Successful recovery of OffsetStore entity $id in state $state")
-        case (Uninitialized(_), _) =>
+        case (Uninitialized, _) =>
           actorContext.log.info(s"OffsetStore entity $id created in uninitialized state")
         case (state, RecoveryFailed(error)) =>
           actorContext.log.error(s"Failed recovery of OffsetStore entity $id in state $state: $error")
       }
       .withTagger(OffsetStoreEntity.offsetStoreEventTagger)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
+      .snapshotAdapter(snapshotAdapter)
       .onPersistFailure(
         SupervisorStrategy
           .restartWithBackoff(
