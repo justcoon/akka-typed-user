@@ -6,7 +6,7 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.5.1")
 //addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.2")
 addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc" % "0.7.3")
-addSbtPlugin("com.twilio" % "sbt-guardrail" % "0.55.2")
+addSbtPlugin("com.twilio" % "sbt-guardrail" % "0.56.0")
 
 //FIXME scala plugin 2.13
 addSbtPlugin("com.lightbend.sbt" % "sbt-javaagent" % "0.1.5")
