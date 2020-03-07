@@ -5,8 +5,6 @@ import akka.actor.typed.ActorSystem
 import akka.persistence.query.Offset
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
-import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain._
 import com.jc.cqrs.offsetstore.OffsetStore
 import com.jc.cqrs.processor.CassandraJournalEventProcessor
@@ -48,33 +46,37 @@ object UserViewBuilder {
     )
   }
 
+  def createUser(id: UserEntity.UserId): UserRepository.User = UserRepository.User(id, "", "", "")
+
   def getUpdatedUser(event: UserEntity.UserEvent, user: Option[UserRepository.User]): UserRepository.User = {
     import io.scalaland.chimney.dsl._
-    val currentUser = user.getOrElse(UserRepository.User(event.entityId, "", "", ""))
     import com.jc.user.domain.proto._
+    import UserRepository.User._
+
+    val currentUser = user.getOrElse(createUser(event.entityId))
+
     event match {
-      case UserPayloadEvent(entityId, _, payload: Created) =>
+      case UserPayloadEvent(_, _, payload: Created) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
-        currentUser.copy(
-          id = entityId,
-          username = payload.value.username,
-          email = payload.value.email,
-          pass = payload.value.pass,
-          address = na
+        usernameEmailPassAddressLens.set(currentUser)(
+          payload.value.username,
+          payload.value.email,
+          payload.value.pass,
+          na
         )
 
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated) =>
-        currentUser.copy(pass = payload.value.pass)
+        passLens.set(currentUser)(payload.value.pass)
 
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated) =>
-        currentUser.copy(email = payload.value.email)
+        emailLens.set(currentUser)(payload.value.email)
 
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
-        currentUser.copy(address = na)
+        addressLens.set(currentUser)(na)
 
       case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed) =>
-        currentUser.copy(deleted = true)
+        deletedLens.set(currentUser)(true)
 
       case _ => currentUser
     }
