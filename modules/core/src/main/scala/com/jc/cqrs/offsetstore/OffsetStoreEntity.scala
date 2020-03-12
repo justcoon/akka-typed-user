@@ -76,7 +76,7 @@ object OffsetStoreEntity {
 
   implicit val initialEventApplier: InitialEventApplier[OffsetStore, OffsetStoreEvent] = event =>
     event match {
-      case OffsetStorePayloadEvent(entityId, _, payload: OffsetStorePayloadEvent.Payload.Created) =>
+      case OffsetStorePayloadEvent(entityId, _, payload: OffsetStorePayloadEvent.Payload.Created, _) =>
         Some(OffsetStore(entityId, payload.value.offset))
       case otherEvent =>
         //      logError(s"Received offsetStore event $otherEvent before actual offsetStore booking")
@@ -85,7 +85,7 @@ object OffsetStoreEntity {
 
   implicit val eventApplier: EventApplier[OffsetStore, OffsetStoreEvent] = (offsetStore, event) =>
     event match {
-      case OffsetStorePayloadEvent(_, _, payload: OffsetStorePayloadEvent.Payload.Updated) =>
+      case OffsetStorePayloadEvent(_, _, payload: OffsetStorePayloadEvent.Payload.Updated, _) =>
         offsetStore.copy(offset = payload.value.offset)
       case _ =>
         offsetStore
@@ -124,8 +124,8 @@ sealed class OffsetStorePersistentEntity()
 
     override def fromJournal(from: Any): OuterState =
       from match {
-        case OffsetStoreEntityState(Some(entity)) => Initialized(entity)
-        case _                                    => Uninitialized
+        case OffsetStoreEntityState(Some(entity), _) => Initialized(entity)
+        case _                                       => Uninitialized
       }
   }
 

@@ -1,6 +1,6 @@
 package com.jc.cqrs.offsetstore
 
-import scalapb.TypeMapper
+import scalapb.{ TypeMapper, UnknownFieldSet }
 import com.google.protobuf.timestamp.Timestamp
 import java.time.Instant
 import java.util.UUID
@@ -15,7 +15,7 @@ package object proto {
   implicit val instantTypeMapper: TypeMapper[Timestamp, Instant] = TypeMapper[Timestamp, Instant] { timestamp =>
     Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
   } { instant =>
-    Timestamp.of(instant.getEpochSecond, instant.getNano)
+    Timestamp.of(instant.getEpochSecond, instant.getNano, UnknownFieldSet.empty)
   }
 
   implicit val offsetTypeMapper: TypeMapper[OffsetProto, Offset] = TypeMapper[OffsetProto, Offset] { proto =>

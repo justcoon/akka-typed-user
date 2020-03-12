@@ -56,7 +56,7 @@ object UserViewBuilder {
     val currentUser = user.getOrElse(createUser(event.entityId))
 
     event match {
-      case UserPayloadEvent(_, _, payload: Created) =>
+      case UserPayloadEvent(_, _, payload: Created, _) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
         usernameEmailPassAddressLens.set(currentUser)(
           payload.value.username,
@@ -65,17 +65,17 @@ object UserViewBuilder {
           na
         )
 
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
         passLens.set(currentUser)(payload.value.pass)
 
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated, _) =>
         emailLens.set(currentUser)(payload.value.email)
 
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated, _) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
         addressLens.set(currentUser)(na)
 
-      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed) =>
+      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed, _) =>
         deletedLens.set(currentUser)(true)
 
       case _ => currentUser

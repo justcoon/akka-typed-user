@@ -165,7 +165,7 @@ object UserEntity {
       }
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEvent] = {
-    case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created) =>
+    case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created, _) =>
       Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address))
     case _ =>
       //      logError(s"Received user event $otherEvent before actual user booking")
@@ -174,11 +174,11 @@ object UserEntity {
 
   implicit val eventApplier: EventApplier[User, UserEvent] = (user, event) =>
     event match {
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated, _) =>
         user.copy(email = payload.value.email)
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
         user.copy(pass = payload.value.pass)
-      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated, _) =>
         user.copy(address = payload.value.address)
       case _ =>
         user
@@ -217,8 +217,8 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
 
     override def fromJournal(from: Any): OuterState =
       from match {
-        case UserEntityState(Some(entity)) => Initialized(entity)
-        case _                             => Uninitialized
+        case UserEntityState(Some(entity), _) => Initialized(entity)
+        case _                                => Uninitialized
       }
   }
 
