@@ -43,7 +43,6 @@ lazy val `core` =
           library.pauldijouJwtCirce,
           library.chimney,
           library.akkaHttpTestkit         % Test,
-          library.akkaPersistenceInmemory % Test,
           library.akkaTestkit             % Test,
           library.scalaTest               % Test
         )
@@ -89,7 +88,6 @@ lazy val `user-svc` =
           library.kamonSystem,
           library.chimney,
           library.akkaHttpTestkit         % Test,
-          library.akkaPersistenceInmemory % Test,
           library.akkaTestkit             % Test,
           library.scalaTest               % Test
         )
@@ -104,19 +102,18 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.3"
+      val akka                     = "2.6.4"
       val akkaHttp                 = "10.1.11"
       val akkaHttpJson             = "1.31.0"
       val akkaPersistenceCassandra = "0.103" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
-      val akkaPersistenceInmemory  = "2.5.15.2"
-      val akkaStreamKafka          = "2.0.1"
+      val akkaStreamKafka          = "2.0.2"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val scalaTest                = "3.1.0"
       val bcrypt                   = "4.1"
       val elastic4s                = "7.3.5"
-      val pureconfig               = "0.12.2"
-      val chimney                  = "0.4.0"
+      val pureconfig               = "0.12.3"
+      val chimney                  = "0.4.2"
       val akkaKryo                 = "1.1.0"
 
       val pauldijouJwt = "4.2.0"
@@ -130,7 +127,6 @@ lazy val library =
 
     val akkaPersistenceQuery     = "com.typesafe.akka"   %% "akka-persistence-query"     % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
-    val akkaPersistenceInmemory  = "com.github.dnvriend" %% "akka-persistence-inmemory"  % Version.akkaPersistenceInmemory
     val akkaDiscovery            = "com.typesafe.akka"   %% "akka-discovery"             % Version.akka
 
     val akkaClusterTyped         = "com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka

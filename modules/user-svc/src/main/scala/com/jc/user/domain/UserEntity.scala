@@ -2,30 +2,17 @@ package com.jc.user.domain
 
 import java.time.Instant
 
-import akka.actor.typed.ActorRef
-import akka.actor.typed.SupervisorStrategy
+import akka.actor.typed.{ ActorRef, SupervisorStrategy }
 import akka.actor.typed.scaladsl.ActorContext
-import akka.persistence.typed.scaladsl.{ Effect, EventSourcedBehavior, ReplyEffect, RetentionCriteria }
+import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, ReplyEffect, RetentionCriteria }
 import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed, SnapshotAdapter }
+import com.github.t3hnar.bcrypt._
 import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
-import com.jc.cqrs.{
-  BasicPersistentEntity,
-  CommandProcessResult,
-  CommandProcessor,
-  CommandReply,
-  EntityCommand,
-  EntityEvent,
-  EventApplier,
-  InitialCommandProcessor,
-  InitialEventApplier,
-  PersistentEntity,
-  ShardedEntityEventTagger
-}
+import com.jc.cqrs._
+import com.jc.user.domain.proto._
 import io.circe.{ Decoder, Encoder }
 import shapeless.tag
 import shapeless.tag.@@
-import com.github.t3hnar.bcrypt._
-import com.jc.user.domain.proto._
 
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
@@ -110,59 +97,6 @@ object UserEntity {
       with ChangeUserAddressReply
 
   trait UserEvent extends EntityEvent[UserId]
-
-  implicit val initialCommandProcessor: InitialCommandProcessor[UserCommand, UserEvent] = {
-    case CreateUserCommand(entityId, username, email, pass, address) =>
-      val encryptedPass = pass.bcrypt
-      val events = List(
-        UserPayloadEvent(
-          entityId,
-          Instant.now,
-          UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, address))
-        )
-      )
-      CommandProcessResult.withReply(events, UserCreatedReply(entityId))
-    case otherCommand =>
-      //      logError(s"Received erroneous initial command $otherCommand for entity")
-      CommandProcessResult.withReply(UserNotExistsReply(otherCommand.entityId))
-  }
-
-  implicit val commandProcessor: CommandProcessor[User, UserCommand, UserEvent] =
-    (state, command) =>
-      command match {
-        case CreateUserCommand(entityId, _, _, _, _) =>
-          CommandProcessResult.withReply(UserAlreadyExistsReply(entityId))
-        case ChangeUserEmailCommand(entityId, email) =>
-          val events = List(
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(email))
-            )
-          )
-          CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
-        case ChangeUserPasswordCommand(entityId, pass) =>
-          val encryptedPass = pass.bcrypt
-          val events = List(
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.PasswordUpdated(UserPasswordUpdatedPayload(encryptedPass))
-            )
-          )
-          CommandProcessResult.withReply(events, UserEmailChangedReply(entityId))
-        case ChangeUserAddressCommand(entityId, addr) =>
-          val events = List(
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
-            )
-          )
-          CommandProcessResult.withReply(events, UserAddressChangedReply(entityId))
-        case GetUserCommand(_) =>
-          CommandProcessResult.withReply(UserReply(state))
-      }
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEvent] = {
     case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created, _) =>
@@ -294,7 +228,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
           CommandProcessResult.withReply(events, UserEntity.UserCreatedReply(entityId))
         }
       case otherCommand =>
-        //      logError(s"Received erroneous initial command $otherCommand for entity")
+//        actorContext.log.error(s"Received erroneous initial command $otherCommand for entity")
         CommandProcessResult.withReply(UserEntity.UserNotExistsReply(otherCommand.entityId))
     }
 
@@ -351,6 +285,9 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
         CommandProcessResult.withReply(UserEntity.UserAlreadyExistsReply(entityId))
       case UserEntity.GetUserCommand(_) =>
         CommandProcessResult.withReply(UserEntity.UserReply(state))
+      case otherCommand =>
+        //      actorContext.log.error(s"Received erroneous command $otherCommand for entity")
+        CommandProcessResult.withReply(UserEntity.UserAlreadyExistsReply(otherCommand.entityId))
     }
 
     BasicPersistentEntity.handleProcessResult(result, command.replyTo)

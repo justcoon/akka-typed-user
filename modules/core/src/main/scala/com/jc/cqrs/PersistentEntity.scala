@@ -19,8 +19,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
 
   type Command = CommandExpectingReply[_, InnerState, C]
 
-  val entityTypeKey: EntityTypeKey[Command] =
-    EntityTypeKey[Command](entityName)
+  val entityTypeKey: EntityTypeKey[Command] = EntityTypeKey[Command](entityName)
 
   protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState]
 
