@@ -6,14 +6,14 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.stream.Materializer
 import akka.util.Timeout
-import com.jc.user.UserApp.HttpApiConfig
 import com.jc.user.api.proto._
+import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.UserEntity
 import com.jc.user.domain.proto
 import com.jc.user.service.{ UserRepository, UserService }
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success }
 
@@ -27,6 +27,8 @@ object UserGrpcApi {
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
+    import eu.timepit.refined.auto._
+
     val log            = LoggerFactory.getLogger(this.getClass)
     val grpcApiHandler = handler(userService, userRepository)(config.repositoryTimeout, ec, mat, sys)
 

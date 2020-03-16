@@ -14,15 +14,17 @@ import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
 import kamon.Kamon
 import pureconfig._
-import pureconfig.generic.semiauto._
 
-import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.duration._
 
 object UserApp {
 
   private object RootBehavior {
 
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
+      import eu.timepit.refined.auto._
+      import config._
+
       val log = ctx.log
 
       implicit val sys        = ctx.system
@@ -32,26 +34,7 @@ object UserApp {
       implicit val mat        = Materializer(ctx)
       val shutdown            = CoordinatedShutdown(classicSys)
 
-      val config = sys.settings.config
-
-      implicit lazy val elasticsearchConfigReader = deriveReader[ElasticsearchConfig]
-      implicit lazy val kafkaConfigReader         = deriveReader[KafkaConfig]
-      implicit lazy val httpApiConfigReader       = deriveReader[HttpApiConfig]
-
-      val restApiConfig =
-        ConfigSource.fromConfig(config).at("rest-api").loadOrThrow[HttpApiConfig]
-
-      val grpcApiConfig =
-        ConfigSource.fromConfig(config).at("grpc-api").loadOrThrow[HttpApiConfig]
-
-      val elasticsearchConfig =
-        ConfigSource.fromConfig(config).at("elasticsearch").loadOrThrow[ElasticsearchConfig]
-
-      val kafkaConfig =
-        ConfigSource.fromConfig(config).at("kafka").loadOrThrow[KafkaConfig]
-
-//      val jwtConfig =
-//        ConfigSource.fromConfig(config).at("jwt").loadOrThrow[JwtConfig]
+      val appConfig = ConfigSource.fromConfig(sys.settings.config).loadOrThrow[AppConfig]
 
       log.info("kamon - init")
       Kamon.init()
@@ -63,29 +46,27 @@ object UserApp {
       val offsetStoreService = new OffsetStoreService()
 
       val elasticClient = {
-        val akkaClient = AkkaHttpClient(
-          AkkaHttpClientSettings(elasticsearchConfig.addresses)
-        )
-
+        val settings   = AkkaHttpClientSettings(appConfig.elasticsearch.addresses)
+        val akkaClient = AkkaHttpClient(settings)
         ElasticClient(akkaClient)
       }
 
       log.info("user repo - init")
-      UserESRepositoryInitializer.init(elasticsearchConfig.indexName, elasticClient)
+      UserESRepositoryInitializer.init(appConfig.elasticsearch.indexName, elasticClient)
 
-      val userRepository = new UserESRepository(elasticsearchConfig.indexName, elasticClient)
+      val userRepository = new UserESRepository(appConfig.elasticsearch.indexName, elasticClient)
 
       log.info("user view builder - create")
       UserViewBuilder.create(userRepository, offsetStoreService)
 
       log.info("user kafka producer - create")
-      UserKafkaProducer.create(kafkaConfig.topic, kafkaConfig.addresses, offsetStoreService)
+      UserKafkaProducer.create(appConfig.kafka.topic, appConfig.kafka.addresses, offsetStoreService)
 
       log.info("user rest api server - create")
-      UserOpenApi.server(userService, userRepository, shutdown, restApiConfig)(restApiConfig.repositoryTimeout, ec, mat, classicSys)
+      UserOpenApi.server(userService, userRepository, shutdown, appConfig.restApi)(appConfig.restApi.repositoryTimeout, ec, mat, classicSys)
 
       log.info("user grpc api server - create")
-      UserGrpcApi.server(userService, userRepository, shutdown, grpcApiConfig)(grpcApiConfig.repositoryTimeout, ec, mat, classicSys)
+      UserGrpcApi.server(userService, userRepository, shutdown, appConfig.grpcApi)(appConfig.grpcApi.repositoryTimeout, ec, mat, classicSys)
 
       log.info("user up and running")
 
@@ -95,11 +76,5 @@ object UserApp {
 
   def main(args: Array[String]): Unit =
     ActorSystem[Nothing](RootBehavior(), "user")
-
-  case class HttpApiConfig(address: String, port: Int, repositoryTimeout: FiniteDuration)
-
-  case class ElasticsearchConfig(addresses: List[String], indexName: String)
-
-  case class KafkaConfig(addresses: List[String], topic: String)
 
 }

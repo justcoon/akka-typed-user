@@ -42,9 +42,9 @@ lazy val `core` =
           library.pureconfig,
           library.pauldijouJwtCirce,
           library.chimney,
-          library.akkaHttpTestkit         % Test,
-          library.akkaTestkit             % Test,
-          library.scalaTest               % Test
+          library.akkaHttpTestkit % Test,
+          library.akkaTestkit     % Test,
+          library.scalaTest       % Test
         )
     )
 
@@ -79,6 +79,7 @@ lazy val `user-svc` =
           library.logbackClassic,
           library.bcrypt,
           library.pureconfig,
+          library.refinedPureconfig,
           library.elastic4sClientAkka,
           library.elastic4sCirce,
           library.pauldijouJwtCirce,
@@ -87,9 +88,9 @@ lazy val `user-svc` =
           library.kamonPrometheus,
           library.kamonSystem,
           library.chimney,
-          library.akkaHttpTestkit         % Test,
-          library.akkaTestkit             % Test,
-          library.scalaTest               % Test
+          library.akkaHttpTestkit % Test,
+          library.akkaTestkit     % Test,
+          library.scalaTest       % Test
         )
     )
     .dependsOn(`core`)
@@ -115,8 +116,8 @@ lazy val library =
       val pureconfig               = "0.12.3"
       val chimney                  = "0.4.2"
       val akkaKryo                 = "1.1.0"
-
-      val pauldijouJwt = "4.2.0"
+      val pauldijouJwt             = "4.2.0"
+      val refined                  = "0.9.12"
 
       val kamon           = "2.0.4"
       val kamonPrometheus = "2.0.1"
@@ -125,9 +126,9 @@ lazy val library =
       val kamonKanela     = "1.0.4"
     }
 
-    val akkaPersistenceQuery     = "com.typesafe.akka"   %% "akka-persistence-query"     % Version.akka
-    val akkaPersistenceCassandra = "com.typesafe.akka"   %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
-    val akkaDiscovery            = "com.typesafe.akka"   %% "akka-discovery"             % Version.akka
+    val akkaPersistenceQuery     = "com.typesafe.akka" %% "akka-persistence-query"     % Version.akka
+    val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
+    val akkaDiscovery            = "com.typesafe.akka" %% "akka-discovery"             % Version.akka
 
     val akkaClusterTyped         = "com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka
     val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
@@ -153,16 +154,15 @@ lazy val library =
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
     val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
     val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
-
-    val pauldijouJwtCirce = "com.pauldijou" %% "jwt-circe" % Version.pauldijouJwt
+    val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
+    val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
+    val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
     val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
     val kamonKanelaAgent = "io.kamon" % "kanela-agent"          % Version.kamonKanela
-
-    val chimney = "io.scalaland" %% "chimney" % Version.chimney
 
     val scalaPbRuntime = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
   }
