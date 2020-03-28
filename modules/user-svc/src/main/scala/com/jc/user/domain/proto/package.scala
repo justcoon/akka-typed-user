@@ -13,6 +13,6 @@ package object proto {
   implicit val instantTypeMapper: TypeMapper[Timestamp, Instant] = TypeMapper[Timestamp, Instant] { timestamp =>
     Instant.ofEpochSecond(timestamp.seconds, timestamp.nanos)
   } { instant =>
-    Timestamp.of(instant.getEpochSecond, instant.getNano, UnknownFieldSet.empty)
+    Timestamp.of(instant.getEpochSecond, instant.getNano)
   }
 }
