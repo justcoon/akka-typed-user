@@ -1,5 +1,8 @@
 import com.lightbend.sbt.javaagent.Modules
 import sbt.Keys.javaOptions
+
+scalaVersion in Scope.Global := "2.13.1"
+
 // *****************************************************************************
 // Projects
 // *****************************************************************************
@@ -178,7 +181,6 @@ lazy val settings =
 
 lazy val commonSettings =
   Seq(
-    scalaVersion := "2.13.1",
     organization := "c",
     licenses += ("Apache 2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     mappings.in(Compile, packageBin) += baseDirectory.in(ThisBuild).value / "LICENSE" -> "LICENSE",

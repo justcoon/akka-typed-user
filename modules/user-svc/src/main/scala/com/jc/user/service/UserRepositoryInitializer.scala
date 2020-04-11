@@ -40,6 +40,12 @@ final class UserESRepositoryInitializer(indexName: String, elasticClient: Elasti
             .map(r => r.result.acknowledged)
         }
       )
+      .recoverWith {
+        case e =>
+          logger.error("init: {} - error: {}", indexName, e.getMessage)
+          Future.failed(e)
+      }
+
 }
 
 object UserESRepositoryInitializer {

@@ -80,6 +80,11 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         indexInto(indexName).doc(user).id(user.id)
       }
       .map(_.isSuccess)
+      .recoverWith {
+        case e =>
+          logger.error("insert - id: {} - error: {}", user.id, e.getMessage)
+          Future.failed(e)
+      }
   }
 
   override def update(user: UserRepository.User): Future[Boolean] = {
@@ -90,6 +95,11 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         updateIndex(user.id).in(indexName).doc(user)
       }
       .map(_.isSuccess)
+      .recoverWith {
+        case e =>
+          logger.error("update - id: {} - error: {}", user.id, e.getMessage)
+          Future.failed(e)
+      }
   }
 
   override def find(id: UserEntity.UserId): Future[Option[UserRepository.User]] = {
@@ -105,6 +115,11 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         else
           Option.empty
       )
+      .recoverWith {
+        case e =>
+          logger.error("find - id: {} - error: {}", id, e.getMessage)
+          Future.failed(e)
+      }
   }
 
   override def findAll(): Future[Array[UserRepository.User]] = {
@@ -115,6 +130,11 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         searchIndex(indexName).matchAllQuery
       }
       .map(_.result.to[UserRepository.User].toArray)
+      .recoverWith {
+        case e =>
+          logger.error("findAll - error: {}", e.getMessage)
+          Future.failed(e)
+      }
   }
 
   override def search(
@@ -140,6 +160,18 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
       .map { res =>
         val items = res.result.to[UserRepository.User]
         UserRepository.PaginatedSequence(items, page, pageSize, res.result.totalHits.toInt)
+      }
+      .recoverWith {
+        case e =>
+          logger.error(
+            "search - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
+            query,
+            page,
+            pageSize,
+            sorts.mkString("[", ",", "]"),
+            e.getMessage
+          )
+          Future.failed(e)
       }
   }
 }
