@@ -138,8 +138,11 @@ object UserGrpcApi {
         val ss = in.sorts.map { sort =>
           (sort.field, sort.order.isAsc)
         }
-        userRepository.search(Some(in.query), in.page, in.pageSize, ss).map { r =>
-          SearchUsersRes(r.items.map(_.transformInto[proto.User]), r.page, r.pageSize, r.count)
+        userRepository.search(Some(in.query), in.page, in.pageSize, ss).map {
+          case Right(r) =>
+            SearchUsersRes(r.items.map(_.transformInto[proto.User]), r.page, r.pageSize, r.count, SearchUsersRes.Result.Success(""))
+          case Left(e) =>
+            SearchUsersRes(result = SearchUsersRes.Result.Failure(e.error))
         }
       }
 

@@ -24,7 +24,7 @@ trait UserRepository[F[_]] {
       page: Int,
       pageSize: Int,
       sorts: Iterable[UserRepository.FieldSort]
-  ): F[UserRepository.PaginatedSequence[UserRepository.User]]
+  ): F[Either[UserRepository.SearchError, UserRepository.PaginatedSequence[UserRepository.User]]]
 }
 
 object UserRepository {
@@ -61,6 +61,8 @@ object UserRepository {
   }
 
   final case class PaginatedSequence[T](items: Seq[T], page: Int, pageSize: Int, count: Int)
+
+  final case class SearchError(error: String)
 }
 
 final class UserESRepository(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext)
@@ -142,7 +144,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
       page: Int,
       pageSize: Int,
       sorts: Iterable[UserRepository.FieldSort]
-  ): Future[UserRepository.PaginatedSequence[UserRepository.User]] = {
+  ): Future[Either[UserRepository.SearchError, UserRepository.PaginatedSequence[UserRepository.User]]] = {
 
     val q = query.map(QueryStringQuery(_)).getOrElse(MatchAllQuery())
     val ss = sorts.map {
@@ -158,8 +160,12 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         searchIndex(indexName).query(q).from(page * pageSize).limit(pageSize).sortBy(ss)
       }
       .map { res =>
-        val items = res.result.to[UserRepository.User]
-        UserRepository.PaginatedSequence(items, page, pageSize, res.result.totalHits.toInt)
+        if (res.isSuccess) {
+          val items = res.result.to[UserRepository.User]
+          Right(UserRepository.PaginatedSequence(items, page, pageSize, res.result.totalHits.toInt))
+        } else {
+          Left(UserRepository.SearchError(ElasticUtils.getReason(res.error)))
+        }
       }
       .recoverWith {
         case e =>
@@ -171,7 +177,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
             sorts.mkString("[", ",", "]"),
             e.getMessage
           )
-          Future.failed(e)
+          Future.successful(Left(UserRepository.SearchError(e.getMessage)))
       }
   }
 }

@@ -134,9 +134,12 @@ object UserOpenApi {
               (sort, true)
           }
         }
-        userRepository.search(query, page, pageSize, ss).map { res =>
-          val items = res.items.map(_.transformInto[User]).toVector
-          UserResource.searchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
+        userRepository.search(query, page, pageSize, ss).map {
+          case Right(res) =>
+            val items = res.items.map(_.transformInto[User]).toVector
+            UserResource.searchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
+          case Left(e) =>
+            UserResource.searchUsersResponseBadRequest(e.error)
         }
       }
     }
