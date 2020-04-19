@@ -3,15 +3,15 @@ package com.jc.user
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
-import akka.actor.typed.{ ActorSystem, Behavior }
+import akka.actor.typed.{ActorSystem, Behavior}
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import akka.util.Timeout
-import com.jc.cqrs.offsetstore.OffsetStoreService
-import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
+import com.jc.cqrs.offsetstore.{CassandraOffsetStore, CassandraOffsetStoreService}
+import com.jc.user.api.{UserGrpcApi, UserOpenApi}
 import com.jc.user.service._
 import com.sksamuel.elastic4s.ElasticClient
-import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
+import com.sksamuel.elastic4s.akka.{AkkaHttpClient, AkkaHttpClientSettings}
 import kamon.Kamon
 import pureconfig._
 
@@ -43,7 +43,12 @@ object UserApp {
 
       val userService = new UserService()
 
-      val offsetStoreService = new OffsetStoreService()
+      val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
+
+      log.info("offset store - init")
+      CassandraOffsetStore.init(journalKeyspace)
+
+      val offsetStoreService = new CassandraOffsetStoreService(journalKeyspace)
 
       val elasticClient = {
         val settings   = AkkaHttpClientSettings(appConfig.elasticsearch.addresses)

@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-class OffsetStoreService()(
+class EntityOffsetStoreService()(
     implicit val sharding: ClusterSharding,
     val actorSystem: ActorSystem[_],
     val askTimeout: Timeout
