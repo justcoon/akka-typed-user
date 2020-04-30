@@ -1,7 +1,7 @@
 import com.lightbend.sbt.javaagent.Modules
 import sbt.Keys.javaOptions
 
-scalaVersion in Scope.Global := "2.13.1"
+scalaVersion in Scope.Global := "2.13.2"
 
 // *****************************************************************************
 // Projects
@@ -106,10 +106,10 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.4"
+      val akka                     = "2.6.5"
       val akkaHttp                 = "10.1.11"
       val akkaHttpJson             = "1.31.0"
-      val akkaPersistenceCassandra = "1.0.0-RC1" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
+      val akkaPersistenceCassandra = "1.0.0-RC2" //https://doc.akka.io/docs/akka-persistence-cassandra/0.101/migrations.html#migrations-to-0-101
       val akkaStreamKafka          = "2.0.2"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"

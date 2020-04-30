@@ -46,7 +46,7 @@
     </root>
 
     <!-- For loggers in the these namespaces, log at all levels. -->
-    <logger name="c.user" level="ALL"/>
+    <logger name="com.jc" level="ALL"/>
     <!-- To log pedestal internals, enable this and change ThresholdFilter to DEBUG
     <logger name="pedestal" level="ALL" />
     -->
