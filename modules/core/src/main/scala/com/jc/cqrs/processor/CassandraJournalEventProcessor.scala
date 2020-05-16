@@ -6,7 +6,7 @@ import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
 import akka.stream.Materializer
 import akka.stream.scaladsl.{ FlowWithContext, SourceWithContext }
-import com.jc.cqrs.{ EntityEvent, EntityEventTagger }
+import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
 import com.jc.cqrs.offsetstore.OffsetStore
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -17,7 +17,7 @@ object CassandraJournalEventProcessor {
 
   def create[E <: EntityEvent[_]](
       name: String,
-      eventTagger: EntityEventTagger[E],
+      eventTagger: ShardedEntityEventTagger[E],
       handleEvent: FlowWithContext[E, Offset, _, Offset, NotUsed],
       offsetStore: OffsetStore[Offset, Future],
       keepAliveInterval: FiniteDuration = keepAliveDefault
@@ -27,7 +27,7 @@ object CassandraJournalEventProcessor {
   def create[E <: EntityEvent[_]](
       name: String,
       offsetNamePrefix: String,
-      eventTagger: EntityEventTagger[E],
+      eventTagger: ShardedEntityEventTagger[E],
       handleEvent: FlowWithContext[E, Offset, _, Offset, NotUsed],
       offsetStore: OffsetStore[Offset, Future],
       keepAliveInterval: FiniteDuration
@@ -35,21 +35,21 @@ object CassandraJournalEventProcessor {
 
     val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
 
-    val offsetName    = (shardId: String) => s"$offsetNamePrefix-$shardId"
+    val offsetName    = (shardTag: String) => s"$offsetNamePrefix-$shardTag"
     val initialOffset = (storedOffset: Option[Offset]) => storedOffset.getOrElse(Offset.timeBasedUUID(readJournal.firstOffset))
 
-    val eventStreamFactory = (shardId: String, initialOffset: Offset) =>
+    val eventStreamFactory = (shardTag: String, initialOffset: Offset) =>
       SourceWithContext.fromTuples {
         readJournal
-          .eventsByTag(shardId, initialOffset)
+          .eventsByTag(shardTag, initialOffset)
           .collect {
             case EventEnvelope(offset, _, _, event: E) => (event, offset)
           }
       }
 
-    val eventProcessorStream: String => EventProcessorStream[E] = shardId =>
+    val eventProcessorStream: String => EventProcessorStream[E] = shardTag =>
       EventProcessorStream.create(
-        shardId,
+        shardTag,
         offsetName,
         initialOffset,
         offsetStore,

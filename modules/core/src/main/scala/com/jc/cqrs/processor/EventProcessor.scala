@@ -1,45 +1,35 @@
 package com.jc.cqrs.processor
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ ActorSystem, Behavior, PostStop }
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity, EntityTypeKey }
+import akka.actor.typed.{ActorSystem, Behavior, PostStop}
+import akka.cluster.sharding.typed.{ClusterShardingSettings, ShardedDaemonProcessSettings}
+import akka.cluster.sharding.typed.scaladsl.{EntityTypeKey, ShardedDaemonProcess}
 import akka.stream.KillSwitches
-import com.jc.cqrs.{ EntityEvent, EntityEventTagger }
-import com.jc.support.KeepAlive
+import com.jc.cqrs.{EntityEvent, ShardedEntityEventTagger}
 
 import scala.concurrent.duration.FiniteDuration
 
 object EventProcessor {
 
-  def create[E](
-      name: String,
-      shards: Iterable[String],
-      eventProcessorStream: String => EventProcessorStream[E],
-      keepAliveInterval: FiniteDuration
-  )(
-      implicit system: ActorSystem[_]
-  ): Unit = {
-    val eventProcessorEntityKey = EventProcessorActor.entityKey(name)
-
-    ClusterSharding(system).init(
-      Entity(eventProcessorEntityKey)(entityContext => EventProcessorActor(eventProcessorStream(entityContext.entityId)))
-      /*.withRole("read-model")*/
-    )
-
-    KeepAlive.create(name, shards, eventProcessorEntityKey, EventProcessorActor.Ping, keepAliveInterval)
-  }
-
   def create[E <: EntityEvent[_]](
       name: String,
-      eventTagger: EntityEventTagger[E],
+      eventTagger: ShardedEntityEventTagger[E],
       eventProcessorStream: String => EventProcessorStream[E],
       keepAliveInterval: FiniteDuration
   )(
       implicit system: ActorSystem[_]
   ): Unit = {
-    val shards = eventTagger.allTags
+    val shardedDaemonSettings = ShardedDaemonProcessSettings(system)
+      .withKeepAliveInterval(keepAliveInterval)
+      .withShardingSettings(ClusterShardingSettings(system) /*.withRole("read-model")*/ )
 
-    create(name, shards, eventProcessorStream, keepAliveInterval)
+    ShardedDaemonProcess(system).init(
+      s"EventProcessor-${name}",
+      eventTagger.numShards,
+      i => EventProcessorActor(eventProcessorStream(eventTagger.shardTag(i))),
+      shardedDaemonSettings,
+      None
+    )
   }
 
 }

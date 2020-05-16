@@ -23,9 +23,8 @@ object CassandraOffsetStore {
   def createInsertOffsetStmt(keyspace: String) =
     s"INSERT INTO ${keyspace}.offset_store (name, time_uuid_offset) VALUES (?, ?)"
 
-  def createSession()(implicit system: ActorSystem[_]) = {
+  def createSession()(implicit system: ActorSystem[_]) =
     CassandraSessionRegistry(system).sessionFor(AlpakkaCassandraConfigPath)
-  }
 
   def init(keyspace: String)(implicit system: ActorSystem[_]): Unit = {
     val session = createSession()
@@ -33,4 +32,3 @@ object CassandraOffsetStore {
     ClusterTask.createSingleton("CassandraOffsetStoreInitializer", () => session.executeDDL(stmt))
   }
 }
-

@@ -16,9 +16,11 @@ final class ShardedEntityEventTagger[E <: EntityEvent[_]](
 
   override def tags(event: E): Set[String] = {
     val shardNo  = ShardedEntityEventTagger.getShardNo(numShards, event)
-    val shardTag = ShardedEntityEventTagger.shardTag(baseTag, shardNo)
-    Set(shardTag)
+    val tag = shardTag(shardNo)
+    Set(tag)
   }
+
+  def shardTag(shardNo: Int): String = ShardedEntityEventTagger.shardTag(baseTag, shardNo)
 
   override val allTags: Set[String] = ShardedEntityEventTagger.allShardTags(baseTag, numShards)
 
