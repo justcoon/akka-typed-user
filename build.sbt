@@ -31,6 +31,7 @@ lazy val `core` =
           library.akkaPersistenceTyped,
           library.akkaClusterShardingTyped,
           library.akkaHttp,
+          library.akkaHttp2Support,
           library.akkaHttpCirce,
           library.akkaKryo,
           library.akkaSlf4j,
@@ -70,6 +71,7 @@ lazy val `user-svc` =
           library.akkaPersistenceTyped,
           library.akkaClusterShardingTyped,
           library.akkaHttp,
+          library.akkaHttp2Support,
           library.akkaHttpCirce,
           library.akkaKryo,
           library.akkaSlf4j,
@@ -106,27 +108,26 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.5"
-      val akkaHttp                 = "10.1.11"
+      val akka                     = "2.6.6"
+      val akkaHttp                 = "10.1.12"
       val akkaHttpJson             = "1.32.0"
       val akkaPersistenceCassandra = "1.0.0"
-      val akkaStreamKafka          = "2.0.2"
+      val akkaStreamKafka          = "2.0.3"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
-      val scalaTest                = "3.1.0"
+      val scalaTest                = "3.1.2"
       val bcrypt                   = "4.1"
-      val elastic4s                = "7.6.1"
+      val elastic4s                = "7.7.0"
       val pureconfig               = "0.12.3"
-      val chimney                  = "0.4.2"
-      val akkaKryo                 = "1.1.0"
-      val pauldijouJwt             = "4.2.0"
-      val refined                  = "0.9.12"
+      val chimney                  = "0.5.2"
+      val akkaKryo                 = "1.1.5"
+      val pauldijouJwt             = "4.3.0"
+      val refined                  = "0.9.14"
 
-      val kamon           = "2.0.4"
-      val kamonPrometheus = "2.0.1"
-      val kamonAkka       = "2.0.2"
-      val kamonAkkaHttp   = "2.0.3"
-      val kamonKanela     = "1.0.4"
+      val kamonPrometheus = "2.1.0"
+      val kamonAkka       = "2.1.0"
+      val kamonAkkaHttp   = "2.1.0"
+      val kamonKanela     = "1.0.5"
     }
 
     val akkaPersistenceQuery     = "com.typesafe.akka" %% "akka-persistence-query"     % Version.akka
@@ -137,11 +138,12 @@ lazy val library =
     val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
     val akkaClusterShardingTyped = "com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka
 
-    val akkaKryo        = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
-    val akkaHttp        = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
-    val akkaHttpCirce   = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
-    val akkaHttpTestkit = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
-    val akkaSlf4j       = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
+    val akkaKryo         = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
+    val akkaHttp         = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
+    val akkaHttp2Support = "com.typesafe.akka" %% "akka-http2-support"      % Version.akkaHttp
+    val akkaHttpCirce    = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
+    val akkaHttpTestkit  = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
+    val akkaSlf4j        = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
 
     val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
     val akkaTestkit     = "com.typesafe.akka" %% "akka-testkit"      % Version.akka
