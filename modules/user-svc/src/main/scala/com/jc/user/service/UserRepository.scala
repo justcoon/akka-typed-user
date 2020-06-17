@@ -94,7 +94,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
 
     elasticClient
       .execute {
-        updateIndex(user.id).in(indexName).doc(user)
+        updateById(indexName, user.id).doc(user)
       }
       .map(_.isSuccess)
       .recoverWith {
@@ -109,7 +109,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
 
     elasticClient
       .execute {
-        get(id).from(indexName)
+        get(indexName, id)
       }
       .map(r =>
         if (r.result.exists)
