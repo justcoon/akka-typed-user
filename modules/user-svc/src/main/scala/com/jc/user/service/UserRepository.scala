@@ -2,9 +2,6 @@ package com.jc.user.service
 
 import com.jc.user.domain.UserEntity
 import com.sksamuel.elastic4s.ElasticClient
-import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
-import com.sksamuel.elastic4s.requests.searches.queries.QueryStringQuery
-import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -25,6 +22,10 @@ trait UserRepository[F[_]] {
       pageSize: Int,
       sorts: Iterable[UserRepository.FieldSort]
   ): F[Either[UserRepository.SearchError, UserRepository.PaginatedSequence[UserRepository.User]]]
+
+  def suggest(
+      query: String
+  ): F[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]]
 }
 
 object UserRepository {
@@ -63,13 +64,26 @@ object UserRepository {
   final case class PaginatedSequence[T](items: Seq[T], page: Int, pageSize: Int, count: Int)
 
   final case class SearchError(error: String)
+
+  final case class SuggestError(error: String)
+
+  final case class SuggestResponse(items: Seq[PropertySuggestions])
+
+  final case class TermSuggestion(text: String, score: Double, freq: Int)
+
+  final case class PropertySuggestions(property: String, suggestions: Seq[TermSuggestion])
+
 }
 
 final class UserESRepository(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext)
     extends UserRepository[Future] {
 
-  import com.sksamuel.elastic4s.ElasticDsl.{ update => updateIndex, search => searchIndex, _ }
+  import com.sksamuel.elastic4s.ElasticDsl.{ search => searchIndex, _ }
   import com.sksamuel.elastic4s.circe._
+  import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
+  import com.sksamuel.elastic4s.requests.searches.queries.QueryStringQuery
+  import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
+  import com.sksamuel.elastic4s.requests.searches.suggestion
   import io.circe.generic.auto._
 
   private val logger = LoggerFactory.getLogger(this.getClass)
@@ -180,4 +194,46 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
           Future.successful(Left(UserRepository.SearchError(e.getMessage)))
       }
   }
+
+  override def suggest(query: String): Future[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]] = {
+
+    val termSuggestions = suggestFields.map { p =>
+      suggestion
+        .TermSuggestion(ElasticUtils.getTermSuggestionName(p), p, Some(query))
+        .mode(suggestion.SuggestMode.Always)
+    }
+
+    logger.debug("suggest - query: {}", query)
+
+    elasticClient
+      .execute {
+        searchIndex(indexName).suggestions(termSuggestions)
+      }
+      .map { res =>
+        if (res.isSuccess) {
+          val elasticSuggestions = res.result.suggestions
+          val suggestions = suggestFields.map { p =>
+            val propertySuggestions = elasticSuggestions(ElasticUtils.getTermSuggestionName(p))
+            val suggestions = propertySuggestions.flatMap { v =>
+              val t = v.toTerm
+              t.options.map { o =>
+                UserRepository.TermSuggestion(o.text, o.score, o.freq)
+              }
+            }
+
+            UserRepository.PropertySuggestions(p, suggestions)
+          }
+          Right(UserRepository.SuggestResponse(suggestions))
+        } else {
+          Left(UserRepository.SuggestError(ElasticUtils.getReason(res.error)))
+        }
+      }
+      .recoverWith {
+        case e =>
+          logger.error("suggest - query: {} - error: {}", query, e.getMessage)
+          Future.successful(Left(UserRepository.SuggestError(e.getMessage)))
+      }
+  }
+
+  private val suggestFields = Seq("username", "email")
 }
