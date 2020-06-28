@@ -15,7 +15,6 @@ object ElasticUtils {
     }
   }
 
-  def getTermSuggestionName(propertyName: String): String = {
+  def getTermSuggestionName(propertyName: String): String =
     s"${propertyName}_term"
-  }
 }

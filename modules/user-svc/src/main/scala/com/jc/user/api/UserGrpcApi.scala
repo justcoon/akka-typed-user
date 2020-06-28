@@ -146,14 +146,13 @@ object UserGrpcApi {
         }
       }
 
-      override def suggestUsers(in: SuggestUsersReq): Future[SuggestUsersRes] = {
+      override def suggestUsers(in: SuggestUsersReq): Future[SuggestUsersRes] =
         userRepository.suggest(in.query).map {
           case Right(r) =>
             SuggestUsersRes(r.items.map(_.transformInto[PropertySuggestion]), SuggestUsersRes.Result.Success(""))
           case Left(e) =>
             SuggestUsersRes(result = SuggestUsersRes.Result.Failure(e.error))
         }
-      }
     }
   }
 }

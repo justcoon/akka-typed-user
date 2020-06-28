@@ -1,11 +1,11 @@
 package com.jc.cqrs.processor
 
 import akka.actor.typed.scaladsl.Behaviors
-import akka.actor.typed.{ActorSystem, Behavior, PostStop}
-import akka.cluster.sharding.typed.{ClusterShardingSettings, ShardedDaemonProcessSettings}
+import akka.actor.typed.{ ActorSystem, Behavior, PostStop }
+import akka.cluster.sharding.typed.{ ClusterShardingSettings, ShardedDaemonProcessSettings }
 import akka.cluster.sharding.typed.scaladsl.ShardedDaemonProcess
 import akka.stream.KillSwitches
-import com.jc.cqrs.{EntityEvent, ShardedEntityEventTagger}
+import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -44,11 +44,11 @@ object EventProcessorActor {
       eventProcessorStream.runStream(killSwitch)
 
       Behaviors.receiveSignal[Nothing] {
-          case (_, PostStop) =>
-            context.log.debug("stopped event processor stream: {}", eventProcessorStream.name)
-            killSwitch.shutdown()
-            Behaviors.same
-        }
+        case (_, PostStop) =>
+          context.log.debug("stopped event processor stream: {}", eventProcessorStream.name)
+          killSwitch.shutdown()
+          Behaviors.same
+      }
     }
 
 }

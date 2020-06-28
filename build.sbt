@@ -1,7 +1,7 @@
 import com.lightbend.sbt.javaagent.Modules
 import sbt.Keys.javaOptions
 
-scalaVersion in Scope.Global := "2.13.2"
+scalaVersion in Scope.Global := "2.13.3"
 
 // *****************************************************************************
 // Projects

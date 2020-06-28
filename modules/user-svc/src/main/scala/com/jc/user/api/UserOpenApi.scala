@@ -63,85 +63,88 @@ object UserOpenApi {
   )(implicit askTimeout: Timeout, ec: ExecutionContext): UserHandler = {
     import io.scalaland.chimney.dsl._
     new UserHandler {
-      override def createUser(respond: UserResource.createUserResponse.type)(body: User): Future[UserResource.createUserResponse] = {
+      override def createUser(respond: UserResource.CreateUserResponse.type)(body: User): Future[UserResource.CreateUserResponse] = {
         import UserEntity._
         val id  = body.id.getOrElse(body.username).asUserId
         val cmd = body.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, _ => id).transform
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserCreatedReply => UserResource.createUserResponseOK(reply.entityId)
+          case reply: UserEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
           case reply: UserEntity.UserCreatedFailedReply =>
-            UserResource.createUserResponseBadRequest(s"User register error (${reply.error})")
-          case _: UserEntity.UserAlreadyExistsReply => UserResource.createUserResponseBadRequest("User already exits")
+            UserResource.CreateUserResponseBadRequest(s"User register error (${reply.error})")
+          case _: UserEntity.UserAlreadyExistsReply => UserResource.CreateUserResponseBadRequest("User already exits")
         }
       }
 
-      override def getUsers(respond: UserResource.getUsersResponse.type)(): Future[UserResource.getUsersResponse] =
+      override def getUsers(respond: UserResource.GetUsersResponse.type)(): Future[UserResource.GetUsersResponse] =
         userRepository.findAll().map { r =>
-          UserResource.getUsersResponseOK(r.map(_.transformInto[User]).toVector)
+          UserResource.GetUsersResponseOK(r.map(_.transformInto[User]).toVector)
         }
 
-      override def getUser(respond: UserResource.getUserResponse.type)(id: String): Future[UserResource.getUserResponse] = {
+      override def getUser(respond: UserResource.GetUserResponse.type)(id: String): Future[UserResource.GetUserResponse] = {
         import UserEntity._
         userRepository.find(id.asUserId).map {
           case Some(r) =>
-            UserResource.getUserResponseOK(r.transformInto[User])
-          case _ => UserResource.getUserResponseNotFound
+            UserResource.GetUserResponseOK(r.transformInto[User])
+          case _ => UserResource.GetUserResponseNotFound
         }
       }
 
       override def updateUserAddress(
-          respond: UserResource.updateUserAddressResponse.type
-      )(id: String, body: Address): Future[UserResource.updateUserAddressResponse] = {
+          respond: UserResource.UpdateUserAddressResponse.type
+      )(id: String, body: Address): Future[UserResource.UpdateUserAddressResponse] = {
         import UserEntity._
         val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply => UserResource.updateUserAddressResponseOK(reply.entityId)
+          case reply: UserEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
           case reply: UserEntity.UserAddressChangedFailedReply =>
-            UserResource.updateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-          case _: UserEntity.UserNotExistsReply => UserResource.updateUserAddressResponseBadRequest("User not exists")
+            UserResource.UpdateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
+          case _: UserEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
         }
       }
 
       override def deleteUserAddress(
-          respond: UserResource.deleteUserAddressResponse.type
-      )(id: String): Future[UserResource.deleteUserAddressResponse] = {
+          respond: UserResource.DeleteUserAddressResponse.type
+      )(id: String): Future[UserResource.DeleteUserAddressResponse] = {
         import UserEntity._
         val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply => UserResource.deleteUserAddressResponseOK(reply.entityId)
-          case _: UserEntity.UserNotExistsReply          => UserResource.deleteUserAddressResponseBadRequest("User not exists")
+          case reply: UserEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
+          case _: UserEntity.UserNotExistsReply          => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
         }
       }
 
-      override def deleteUser(respond: UserResource.deleteUserResponse.type)(id: String): Future[UserResource.deleteUserResponse] =
-        Future.successful(UserResource.deleteUserResponseBadRequest) // FIXME
+      override def deleteUser(respond: UserResource.DeleteUserResponse.type)(id: String): Future[UserResource.DeleteUserResponse] =
+        Future.successful(UserResource.DeleteUserResponseBadRequest) // FIXME
 
       override def searchUsers(
-          respond: UserResource.searchUsersResponse.type
+          respond: UserResource.SearchUsersResponse.type
       )(
           query: Option[String],
           page: Int,
           pageSize: Int,
           sort: Option[Iterable[String]] = None
-      ): Future[UserResource.searchUsersResponse] = {
+      ): Future[UserResource.SearchUsersResponse] = {
         // sort - field:order (username:asc,email:desc)
-        // TODO improve parsing
-        val ss = sort.getOrElse(Seq.empty).map { sort =>
-          sort.split(":").toList match {
-            case p :: o :: Nil if o.toLowerCase == "desc" =>
-              (p, false)
-            case _ =>
-              (sort, true)
-          }
-        }
+        val ss = sort.getOrElse(Seq.empty).map(toFieldSort)
+
         userRepository.search(query, page, pageSize, ss).map {
           case Right(res) =>
             val items = res.items.map(_.transformInto[User]).toVector
-            UserResource.searchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
+            UserResource.SearchUsersResponseOK(UserSearchResponse(items, res.page, res.pageSize, res.count))
           case Left(e) =>
-            UserResource.searchUsersResponseBadRequest(e.error)
+            UserResource.SearchUsersResponseBadRequest(e.error)
         }
       }
     }
   }
+
+  // TODO improve parsing
+  // sort - field:order, examples: username:asc, email:desc
+  def toFieldSort(sort: String): UserRepository.FieldSort =
+    sort.split(":").toList match {
+      case p :: o :: Nil if o.toLowerCase == "desc" =>
+        (p, false)
+      case _ =>
+        (sort, true)
+    }
 }

@@ -15,8 +15,8 @@ final class ShardedEntityEventTagger[E <: EntityEvent[_]](
 ) extends EntityEventTagger[E] {
 
   override def tags(event: E): Set[String] = {
-    val shardNo  = ShardedEntityEventTagger.getShardNo(numShards, event)
-    val tag = shardTag(shardNo)
+    val shardNo = ShardedEntityEventTagger.getShardNo(numShards, event)
+    val tag     = shardTag(shardNo)
     Set(tag)
   }
 
