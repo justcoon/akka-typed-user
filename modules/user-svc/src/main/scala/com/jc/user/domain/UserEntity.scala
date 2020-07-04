@@ -212,7 +212,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
               UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, exception.getMessage :: Nil)
             )
         }
-        CommandProcessResult.withNoReply
+        CommandProcessResult.withNoReply()
       case UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, errors) =>
         if (errors.nonEmpty) {
           CommandProcessResult.withReply(UserEntity.UserCreatedFailedReply(entityId, errors.mkString(",")))
@@ -267,7 +267,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
           case Failure(exception) =>
             transformCommand(command, UserEntity.ChangeUserAddressInternalCommand(entityId, addr, exception.getMessage :: Nil))
         }
-        CommandProcessResult.withNoReply
+        CommandProcessResult.withNoReply()
       case UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors) =>
         if (errors.nonEmpty) {
           CommandProcessResult.withReply(UserEntity.UserAddressChangedFailedReply(entityId, errors.mkString(",")))

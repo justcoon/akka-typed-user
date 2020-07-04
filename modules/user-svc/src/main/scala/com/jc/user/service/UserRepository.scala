@@ -14,7 +14,7 @@ trait UserRepository[F[_]] {
 
   def find(id: UserEntity.UserId): F[Option[UserRepository.User]]
 
-  def findAll(): F[Array[UserRepository.User]]
+  def findAll(): F[Seq[UserRepository.User]]
 
   def search(
       query: Option[String],
@@ -58,7 +58,8 @@ object UserRepository {
     val addressLens: Lens[User, Option[Address]] = lens[User].address
     val deletedLens: Lens[User, Boolean]         = lens[User].deleted
 
-    val usernameEmailPassAddressLens = usernameLens ~ emailLens ~ passLens ~ addressLens
+    val usernameEmailPassAddressLens
+        : ProductLensBuilder[User, (String, String, String, Option[Address])] = usernameLens ~ emailLens ~ passLens ~ addressLens
   }
 
   final case class PaginatedSequence[T](items: Seq[T], page: Int, pageSize: Int, count: Int)
@@ -138,14 +139,14 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
       }
   }
 
-  override def findAll(): Future[Array[UserRepository.User]] = {
+  override def findAll(): Future[Seq[UserRepository.User]] = {
     logger.debug("findAll")
 
     elasticClient
       .execute {
-        searchIndex(indexName).matchAllQuery
+        searchIndex(indexName).matchAllQuery()
       }
-      .map(_.result.to[UserRepository.User].toArray)
+      .map(_.result.to[UserRepository.User])
       .recoverWith {
         case e =>
           logger.error("findAll - error: {}", e.getMessage)

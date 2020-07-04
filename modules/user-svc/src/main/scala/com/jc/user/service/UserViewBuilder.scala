@@ -58,12 +58,7 @@ object UserViewBuilder {
     event match {
       case UserPayloadEvent(_, _, payload: Created, _) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
-        usernameEmailPassAddressLens.set(currentUser)(
-          payload.value.username,
-          payload.value.email,
-          payload.value.pass,
-          na
-        )
+        usernameEmailPassAddressLens.set(currentUser)((payload.value.username, payload.value.email, payload.value.pass, na))
 
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
         passLens.set(currentUser)(payload.value.pass)
