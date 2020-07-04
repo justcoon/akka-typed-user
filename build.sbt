@@ -124,9 +124,9 @@ lazy val library =
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.14"
 
-      val kamonPrometheus = "2.1.1"
-      val kamonAkka       = "2.1.1"
-      val kamonAkkaHttp   = "2.1.1"
+      val kamonPrometheus = "2.1.2"
+      val kamonAkka       = "2.1.2"
+      val kamonAkkaHttp   = "2.1.2"
       val kamonKanela     = "1.0.5"
     }
 
