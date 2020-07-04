@@ -1,7 +1,9 @@
 package com.jc.cqrs.offsetstore
 
 import akka.actor.typed.ActorSystem
+import akka.persistence.query.{ Offset, TimeBasedUUID }
 import akka.stream.alpakka.cassandra.scaladsl.CassandraSessionRegistry
+import com.datastax.oss.driver.api.core.cql.Row
 import com.jc.support.ClusterTask
 
 object CassandraOffsetStore {
@@ -25,6 +27,15 @@ object CassandraOffsetStore {
 
   def createSession()(implicit system: ActorSystem[_]) =
     CassandraSessionRegistry(system).sessionFor(AlpakkaCassandraConfigPath)
+
+  def extractOffset(maybeRow: Option[Row]): Option[Offset] =
+    maybeRow.flatMap { row =>
+      val uuid = row.getUuid(0)
+      if (uuid == null)
+        None
+      else
+        Some(TimeBasedUUID(uuid))
+    }
 
   def init(keyspace: String)(implicit system: ActorSystem[_]): Unit = {
     val session = createSession()
