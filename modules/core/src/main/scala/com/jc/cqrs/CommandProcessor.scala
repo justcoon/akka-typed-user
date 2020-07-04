@@ -20,6 +20,9 @@ object CommandProcessResult {
   def withReply[E <: EntityEvent[_], R](events: List[E], reply: R): CommandProcessResult[E] =
     CommandProcessResult(events, CommandReply.Reply(reply))
 
+  def withReply[E <: EntityEvent[_], R](event: E, reply: R): CommandProcessResult[E] =
+    CommandProcessResult(event :: Nil, CommandReply.Reply(reply))
+
   def withNoReply[E <: EntityEvent[_]](): CommandProcessResult[E] =
     CommandProcessResult(Nil, CommandReply.NoReply)
 }

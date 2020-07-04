@@ -53,10 +53,9 @@ object OffsetStoreEntity {
 
   implicit val initialCommandProcessor: InitialCommandProcessor[OffsetStoreCommand, OffsetStoreEvent] = {
     case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-      val events = List(
+      val event =
         (OffsetStorePayloadEvent(entityId, Instant.now, OffsetStorePayloadEvent.Payload.Created(OffsetStoreCreatedPayload(offset))))
-      )
-      CommandProcessResult.withReply(events, OffsetStoreCreatedReply(entityId))
+      CommandProcessResult.withReply(event, OffsetStoreCreatedReply(entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
       CommandProcessResult.withReply(OffsetStoreNotExistsReply(otherCommand.entityId))
@@ -66,10 +65,9 @@ object OffsetStoreEntity {
     (state, command) =>
       command match {
         case CreateOrUpdateOffsetStoreCommand(entityId, offset) =>
-          val events = List(
+          val event =
             (OffsetStorePayloadEvent(entityId, Instant.now, OffsetStorePayloadEvent.Payload.Updated(OffsetStoreUpdatedPayload(offset))))
-          )
-          CommandProcessResult.withReply(events, OffsetStoreUpdatedReply(entityId))
+          CommandProcessResult.withReply(event, OffsetStoreUpdatedReply(entityId))
         case GetOffsetStoreCommand(_) =>
           CommandProcessResult.withReply(OffsetStoreReply(state))
       }
