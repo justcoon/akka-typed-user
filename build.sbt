@@ -108,7 +108,7 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.6"
+      val akka                     = "2.6.8"
       val akkaHttp                 = "10.1.12"
       val akkaHttpJson             = "1.33.0"
       val akkaPersistenceCassandra = "1.0.1"
@@ -117,16 +117,16 @@ lazy val library =
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.0"
       val bcrypt                   = "4.1"
-      val elastic4s                = "7.8.0"
-      val pureconfig               = "0.12.3"
+      val elastic4s                = "7.8.1"
+      val pureconfig               = "0.13.0"
       val chimney                  = "0.5.2"
       val akkaKryo                 = "1.1.5"
       val pauldijouJwt             = "4.3.0"
-      val refined                  = "0.9.14"
+      val refined                  = "0.9.15"
 
-      val kamonPrometheus = "2.1.2"
-      val kamonAkka       = "2.1.2"
-      val kamonAkkaHttp   = "2.1.2"
+      val kamonPrometheus = "2.1.3"
+      val kamonAkka       = "2.1.3"
+      val kamonAkkaHttp   = "2.1.3"
       val kamonKanela     = "1.0.5"
     }
 

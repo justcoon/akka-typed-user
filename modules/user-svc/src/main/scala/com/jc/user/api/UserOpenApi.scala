@@ -109,7 +109,9 @@ object UserOpenApi {
         val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
         userService.sendCommand(cmd).map {
           case reply: UserEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
-          case _: UserEntity.UserNotExistsReply          => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
+          case reply: UserEntity.UserAddressChangedFailedReply =>
+            UserResource.DeleteUserAddressResponseBadRequest(s"User address update error (${reply.error})")
+          case _: UserEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
         }
       }
 
