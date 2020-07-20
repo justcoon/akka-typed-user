@@ -7,7 +7,7 @@ import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
 import akka.stream.Materializer
 import akka.util.Timeout
-import com.jc.cqrs.offsetstore.{ CassandraOffsetStore, CassandraOffsetStoreService }
+import com.jc.cqrs.offsetstore.{ CassandraOffsetStore, CassandraOffsetStoreService, CassandraProjectionOffsetStore }
 import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
 import com.jc.user.service._
 import com.sksamuel.elastic4s.ElasticClient
@@ -46,9 +46,9 @@ object UserApp {
       val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
 
       log.info("offset store - init")
-      CassandraOffsetStore.init(journalKeyspace)
-
-      val offsetStoreService = new CassandraOffsetStoreService(journalKeyspace)
+//      CassandraOffsetStore.init(journalKeyspace)
+//      val offsetStoreService = new CassandraOffsetStoreService(journalKeyspace)
+      CassandraProjectionOffsetStore.init()
 
       val elasticClient = {
         val settings   = AkkaHttpClientSettings(appConfig.elasticsearch.addresses)
@@ -62,10 +62,12 @@ object UserApp {
       val userRepository = new UserESRepository(appConfig.elasticsearch.indexName, elasticClient)
 
       log.info("user view builder - create")
-      UserViewBuilder.create(userRepository, offsetStoreService)
+//      UserViewBuilder.create(userRepository, offsetStoreService)
+      UserViewBuilder.createWithProjection(userRepository)
 
       log.info("user kafka producer - create")
-      UserKafkaProducer.create(appConfig.kafka.topic, appConfig.kafka.addresses, offsetStoreService)
+//      UserKafkaProducer.create(appConfig.kafka.topic, appConfig.kafka.addresses, offsetStoreService)
+      UserKafkaProducer.createWithProjection(appConfig.kafka.topic, appConfig.kafka.addresses)
 
       log.info("user rest api server - create")
       UserOpenApi.server(userService, userRepository, shutdown, appConfig.restApi)(appConfig.restApi.repositoryTimeout, ec, mat, classicSys)

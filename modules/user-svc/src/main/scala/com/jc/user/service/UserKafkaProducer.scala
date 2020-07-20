@@ -1,14 +1,16 @@
 package com.jc.user.service
 
-import akka.NotUsed
+import akka.{ Done, NotUsed }
 import akka.actor.typed.ActorSystem
 import akka.kafka.{ ProducerMessage, ProducerSettings }
 import akka.kafka.scaladsl.Producer
 import akka.persistence.query.Offset
+import akka.projection.ProjectionContext
+import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
 import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.CassandraJournalEventProcessor
+import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
 import com.jc.user.domain.UserEntity
 import com.jc.user.domain.proto.UserPayloadEvent
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -52,6 +54,38 @@ object UserKafkaProducer {
       UserEntity.userEventTagger,
       handleEvent,
       offsetStore,
+      keepAlive
+    )
+  }
+
+  def createWithProjection(
+      kafkaTopic: String,
+      kafkaBootstrapServers: List[String]
+  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
+
+    import akka.actor.typed.scaladsl.adapter._
+
+    val userKafkaProducerSettings =
+      ProducerSettings(system.toClassic, new StringSerializer, userEventProtoKafkaSerializer)
+        .withBootstrapServers(kafkaBootstrapServers.mkString(","))
+
+    val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
+      FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
+        .map(_.event)
+        .map { event =>
+          val key     = userEventKafkaPartitionKey(event)
+          val record  = new ProducerRecord(kafkaTopic, key, event)
+          val message = ProducerMessage.single(record)
+          message
+        }
+        .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](userKafkaProducerSettings))
+        .map(_ => Done)
+
+    CassandraProjectionJournalEventProcessor.create(
+      UserKafkaProducerName,
+      UserKafkaOffsetNamePrefix,
+      UserEntity.userEventTagger,
+      handleEvent,
       keepAlive
     )
   }

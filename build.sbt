@@ -38,6 +38,9 @@ lazy val `core` =
           library.akkaPersistenceQuery,
           library.akkaPersistenceCassandra,
           library.akkaStreamKafka,
+          library.akkaProjectionEventsourced,
+          library.akkaProjectionCassandra,
+          library.akkaProjectionKafka,
           library.circeGeneric,
           library.circeRefined,
           library.logbackCore,
@@ -78,6 +81,9 @@ lazy val `user-svc` =
           library.akkaPersistenceQuery,
           library.akkaPersistenceCassandra,
           library.akkaStreamKafka,
+          library.akkaProjectionEventsourced,
+          library.akkaProjectionCassandra,
+          library.akkaProjectionKafka,
           library.circeGeneric,
           library.circeRefined,
           library.logbackCore,
@@ -113,6 +119,7 @@ lazy val library =
       val akkaHttpJson             = "1.33.0"
       val akkaPersistenceCassandra = "1.0.1"
       val akkaStreamKafka          = "2.0.3"
+      val akkaProjection           = "0.3"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.0"
@@ -137,6 +144,10 @@ lazy val library =
     val akkaClusterTyped         = "com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka
     val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
     val akkaClusterShardingTyped = "com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka
+
+    val akkaProjectionCassandra    = "com.lightbend.akka" %% "akka-projection-cassandra"    % Version.akkaProjection
+    val akkaProjectionEventsourced = "com.lightbend.akka" %% "akka-projection-eventsourced" % Version.akkaProjection
+    val akkaProjectionKafka        = "com.lightbend.akka" %% "akka-projection-kafka"        % Version.akkaProjection
 
     val akkaKryo         = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
     val akkaHttp         = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp

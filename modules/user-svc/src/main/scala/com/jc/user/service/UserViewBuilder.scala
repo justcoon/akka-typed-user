@@ -1,13 +1,15 @@
 package com.jc.user.service
 
-import akka.NotUsed
+import akka.{ Done, NotUsed }
 import akka.actor.typed.ActorSystem
 import akka.persistence.query.Offset
+import akka.projection.ProjectionContext
+import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
 import com.jc.user.domain._
 import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.CassandraJournalEventProcessor
+import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
 import com.jc.user.domain.proto.UserPayloadEvent.Payload.Created
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
@@ -42,6 +44,31 @@ object UserViewBuilder {
       UserEntity.userEventTagger,
       handleEvent,
       offsetStore,
+      keepAlive
+    )
+  }
+
+  def createWithProjection(
+      userRepository: UserRepository[Future]
+  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
+
+    val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
+      FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext].mapAsync(1) { eventEnvelope =>
+        val event = eventEnvelope.event
+        userRepository
+          .find(event.entityId)
+          .flatMap {
+            case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
+            case None        => userRepository.insert(getUpdatedUser(event, None))
+          }
+          .map(_ => Done)
+      }
+
+    CassandraProjectionJournalEventProcessor.create(
+      UserViewBuilderName,
+      UserViewOffsetNamePrefix,
+      UserEntity.userEventTagger,
+      handleEvent,
       keepAlive
     )
   }

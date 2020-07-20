@@ -6,11 +6,11 @@ import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
 import akka.stream.Materializer
 import akka.stream.scaladsl.{ FlowWithContext, SourceWithContext }
-import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
 import com.jc.cqrs.offsetstore.OffsetStore
+import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
 
-import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration.{ FiniteDuration, _ }
+import scala.concurrent.{ ExecutionContext, Future }
 
 object CassandraJournalEventProcessor {
   val keepAliveDefault: FiniteDuration = 3.seconds
