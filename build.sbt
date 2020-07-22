@@ -118,7 +118,7 @@ lazy val library =
       val akkaHttp                 = "10.1.12"
       val akkaHttpJson             = "1.33.0"
       val akkaPersistenceCassandra = "1.0.1"
-      val akkaStreamKafka          = "2.0.3"
+      val akkaStreamKafka          = "2.0.4"
       val akkaProjection           = "0.3"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
@@ -131,9 +131,9 @@ lazy val library =
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.15"
 
-      val kamonPrometheus = "2.1.3"
-      val kamonAkka       = "2.1.3"
-      val kamonAkkaHttp   = "2.1.3"
+      val kamonPrometheus = "2.1.4"
+      val kamonAkka       = "2.1.4"
+      val kamonAkkaHttp   = "2.1.4"
       val kamonKanela     = "1.0.5"
     }
 
