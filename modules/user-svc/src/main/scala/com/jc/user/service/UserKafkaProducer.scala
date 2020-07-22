@@ -40,12 +40,7 @@ object UserKafkaProducer {
 
     val handleEvent: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
       FlowWithContext[UserEntity.UserEvent, Offset]
-        .map { event =>
-          val key     = userEventKafkaPartitionKey(event)
-          val record  = new ProducerRecord(kafkaTopic, key, event)
-          val message = ProducerMessage.single(record)
-          message
-        }
+        .map(event => toProducerMessage(kafkaTopic, event))
         .via(Producer.flowWithContext[String, UserEntity.UserEvent, Offset](userKafkaProducerSettings))
 
     CassandraJournalEventProcessor.create(
@@ -72,12 +67,7 @@ object UserKafkaProducer {
     val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
       FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
         .map(_.event)
-        .map { event =>
-          val key     = userEventKafkaPartitionKey(event)
-          val record  = new ProducerRecord(kafkaTopic, key, event)
-          val message = ProducerMessage.single(record)
-          message
-        }
+        .map(event => toProducerMessage(kafkaTopic, event))
         .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](userKafkaProducerSettings))
         .map(_ => Done)
 
@@ -89,6 +79,14 @@ object UserKafkaProducer {
       keepAlive
     )
   }
+
+  val toProducerMessage: (String, UserEntity.UserEvent) => ProducerMessage.Envelope[String, UserEntity.UserEvent, NotUsed] =
+    (kafkaTopic, event) => {
+      val key     = userEventKafkaPartitionKey(event)
+      val record  = new ProducerRecord(kafkaTopic, key, event)
+      val message = ProducerMessage.single(record)
+      message
+    }
 
   val userEventKafkaPartitionKey: (UserEntity.UserEvent => String) = event => event.entityId
 

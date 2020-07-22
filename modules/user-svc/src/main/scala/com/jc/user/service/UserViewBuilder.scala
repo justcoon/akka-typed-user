@@ -28,21 +28,14 @@ object UserViewBuilder {
       offsetStore: OffsetStore[Offset, Future]
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
-    val handleEvent: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
-      FlowWithContext[UserEntity.UserEvent, Offset].mapAsync(1) { event =>
-        userRepository
-          .find(event.entityId)
-          .flatMap {
-            case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
-            case None        => userRepository.insert(getUpdatedUser(event, None))
-          }
-      }
+    val handleEventFlow: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
+      FlowWithContext[UserEntity.UserEvent, Offset].mapAsync(1)(event => processEvent(event, userRepository))
 
     CassandraJournalEventProcessor.create(
       UserViewBuilderName,
       UserViewOffsetNamePrefix,
       UserEntity.userEventTagger,
-      handleEvent,
+      handleEventFlow,
       offsetStore,
       keepAlive
     )
@@ -52,26 +45,28 @@ object UserViewBuilder {
       userRepository: UserRepository[Future]
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
-    val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
-      FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext].mapAsync(1) { eventEnvelope =>
-        val event = eventEnvelope.event
-        userRepository
-          .find(event.entityId)
-          .flatMap {
-            case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
-            case None        => userRepository.insert(getUpdatedUser(event, None))
-          }
-          .map(_ => Done)
-      }
+    val handleEventFlow: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
+      FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
+        .map(_.event)
+        .mapAsync(1)(event => processEvent(event, userRepository))
+        .map(_ => Done)
 
     CassandraProjectionJournalEventProcessor.create(
       UserViewBuilderName,
       UserViewOffsetNamePrefix,
       UserEntity.userEventTagger,
-      handleEvent,
+      handleEventFlow,
       keepAlive
     )
   }
+
+  def processEvent(event: UserEntity.UserEvent, userRepository: UserRepository[Future])(implicit ec: ExecutionContext): Future[Boolean] =
+    userRepository
+      .find(event.entityId)
+      .flatMap {
+        case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
+        case None        => userRepository.insert(getUpdatedUser(event, None))
+      }
 
   def createUser(id: UserEntity.UserId): UserRepository.User = UserRepository.User(id, "", "", "")
 
