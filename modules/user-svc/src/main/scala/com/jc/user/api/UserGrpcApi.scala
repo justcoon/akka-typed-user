@@ -26,14 +26,14 @@ object UserGrpcApi {
       userRepository: UserRepository[Future],
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
-  )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
+  )(implicit askTimeout: Timeout, ec: ExecutionContext, sys: ActorSystem): Unit = {
     import eu.timepit.refined.auto._
 
     val log            = LoggerFactory.getLogger(this.getClass)
-    val grpcApiHandler = handler(userService, userRepository)(config.repositoryTimeout, ec, mat, sys)
+    val grpcApiHandler = handler(userService, userRepository)(config.repositoryTimeout, ec, sys)
 
     Http(sys)
-      .bindAndHandleAsync(grpcApiHandler, config.address, config.port)
+      .newServerAt(config.address, config.port).bind(grpcApiHandler)
       .onComplete {
         case Success(binding) =>
           val address = binding.localAddress
@@ -58,7 +58,6 @@ object UserGrpcApi {
   )(
       implicit askTimeout: Timeout,
       ec: ExecutionContext,
-      mat: Materializer,
       sys: ActorSystem
   ): HttpRequest => Future[HttpResponse] =
     UserApiServiceHandler(service(userService, userRepository))

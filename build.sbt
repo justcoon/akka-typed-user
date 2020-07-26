@@ -115,11 +115,11 @@ lazy val library =
 
     object Version {
       val akka                     = "2.6.8"
-      val akkaHttp                 = "10.1.12"
+      val akkaHttp                 = "10.2.0-RC2"
       val akkaHttpJson             = "1.33.0"
       val akkaPersistenceCassandra = "1.0.1"
       val akkaStreamKafka          = "2.0.4"
-      val akkaProjection           = "0.3"
+      val akkaProjection           = "1.0.0-RC1"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.0"

@@ -33,7 +33,8 @@ object UserOpenApi {
     val restApiRoutes = route(userService, userRepository)(config.repositoryTimeout, ec, mat)
 
     Http(sys)
-      .bindAndHandle(restApiRoutes, config.address, config.port)
+      .newServerAt(config.address, config.port)
+      .bind(restApiRoutes)
       .onComplete {
         case Success(binding) =>
           val address = binding.localAddress

@@ -43,7 +43,7 @@ object UserApp {
 
       val userService = new UserService()
 
-      val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
+//      val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
 
       log.info("offset store - init")
 //      CassandraOffsetStore.init(journalKeyspace)
@@ -73,7 +73,7 @@ object UserApp {
       UserOpenApi.server(userService, userRepository, shutdown, appConfig.restApi)(appConfig.restApi.repositoryTimeout, ec, mat, classicSys)
 
       log.info("user grpc api server - create")
-      UserGrpcApi.server(userService, userRepository, shutdown, appConfig.grpcApi)(appConfig.grpcApi.repositoryTimeout, ec, mat, classicSys)
+      UserGrpcApi.server(userService, userRepository, shutdown, appConfig.grpcApi)(appConfig.grpcApi.repositoryTimeout, ec, classicSys)
 
       log.info("user up and running")
 
