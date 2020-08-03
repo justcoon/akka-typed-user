@@ -1,4 +1,6 @@
 import com.lightbend.sbt.javaagent.Modules
+import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
+import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
 import sbt.Keys.javaOptions
 
 scalaVersion in Scope.Global := "2.13.3"
@@ -59,7 +61,7 @@ lazy val `user-svc` =
   (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
     .enablePlugins(AkkaGrpcPlugin)
-    .settings(settings ++ javaAgentsSettings)
+    .settings(settings ++ dockerSettings ++ javaAgentsSettings)
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
       guardrailTasks.in(Compile) := List(
@@ -76,6 +78,7 @@ lazy val `user-svc` =
           library.akkaHttp,
           library.akkaHttp2Support,
           library.akkaHttpCirce,
+          library.akkaHttpSprayJson,
           library.akkaKryo,
           library.akkaSlf4j,
           library.akkaPersistenceQuery,
@@ -84,6 +87,9 @@ lazy val `user-svc` =
           library.akkaProjectionEventsourced,
           library.akkaProjectionCassandra,
           library.akkaProjectionKafka,
+          library.akkaDiscoveryKubernetes,
+          library.akkaManagementClusterBootstrap,
+          library.akkaManagementClusterHttp,
           library.circeGeneric,
           library.circeRefined,
           library.logbackCore,
@@ -120,13 +126,14 @@ lazy val library =
       val akkaPersistenceCassandra = "1.0.1"
       val akkaStreamKafka          = "2.0.4"
       val akkaProjection           = "1.0.0-RC1"
+      val akkaManagement           = "1.0.8"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.0"
-      val bcrypt                   = "4.1"
+      val bcrypt                   = "4.3.0"
       val elastic4s                = "7.8.1"
       val pureconfig               = "0.13.0"
-      val chimney                  = "0.5.2"
+      val chimney                  = "0.5.3"
       val akkaKryo                 = "1.1.5"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.15"
@@ -136,6 +143,10 @@ lazy val library =
       val kamonAkkaHttp   = "2.1.4"
       val kamonKanela     = "1.0.5"
     }
+
+    val akkaDiscoveryKubernetes        = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % Version.akkaManagement
+    val akkaManagementClusterBootstrap = "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % Version.akkaManagement
+    val akkaManagementClusterHttp      = "com.lightbend.akka.management" %% "akka-management-cluster-http"      % Version.akkaManagement
 
     val akkaPersistenceQuery     = "com.typesafe.akka" %% "akka-persistence-query"     % Version.akka
     val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
@@ -149,12 +160,13 @@ lazy val library =
     val akkaProjectionEventsourced = "com.lightbend.akka" %% "akka-projection-eventsourced" % Version.akkaProjection
     val akkaProjectionKafka        = "com.lightbend.akka" %% "akka-projection-kafka"        % Version.akkaProjection
 
-    val akkaKryo         = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
-    val akkaHttp         = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
-    val akkaHttp2Support = "com.typesafe.akka" %% "akka-http2-support"      % Version.akkaHttp
-    val akkaHttpCirce    = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
-    val akkaHttpTestkit  = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
-    val akkaSlf4j        = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
+    val akkaKryo          = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
+    val akkaHttp          = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
+    val akkaHttp2Support  = "com.typesafe.akka" %% "akka-http2-support"      % Version.akkaHttp
+    val akkaHttpSprayJson = "com.typesafe.akka" %% "akka-http-spray-json"    % Version.akkaHttp
+    val akkaHttpCirce     = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
+    val akkaHttpTestkit   = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
+    val akkaSlf4j         = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
 
     val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
     val akkaTestkit     = "com.typesafe.akka" %% "akka-testkit"      % Version.akka
@@ -189,8 +201,7 @@ lazy val library =
 
 lazy val settings =
   commonSettings ++
-  gitSettings ++
-  dockerSettings
+  gitSettings
 
 lazy val commonSettings =
   Seq(
@@ -201,15 +212,15 @@ lazy val commonSettings =
         "-unchecked",
         "-deprecation",
         "-language:_",
-        "-target:jvm-1.8",
+        "-target:11",
         "-encoding",
         "UTF-8"
       ),
     javacOptions ++= Seq(
         "-source",
-        "1.8",
+        "11",
         "-target",
-        "1.8"
+        "11"
       ),
     unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value)
@@ -225,14 +236,38 @@ lazy val gitSettings =
 //    headers := Map("scala" -> Apache2_0("2016", "justcoon"))
 //  )
 
+// TODO
 lazy val dockerSettings =
   Seq(
     daemonUser.in(Docker) := "root",
     maintainer.in(Docker) := "justcoon",
     version.in(Docker) := "latest",
-    dockerBaseImage := "openjdk:8",
+    dockerBaseImage := "openjdk:11",
     dockerExposedPorts := Vector(2551, 8000),
-    dockerRepository := Some("justcoon")
+    dockerRepository := Some("justcoon"),
+    dockerEntrypoint ++= Seq(
+        """-Drest-api.port="$REST_API_PORT"""",
+        """-Dgrpc-api.port="$GRPC_API_PORT"""",
+        """-Delasticsearch.addresses.0="$ELASTICSEARCH_URL"""",
+        """-Dkafka.addresses.0="$KAFKA_URL"""",
+        """-Dcmn.notifier.topology.node-size="$AKKA_SEED_NUMBER"""",
+        """-Dakka.cluster.role.processor.min-nr-of-members="$AKKA_SEED_NUMBER"""",
+        """-Dakka.cluster.min-nr-of-members="$AKKA_SEED_NUMBER"""",
+        """-Dakka.remote.artery.canonical.hostname="$(eval "echo $AKKA_REMOTING_BIND_HOST")"""",
+        """-Dakka.remote.artery.canonical.port="$AKKA_REMOTING_BIND_PORT"""",
+        """-Dkamon.prometheus.embedded-server.port="$PROMETHEUS_METRICS_PORT"""",
+        """$(IFS=','; I=0; for NODE in $AKKA_SEED_NODES; do echo "-Dakka.cluster.seed-nodes.$I=akka://user@$NODE"; I=$(expr $I + 1); done)""",
+        """akka.remote.use-passive-connections=off"""
+        //      "-Dakka.io.dns.resolver=async-dns",
+        //      "-Dakka.io.dns.async-dns.resolve-srv=true",
+        //      "-Dakka.io.dns.async-dns.resolv-conf=on"
+      ),
+    dockerCommands :=
+      dockerCommands.value.flatMap {
+        case ExecCmd("ENTRYPOINT", args @ _*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
+        case c @ Cmd("FROM", _)               => Seq(c, ExecCmd("RUN", "/bin/sh", "-c", "apk add --no-cache bash && ln -sf /bin/bash /bin/sh"))
+        case v                                => Seq(v)
+      }
   )
 
 // https://github.com/kamon-io/kamon-bundle/blob/master/build.sbt

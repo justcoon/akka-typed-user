@@ -217,7 +217,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
         if (errors.nonEmpty) {
           CommandProcessResult.withReply(UserEntity.UserCreatedFailedReply(entityId, errors.mkString(",")))
         } else {
-          val encryptedPass = pass.bcrypt
+          val encryptedPass = pass.boundedBcrypt
           val events = List(
             UserPayloadEvent(
               entityId,
@@ -249,7 +249,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
         )
         CommandProcessResult.withReply(events, UserEntity.UserEmailChangedReply(entityId))
       case UserEntity.ChangeUserPasswordCommand(entityId, pass) =>
-        val encryptedPass = pass.bcrypt
+        val encryptedPass = pass.boundedBcrypt
         val events = List(
           UserPayloadEvent(
             entityId,

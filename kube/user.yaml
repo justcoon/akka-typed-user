@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: user-svc
+  name: user-svc
+  namespace: default
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: user-svc
+  template:
+    metadata:
+      labels:
+        app: user-svc
+        actorSystemName: user
+    spec:
+      containers:
+        - name: user-svc
+          image: user:latest
+          # remove for real clusters, useful for minikube
+          imagePullPolicy: Never
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: management
+            periodSeconds: 10
+            failureThreshold: 3
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: "/alive"
+              port: management
+            periodSeconds: 10
+            failureThreshold: 5
+            initialDelaySeconds: 20
+          ports:
+            # akka-management and bootstrap
+            - name: management
+              containerPort: 8558
+              protocol: TCP
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: REQUIRED_CONTACT_POINT_NR
+              value: "3"

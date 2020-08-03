@@ -5,6 +5,10 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
 import akka.actor.typed.{ ActorSystem, Behavior }
 import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import akka.cluster.ClusterEvent
+import akka.cluster.typed.{ Cluster, Subscribe }
+import akka.management.cluster.bootstrap.ClusterBootstrap
+import akka.management.scaladsl.AkkaManagement
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.jc.cqrs.offsetstore.{ CassandraOffsetStore, CassandraOffsetStoreService, CassandraProjectionOffsetStore }
@@ -38,6 +42,19 @@ object UserApp {
 
       log.info("kamon - init")
       Kamon.init()
+
+      // akka discovery
+
+      val listener = ctx.spawn(Behaviors.receive[ClusterEvent.MemberEvent] { (ctx, event) =>
+        ctx.log.info("user cluster member event: {}", event)
+        Behaviors.same
+      }, "listener")
+
+      Cluster(sys).subscriptions ! Subscribe(listener, classOf[ClusterEvent.MemberEvent])
+
+      AkkaManagement.get(classicSys).start()
+
+      ClusterBootstrap.get(classicSys).start()
 
       implicit val askTimeout: Timeout = 3.seconds
 
