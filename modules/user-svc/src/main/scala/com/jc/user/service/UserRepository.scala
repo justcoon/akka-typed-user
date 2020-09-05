@@ -168,7 +168,13 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         FieldSort(property, order = o)
     }
 
-    logger.debug("search - query: {}, page: {}, pageSize: {}, sorts: {}", query, page, pageSize, sorts.mkString("[", ",", "]"))
+    logger.debug(
+      "search - query: {}, page: {}, pageSize: {}, sorts: {}",
+      query.getOrElse("N/A"),
+      page,
+      pageSize,
+      sorts.mkString("[", ",", "]")
+    )
 
     elasticClient
       .execute {
@@ -186,7 +192,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
         case e =>
           logger.error(
             "search - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
-            query,
+            query.getOrElse("N/A"),
             page,
             pageSize,
             sorts.mkString("[", ",", "]"),

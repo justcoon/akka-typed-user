@@ -137,7 +137,8 @@ object UserGrpcApi {
         val ss = in.sorts.map { sort =>
           (sort.field, sort.order.isAsc)
         }
-        userRepository.search(Some(in.query), in.page, in.pageSize, ss).map {
+        val q = if (in.query.isBlank) None else Some(in.query)
+        userRepository.search(q, in.page, in.pageSize, ss).map {
           case Right(r) =>
             SearchUsersRes(r.items.map(_.transformInto[proto.User]), r.page, r.pageSize, r.count, SearchUsersRes.Result.Success(""))
           case Left(e) =>
