@@ -132,11 +132,11 @@ lazy val library =
       val scalaTest                = "3.2.2"
       val bcrypt                   = "4.3.0"
       val elastic4s                = "7.9.0"
-      val pureconfig               = "0.13.0"
+      val pureconfig               = "0.14.0"
       val chimney                  = "0.5.3"
       val akkaKryo                 = "1.1.5"
       val pauldijouJwt             = "4.3.0"
-      val refined                  = "0.9.15"
+      val refined                  = "0.9.16"
 
       val kamonPrometheus = "2.1.6"
       val kamonAkka       = "2.1.6"

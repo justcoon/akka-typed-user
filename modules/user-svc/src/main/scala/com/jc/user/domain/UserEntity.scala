@@ -257,7 +257,7 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
             UserPayloadEvent.Payload.PasswordUpdated(UserPasswordUpdatedPayload(encryptedPass))
           )
         )
-        CommandProcessResult.withReply(events, UserEntity.UserEmailChangedReply(entityId))
+        CommandProcessResult.withReply(events, UserEntity.UserPasswordChangedReply(entityId))
       case UserEntity.ChangeUserAddressCommand(entityId, addr) =>
         actorContext.pipeToSelf(validateAddress(addr)) {
           case Success(_: AddressValidator.ValidResult.type) =>
