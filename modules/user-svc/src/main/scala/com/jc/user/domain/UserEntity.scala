@@ -109,11 +109,14 @@ object UserEntity {
   implicit val eventApplier: EventApplier[User, UserEvent] = (user, event) =>
     event match {
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated, _) =>
-        user.copy(email = payload.value.email)
+        user.withEmail(payload.value.email)
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
-        user.copy(pass = payload.value.pass)
+        user.withPass(payload.value.pass)
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated, _) =>
-        user.copy(address = payload.value.address)
+        payload.value.address match {
+          case Some(a) => user.withAddress(a)
+          case None    => user.clearAddress
+        }
       case _ =>
         user
     }

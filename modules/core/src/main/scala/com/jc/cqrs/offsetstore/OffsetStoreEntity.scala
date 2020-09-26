@@ -84,7 +84,7 @@ object OffsetStoreEntity {
   implicit val eventApplier: EventApplier[OffsetStore, OffsetStoreEvent] = (offsetStore, event) =>
     event match {
       case OffsetStorePayloadEvent(_, _, payload: OffsetStorePayloadEvent.Payload.Updated, _) =>
-        offsetStore.copy(offset = payload.value.offset)
+        offsetStore.withOffset(payload.value.offset)
       case _ =>
         offsetStore
     }

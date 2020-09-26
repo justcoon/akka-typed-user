@@ -67,7 +67,7 @@ object UserOpenApi {
       override def createUser(respond: UserResource.CreateUserResponse.type)(body: User): Future[UserResource.CreateUserResponse] = {
         import UserEntity._
         val id  = body.id.getOrElse(body.username).asUserId
-        val cmd = body.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, _ => id).transform
+        val cmd = body.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
         userService.sendCommand(cmd).map {
           case reply: UserEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
           case reply: UserEntity.UserCreatedFailedReply =>

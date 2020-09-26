@@ -33,7 +33,8 @@ object UserGrpcApi {
     val grpcApiHandler = handler(userService, userRepository)(config.repositoryTimeout, ec, sys)
 
     Http(sys)
-      .newServerAt(config.address, config.port).bind(grpcApiHandler)
+      .newServerAt(config.address, config.port)
+      .bind(grpcApiHandler)
       .onComplete {
         case Success(binding) =>
           val address = binding.localAddress
@@ -74,7 +75,7 @@ object UserGrpcApi {
 
         import UserEntity._
         val id  = in.username.asUserId
-        val cmd = in.into[UserEntity.CreateUserCommand].withFieldComputed(_.entityId, _ => id).transform
+        val cmd = in.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
 
         userService.sendCommand(cmd).map {
           case reply: UserEntity.UserCreatedReply =>
