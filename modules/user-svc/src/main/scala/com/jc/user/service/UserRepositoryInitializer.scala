@@ -54,6 +54,8 @@ object UserESRepositoryInitializer {
   val fields = Seq(
     textField("id").fielddata(true),
     textField("username").fielddata(true),
+    completionField(ElasticUtils.getSuggestPropertyName("username")),
+    completionField(ElasticUtils.getSuggestPropertyName("email")),
     textField("email").fielddata(true),
     textField("address.street").fielddata(true),
     textField("address.number").fielddata(true),
