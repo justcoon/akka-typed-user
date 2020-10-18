@@ -65,7 +65,7 @@ lazy val `user-svc` =
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
       guardrailTasks.in(Compile) := List(
-          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "com.jc.user.api.openapi", tracing = false)
+          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "com.jc.user.api.openapi", tracing = false, customExtraction = true)
         )
     )
     .settings(
@@ -138,9 +138,9 @@ lazy val library =
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.17"
 
-      val kamonPrometheus = "2.1.7"
-      val kamonAkka       = "2.1.7"
-      val kamonAkkaHttp   = "2.1.7"
+      val kamonPrometheus = "2.1.8"
+      val kamonAkka       = "2.1.8"
+      val kamonAkkaHttp   = "2.1.8"
       val kamonKanela     = "1.0.5"
     }
 

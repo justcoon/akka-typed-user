@@ -1,15 +1,21 @@
 package com.jc.user.api
 
-import akka.Done
+import java.time.Clock
+
+import akka.{ Done, NotUsed }
 import akka.actor.{ ActorSystem, CoordinatedShutdown }
+import akka.grpc.scaladsl.Metadata
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import akka.util.Timeout
+import com.jc.auth.{ JwtAuthenticator, PdiJwtAuthenticator }
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.UserEntity
 import com.jc.user.domain.proto
+import com.jc.user.domain.proto.User
 import com.jc.user.service.{ UserRepository, UserService }
 import org.slf4j.LoggerFactory
 
@@ -24,13 +30,14 @@ object UserGrpcApi {
   def server(
       userService: UserService,
       userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String],
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
   )(implicit askTimeout: Timeout, ec: ExecutionContext, sys: ActorSystem): Unit = {
     import eu.timepit.refined.auto._
 
     val log            = LoggerFactory.getLogger(this.getClass)
-    val grpcApiHandler = handler(userService, userRepository)(config.repositoryTimeout, ec, sys)
+    val grpcApiHandler = handler(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, sys)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -55,24 +62,39 @@ object UserGrpcApi {
 
   def handler(
       userService: UserService,
-      userRepository: UserRepository[Future]
+      userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String]
   )(
       implicit askTimeout: Timeout,
       ec: ExecutionContext,
       sys: ActorSystem
   ): HttpRequest => Future[HttpResponse] =
-    UserApiServiceHandler(service(userService, userRepository))
+    UserApiServicePowerApiHandler(service(userService, userRepository, jwtAuthenticator))
 
   def service(
       userService: UserService,
-      userRepository: UserRepository[Future]
-  )(implicit askTimeout: Timeout, ec: ExecutionContext): UserApiService = {
+      userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String]
+  )(implicit askTimeout: Timeout, ec: ExecutionContext): UserApiServicePowerApi = {
 
     import io.scalaland.chimney.dsl._
 
-    new UserApiService {
-      override def registerUser(in: RegisterUserReq): Future[RegisterUserRes] = {
+    new UserApiServicePowerApi {
 
+      def authenticated[R](metadata: Metadata)(fn: String => Future[R]): Future[R] = {
+        val maybeSubject =
+          for {
+            header  <- metadata.getText(JwtAuthenticator.AuthHeader)
+            subject <- jwtAuthenticator.authenticated(header)
+          } yield subject
+
+        maybeSubject match {
+          case Some(subject) => fn(subject)
+          case None          => Future.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
+        }
+      }
+
+      override def registerUser(in: RegisterUserReq, metadata: Metadata): Future[RegisterUserRes] = {
         import UserEntity._
         val id  = in.username.asUserId
         val cmd = in.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
@@ -87,54 +109,57 @@ object UserGrpcApi {
         }
       }
 
-      override def updateUserEmail(in: UpdateEmailReq): Future[UpdateEmailRes] = {
-        import UserEntity._
-        val cmd = UserEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
-        userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserEmailChangedReply =>
-            UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Success("User email updated"))
-          case reply: UserEntity.UserNotExistsReply =>
-            UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Failure("User not exits"))
+      override def updateUserEmail(in: UpdateEmailReq, metadata: Metadata): Future[UpdateEmailRes] =
+        authenticated(metadata) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserEmailChangedReply =>
+              UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Success("User email updated"))
+            case reply: UserEntity.UserNotExistsReply =>
+              UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Failure("User not exits"))
+          }
         }
-      }
 
-      override def updateUserPassword(in: UpdatePasswordReq): Future[UpdatePasswordRes] = {
-        import UserEntity._
-        val cmd = UserEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
-        userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserPasswordChangedReply =>
-            UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Success("User password updated"))
-          case reply: UserEntity.UserNotExistsReply =>
-            UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Failure("User not exists"))
+      override def updateUserPassword(in: UpdatePasswordReq, metadata: Metadata): Future[UpdatePasswordRes] =
+        authenticated(metadata) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserPasswordChangedReply =>
+              UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Success("User password updated"))
+            case reply: UserEntity.UserNotExistsReply =>
+              UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Failure("User not exists"))
+          }
         }
-      }
 
-      override def updateUserAddress(in: UpdateAddressReq): Future[UpdateAddressRes] = {
-        import UserEntity._
-        val cmd = UserEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
-        userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply =>
-            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Success("User address updated"))
-          case reply: UserEntity.UserNotExistsReply =>
-            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure("User not exists"))
-          case reply: UserEntity.UserAddressChangedFailedReply =>
-            UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+      override def updateUserAddress(in: UpdateAddressReq, metadata: Metadata): Future[UpdateAddressRes] =
+        authenticated(metadata) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserAddressChangedReply =>
+              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Success("User address updated"))
+            case reply: UserEntity.UserNotExistsReply =>
+              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure("User not exists"))
+            case reply: UserEntity.UserAddressChangedFailedReply =>
+              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+          }
         }
-      }
 
-      override def getUser(in: GetUserReq): Future[GetUserRes] = {
+      override def getUser(in: GetUserReq, metadata: Metadata): Future[GetUserRes] = {
         import UserEntity._
         userRepository.find(in.id.asUserId).map { r =>
           GetUserRes(r.map(_.transformInto[proto.User]))
         }
       }
 
-      override def getUsers(in: GetUsersReq): Future[GetUsersRes] =
+      override def getUsers(in: GetUsersReq, metadata: Metadata): Future[GetUsersRes] =
         userRepository.findAll().map { r =>
           GetUsersRes(r.map(_.transformInto[proto.User]))
         }
 
-      override def searchUsers(in: SearchUsersReq): Future[SearchUsersRes] = {
+      override def searchUsers(in: SearchUsersReq, metadata: Metadata): Future[SearchUsersRes] = {
         val ss = in.sorts.map { sort =>
           (sort.field, sort.order.isAsc)
         }
@@ -147,13 +172,40 @@ object UserGrpcApi {
         }
       }
 
-      override def suggestUsers(in: SuggestUsersReq): Future[SuggestUsersRes] =
+      override def searchUserStream(in: SearchUserStreamReq, metadata: Metadata): Source[User, NotUsed] = {
+        val ss = in.sorts.map { sort =>
+          (sort.field, sort.order.isAsc)
+        }
+
+        val q = if (in.query.isBlank) None else Some(in.query)
+
+        val pageInitial = 0
+        val pageSize    = 20
+
+        Source
+          .unfoldAsync(pageInitial) { page =>
+            val res = userRepository.search(q, page, pageSize, ss).map {
+              case Right(r) =>
+                if ((r.page * r.pageSize) < r.count || r.items.nonEmpty) Some((r.page + 1, r.items))
+                else None
+              case Left(e) =>
+                throw new akka.grpc.GrpcServiceException(io.grpc.Status.INTERNAL.withDescription(e.error), metadata)
+            }
+
+            res
+          }
+          .mapConcat(identity)
+          .map(_.transformInto[proto.User])
+      }
+
+      override def suggestUsers(in: SuggestUsersReq, metadata: Metadata): Future[SuggestUsersRes] =
         userRepository.suggest(in.query).map {
           case Right(r) =>
             SuggestUsersRes(r.items.map(_.transformInto[PropertySuggestion]), SuggestUsersRes.Result.Success(""))
           case Left(e) =>
             SuggestUsersRes(result = SuggestUsersRes.Result.Failure(e.error))
         }
+
     }
   }
 }

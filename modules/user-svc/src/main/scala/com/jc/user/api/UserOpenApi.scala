@@ -2,10 +2,14 @@ package com.jc.user.api
 
 import akka.Done
 import akka.actor.{ ActorSystem, CoordinatedShutdown }
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.model.StatusCodes.ClientError
+import akka.http.scaladsl.model.{ ErrorInfo, HttpHeader, IllegalRequestException, StatusCode }
+import akka.http.scaladsl.server.{ Directive, Directives, Route }
 import akka.util.Timeout
-import com.jc.user.api.openapi.definitions.{ Address, User, UserSearchResponse }
+import com.jc.auth.JwtAuthenticator
+import com.jc.user.api.openapi.definitions.{ Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.UserEntity
@@ -24,13 +28,14 @@ object UserOpenApi {
   def server(
       userService: UserService,
       userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String],
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
     import eu.timepit.refined.auto._
 
     val log           = LoggerFactory.getLogger(this.getClass)
-    val restApiRoutes = route(userService, userRepository)(config.repositoryTimeout, ec, mat)
+    val restApiRoutes = route(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -54,17 +59,40 @@ object UserOpenApi {
 
   def route(
       userService: UserService,
-      userRepository: UserRepository[Future]
+      userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer): Route =
-    UserResource.routes(handler(userService, userRepository))
+    UserResource.routes(
+      handler(userService, userRepository, jwtAuthenticator),
+      _ => Directives.extractRequest.map(req => req.headers)
+    )
 
   def handler(
       userService: UserService,
-      userRepository: UserRepository[Future]
-  )(implicit askTimeout: Timeout, ec: ExecutionContext): UserHandler = {
+      userRepository: UserRepository[Future],
+      jwtAuthenticator: JwtAuthenticator[String]
+  )(implicit askTimeout: Timeout, ec: ExecutionContext): UserHandler[Seq[HttpHeader]] = {
+
     import io.scalaland.chimney.dsl._
-    new UserHandler {
-      override def createUser(respond: UserResource.CreateUserResponse.type)(body: User): Future[UserResource.CreateUserResponse] = {
+
+    new UserHandler[Seq[HttpHeader]] {
+
+      def authenticated[R](headers: Seq[HttpHeader])(fn: String => Future[R]): Future[R] = {
+        val maybeSubject =
+          for {
+            header  <- headers.find(h => h.is(JwtAuthenticator.AuthHeader.toLowerCase))
+            subject <- jwtAuthenticator.authenticated(header.value)
+          } yield subject
+
+        maybeSubject match {
+          case Some(subject) => fn(subject)
+          case None          => Future.failed(IllegalRequestException(StatusCodes.Unauthorized))
+        }
+      }
+
+      override def createUser(
+          respond: UserResource.CreateUserResponse.type
+      )(body: User)(extracted: Seq[HttpHeader]): Future[UserResource.CreateUserResponse] = {
         import UserEntity._
         val id  = body.id.getOrElse(body.username).asUserId
         val cmd = body.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
@@ -76,12 +104,16 @@ object UserOpenApi {
         }
       }
 
-      override def getUsers(respond: UserResource.GetUsersResponse.type)(): Future[UserResource.GetUsersResponse] =
+      override def getUsers(
+          respond: UserResource.GetUsersResponse.type
+      )()(extracted: Seq[HttpHeader]): Future[UserResource.GetUsersResponse] =
         userRepository.findAll().map { r =>
           UserResource.GetUsersResponseOK(r.map(_.transformInto[User]).toVector)
         }
 
-      override def getUser(respond: UserResource.GetUserResponse.type)(id: String): Future[UserResource.GetUserResponse] = {
+      override def getUser(
+          respond: UserResource.GetUserResponse.type
+      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.GetUserResponse] = {
         import UserEntity._
         userRepository.find(id.asUserId).map {
           case Some(r) =>
@@ -92,31 +124,35 @@ object UserOpenApi {
 
       override def updateUserAddress(
           respond: UserResource.UpdateUserAddressResponse.type
-      )(id: String, body: Address): Future[UserResource.UpdateUserAddressResponse] = {
-        import UserEntity._
-        val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
-        userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
-          case reply: UserEntity.UserAddressChangedFailedReply =>
-            UserResource.UpdateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-          case _: UserEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
+      )(id: String, body: Address)(extracted: Seq[HttpHeader]): Future[UserResource.UpdateUserAddressResponse] =
+        authenticated(extracted) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
+            case reply: UserEntity.UserAddressChangedFailedReply =>
+              UserResource.UpdateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
+            case _: UserEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
+          }
         }
-      }
 
       override def deleteUserAddress(
           respond: UserResource.DeleteUserAddressResponse.type
-      )(id: String): Future[UserResource.DeleteUserAddressResponse] = {
-        import UserEntity._
-        val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
-        userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
-          case reply: UserEntity.UserAddressChangedFailedReply =>
-            UserResource.DeleteUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-          case _: UserEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
+      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserAddressResponse] =
+        authenticated(extracted) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
+            case reply: UserEntity.UserAddressChangedFailedReply =>
+              UserResource.DeleteUserAddressResponseBadRequest(s"User address update error (${reply.error})")
+            case _: UserEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
+          }
         }
-      }
 
-      override def deleteUser(respond: UserResource.DeleteUserResponse.type)(id: String): Future[UserResource.DeleteUserResponse] =
+      override def deleteUser(
+          respond: UserResource.DeleteUserResponse.type
+      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
         Future.successful(UserResource.DeleteUserResponseBadRequest) // FIXME
 
       override def searchUsers(
@@ -126,7 +162,7 @@ object UserOpenApi {
           page: Int,
           pageSize: Int,
           sort: Option[Iterable[String]] = None
-      ): Future[UserResource.SearchUsersResponse] = {
+      )(extracted: Seq[HttpHeader]): Future[UserResource.SearchUsersResponse] = {
         // sort - field:order (username:asc,email:desc)
         val ss = sort.getOrElse(Seq.empty).map(toFieldSort)
 
@@ -138,6 +174,17 @@ object UserOpenApi {
             UserResource.SearchUsersResponseBadRequest(e.error)
         }
       }
+
+      override def suggestUsers(
+          respond: UserResource.SuggestUsersResponse.type
+      )(query: Option[String])(extracted: Seq[HttpHeader]): Future[UserResource.SuggestUsersResponse] =
+        userRepository.suggest(query.getOrElse("")).map {
+          case Right(res) =>
+            val items = res.items.map(_.transformInto[PropertySuggestion]).toVector
+            UserResource.SuggestUsersResponseOK(UserSuggestResponse(items))
+          case Left(e) =>
+            UserResource.SuggestUsersResponseBadRequest(e.error)
+        }
     }
   }
 

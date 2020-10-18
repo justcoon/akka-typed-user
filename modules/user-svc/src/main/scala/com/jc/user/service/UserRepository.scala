@@ -23,6 +23,11 @@ trait UserRepository[F[_]] {
       sorts: Iterable[UserRepository.FieldSort]
   ): F[Either[UserRepository.SearchError, UserRepository.PaginatedSequence[UserRepository.User]]]
 
+  def search(
+      query: Option[String],
+      sorts: Iterable[UserRepository.FieldSort]
+  ): F[Either[UserRepository.SearchError, Seq[UserRepository.User]]]
+
   def suggest(
       query: String
   ): F[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]]
@@ -214,6 +219,46 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
             query.getOrElse("N/A"),
             page,
             pageSize,
+            sorts.mkString("[", ",", "]"),
+            e.getMessage
+          )
+          Future.successful(Left(UserRepository.SearchError(e.getMessage)))
+      }
+  }
+
+  override def search(
+      query: Option[String],
+      sorts: Iterable[(String, Boolean)]
+  ): Future[Either[UserRepository.SearchError, Seq[UserRepository.User]]] = {
+    val q = query.map(QueryStringQuery(_)).getOrElse(MatchAllQuery())
+    val ss = sorts.map {
+      case (property, asc) =>
+        val o = if (asc) SortOrder.Asc else SortOrder.Desc
+        FieldSort(property, order = o)
+    }
+
+    logger.debug(
+      "search - query: {}, sorts: {}",
+      query.getOrElse("N/A"),
+      sorts.mkString("[", ",", "]")
+    )
+
+    elasticClient
+      .execute {
+        searchIndex(indexName).query(q).sortBy(ss)
+      }
+      .map { res =>
+        if (res.isSuccess) {
+          Right(res.result.to[UserRepository.User])
+        } else {
+          Left(UserRepository.SearchError(ElasticUtils.getReason(res.error)))
+        }
+      }
+      .recoverWith {
+        case e =>
+          logger.error(
+            "search - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
+            query.getOrElse("N/A"),
             sorts.mkString("[", ",", "]"),
             e.getMessage
           )

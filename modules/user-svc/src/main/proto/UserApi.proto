@@ -140,6 +140,12 @@ message SearchUsersRes {
     }
 }
 
+message SearchUserStreamReq {
+    string query = 1 [(scalapb.field).no_box = false];
+    repeated FieldSort sorts = 2;
+}
+
+
 message SuggestUsersReq {
     string query = 1 [(scalapb.field).no_box = false];
 }
@@ -186,6 +192,9 @@ service UserApiService {
     }
 
     rpc SearchUsers (SearchUsersReq) returns (SearchUsersRes) {
+    }
+
+    rpc SearchUserStream (SearchUserStreamReq) returns (stream com.jc.user.domain.proto.User) {
     }
 
     rpc SuggestUsers (SuggestUsersReq) returns (SuggestUsersRes) {

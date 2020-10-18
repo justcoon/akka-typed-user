@@ -1,5 +1,7 @@
 package com.jc.user
 
+import java.time.Clock
+
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
@@ -11,6 +13,7 @@ import akka.management.cluster.bootstrap.ClusterBootstrap
 import akka.management.scaladsl.AkkaManagement
 import akka.stream.Materializer
 import akka.util.Timeout
+import com.jc.auth.PdiJwtAuthenticator
 import com.jc.cqrs.offsetstore.{ CassandraOffsetStore, CassandraOffsetStoreService, CassandraProjectionOffsetStore }
 import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
 import com.jc.user.service._
@@ -58,6 +61,8 @@ object UserApp {
 
       implicit val askTimeout: Timeout = 3.seconds
 
+      val jwtAuthenticator = PdiJwtAuthenticator.create(appConfig.jwt, Clock.systemUTC())
+
       val userService = new UserService()
 
 //      val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
@@ -87,10 +92,19 @@ object UserApp {
       UserKafkaProducer.createWithProjection(appConfig.kafka.topic, appConfig.kafka.addresses)
 
       log.info("user rest api server - create")
-      UserOpenApi.server(userService, userRepository, shutdown, appConfig.restApi)(appConfig.restApi.repositoryTimeout, ec, mat, classicSys)
+      UserOpenApi.server(userService, userRepository, jwtAuthenticator, shutdown, appConfig.restApi)(
+        appConfig.restApi.repositoryTimeout,
+        ec,
+        mat,
+        classicSys
+      )
 
       log.info("user grpc api server - create")
-      UserGrpcApi.server(userService, userRepository, shutdown, appConfig.grpcApi)(appConfig.grpcApi.repositoryTimeout, ec, classicSys)
+      UserGrpcApi.server(userService, userRepository, jwtAuthenticator, shutdown, appConfig.grpcApi)(
+        appConfig.grpcApi.repositoryTimeout,
+        ec,
+        classicSys
+      )
 
       log.info("user up and running")
 
