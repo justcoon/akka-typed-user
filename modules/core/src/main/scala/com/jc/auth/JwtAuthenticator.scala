@@ -5,15 +5,18 @@ import java.time.Clock
 import akka.http.scaladsl.model.StatusCodes.Unauthorized
 import akka.http.scaladsl.server.Directive1
 import akka.http.scaladsl.server.Directives.{ complete, optionalHeaderValueByName, provide }
+import eu.timepit.refined.types.numeric.PosLong
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.{ Decoder, Encoder }
 import pdi.jwt._
 import pureconfig.generic.semiauto.deriveReader
 
 import scala.util.Try
 
-final case class JwtConfig(secret: String, expiration: Long, issuer: Option[String] = None)
+final case class JwtConfig(secret: NonEmptyString, expiration: PosLong, issuer: Option[NonEmptyString] = None)
 
 object JwtConfig {
+  import eu.timepit.refined.pureconfig._
   implicit lazy val configReader = deriveReader[JwtConfig]
 }
 
@@ -59,7 +62,8 @@ object PdiJwtAuthenticator {
 
 }
 
-class PdiJwtHelper(val config: JwtConfig) {
+final class PdiJwtHelper(val config: JwtConfig) {
+  import eu.timepit.refined.auto._
 
   def claim[T: Encoder](
       content: T,
@@ -70,7 +74,7 @@ class PdiJwtHelper(val config: JwtConfig) {
     import io.circe.syntax._
     val jsContent = content.asJson.noSpaces
 
-    JwtClaim(content = jsContent, issuer = issuer.orElse(config.issuer), subject = subject, audience = audience).issuedNow
+    JwtClaim(content = jsContent, issuer = issuer.orElse(config.issuer.map(_.value)), subject = subject, audience = audience).issuedNow
       .expiresIn(config.expiration)
   }
 

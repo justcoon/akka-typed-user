@@ -49,6 +49,7 @@ lazy val `core` =
           library.logbackClassic,
           library.bcrypt,
           library.pureconfig,
+          library.refinedPureconfig,
           library.pauldijouJwtCirce,
           library.chimney,
           library.akkaHttpTestkit % Test,
@@ -133,7 +134,7 @@ lazy val library =
       val bcrypt                   = "4.3.0"
       val elastic4s                = "7.9.1"
       val pureconfig               = "0.14.0"
-      val chimney                  = "0.5.3"
+      val chimney                  = "0.6.0"
       val akkaKryo                 = "1.1.5"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.17"
