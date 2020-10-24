@@ -107,9 +107,7 @@ object UserOpenApi {
       override def getUsers(
           respond: UserResource.GetUsersResponse.type
       )()(extracted: Seq[HttpHeader]): Future[UserResource.GetUsersResponse] =
-        userRepository.findAll().map { r =>
-          UserResource.GetUsersResponseOK(r.map(_.transformInto[User]).toVector)
-        }
+        userRepository.findAll().map(r => UserResource.GetUsersResponseOK(r.map(_.transformInto[User]).toVector))
 
       override def getUser(
           respond: UserResource.GetUserResponse.type

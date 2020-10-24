@@ -19,9 +19,7 @@ trait TypedActorEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entity <: 
 
   sharding.init(
     Entity(persistentEntity.entityTypeKey) { entityContext =>
-      Behaviors.setup { actorContext =>
-        persistentEntity.eventSourcedEntity(entityContext, actorContext)
-      }
+      Behaviors.setup(actorContext => persistentEntity.eventSourcedEntity(entityContext, actorContext))
     }
   )
 

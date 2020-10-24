@@ -35,9 +35,7 @@ object KeepAliveActor {
         timers.startTimerWithFixedDelay(Probe, Probe, keepAliveInterval)
 
         Behaviors.receiveMessage { _ =>
-          entityIds.foreach { id =>
-            sharding.entityRefFor(entityKey, id) ! ping
-          }
+          entityIds.foreach(id => sharding.entityRefFor(entityKey, id) ! ping)
           Behaviors.same
         }
       }

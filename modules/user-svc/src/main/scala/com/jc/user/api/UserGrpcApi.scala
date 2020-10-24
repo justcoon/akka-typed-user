@@ -149,21 +149,15 @@ object UserGrpcApi {
 
       override def getUser(in: GetUserReq, metadata: Metadata): Future[GetUserRes] = {
         import UserEntity._
-        userRepository.find(in.id.asUserId).map { r =>
-          GetUserRes(r.map(_.transformInto[proto.User]))
-        }
+        userRepository.find(in.id.asUserId).map(r => GetUserRes(r.map(_.transformInto[proto.User])))
       }
 
       override def getUsers(in: GetUsersReq, metadata: Metadata): Future[GetUsersRes] =
-        userRepository.findAll().map { r =>
-          GetUsersRes(r.map(_.transformInto[proto.User]))
-        }
+        userRepository.findAll().map(r => GetUsersRes(r.map(_.transformInto[proto.User])))
 
       override def searchUsers(in: SearchUsersReq, metadata: Metadata): Future[SearchUsersRes] = {
-        val ss = in.sorts.map { sort =>
-          (sort.field, sort.order.isAsc)
-        }
-        val q = if (in.query.isBlank) None else Some(in.query)
+        val ss = in.sorts.map(sort => (sort.field, sort.order.isAsc))
+        val q  = if (in.query.isBlank) None else Some(in.query)
         userRepository.search(q, in.page, in.pageSize, ss).map {
           case Right(r) =>
             SearchUsersRes(r.items.map(_.transformInto[proto.User]), r.page, r.pageSize, r.count, SearchUsersRes.Result.Success(""))
@@ -173,9 +167,7 @@ object UserGrpcApi {
       }
 
       override def searchUserStream(in: SearchUserStreamReq, metadata: Metadata): Source[User, NotUsed] = {
-        val ss = in.sorts.map { sort =>
-          (sort.field, sort.order.isAsc)
-        }
+        val ss = in.sorts.map(sort => (sort.field, sort.order.isAsc))
 
         val q = if (in.query.isBlank) None else Some(in.query)
 

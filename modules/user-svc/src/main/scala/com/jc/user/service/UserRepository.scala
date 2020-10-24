@@ -63,8 +63,8 @@ object UserRepository {
     val addressLens: Lens[User, Option[Address]] = lens[User].address
     val deletedLens: Lens[User, Boolean]         = lens[User].deleted
 
-    val usernameEmailPassAddressLens
-        : ProductLensBuilder[User, (String, String, String, Option[Address])] = usernameLens ~ emailLens ~ passLens ~ addressLens
+    val usernameEmailPassAddressLens: ProductLensBuilder[User, (String, String, String, Option[Address])] =
+      usernameLens ~ emailLens ~ passLens ~ addressLens
 
     import io.circe._, io.circe.generic.semiauto._
 
@@ -287,9 +287,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
             val propertySuggestions = elasticSuggestions(ElasticUtils.getSuggestPropertyName(p))
             val suggestions = propertySuggestions.flatMap { v =>
               val t = v.toCompletion
-              t.options.map { o =>
-                UserRepository.TermSuggestion(o.text, o.score, o.score.toInt)
-              }
+              t.options.map(o => UserRepository.TermSuggestion(o.text, o.score, o.score.toInt))
             }
 
             UserRepository.PropertySuggestions(p, suggestions)

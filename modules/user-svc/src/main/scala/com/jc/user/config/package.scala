@@ -25,8 +25,6 @@ package object config {
   )(implicit trt: RefType[TF], ert: RefType[EF]): I[E] =
     trt
       .unwrap(tp)
-      .map { ep =>
-        ert.unwrap(ep)
-      }
+      .map(ep => ert.unwrap(ep))
       .asInstanceOf[I[E]]
 }

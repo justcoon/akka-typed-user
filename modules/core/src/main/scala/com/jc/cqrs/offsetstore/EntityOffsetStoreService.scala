@@ -40,8 +40,6 @@ class EntityOffsetStoreService()(
     import OffsetStoreEntity._
     val id = name.asOffsetStoreId
     log.debug("storeOffset - name: {}, offset: {}", name, offset)
-    sendCommand(OffsetStoreEntity.CreateOrUpdateOffsetStoreCommand(id, offset)).map { _ =>
-      offset
-    }
+    sendCommand(OffsetStoreEntity.CreateOrUpdateOffsetStoreCommand(id, offset)).map(_ => offset)
   }
 }
