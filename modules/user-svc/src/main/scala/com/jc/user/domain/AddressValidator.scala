@@ -2,6 +2,7 @@ package com.jc.user.domain
 
 import java.util.Locale
 
+import akka.http.scaladsl.util.FastFuture
 import com.jc.user.domain.proto._
 
 import scala.concurrent.Future
@@ -21,7 +22,7 @@ object AddressValidator {
 class SimpleAddressValidator extends AddressValidator[Future] {
   private val isoCountries = Locale.getISOCountries.toSet
   override def validate(address: Address): Future[AddressValidator.ValidationResult] =
-    Future.successful {
+    FastFuture.successful {
       if (isoCountries.contains(address.country)) AddressValidator.ValidResult
       else AddressValidator.NotValidResult(List(s"country: ${address.country} is not valid ISO country"))
     }

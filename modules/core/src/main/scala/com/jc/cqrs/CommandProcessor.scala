@@ -10,7 +10,7 @@ trait InitialCommandProcessor[C[R] <: EntityCommand[_, _, R], E <: EntityEvent[_
   def process(command: C[_]): CommandProcessResult[E]
 }
 
-case class CommandProcessResult[E <: EntityEvent[_]](events: List[E], reply: CommandReply[_])
+final case class CommandProcessResult[E <: EntityEvent[_]](events: List[E], reply: CommandReply[_])
 
 object CommandProcessResult {
 
