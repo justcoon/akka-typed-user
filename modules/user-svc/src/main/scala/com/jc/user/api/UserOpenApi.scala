@@ -1,25 +1,22 @@
 package com.jc.user.api
 
 import akka.Done
-import akka.actor.{ ActorSystem, CoordinatedShutdown }
-import akka.http.scaladsl.model.StatusCodes
+import akka.actor.{ActorSystem, CoordinatedShutdown}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.StatusCodes.ClientError
-import akka.http.scaladsl.model.{ ErrorInfo, HttpHeader, IllegalRequestException, StatusCode }
-import akka.http.scaladsl.server.{ Directive, Directives, Route }
+import akka.http.scaladsl.model.{HttpHeader, IllegalRequestException, StatusCodes}
+import akka.http.scaladsl.server.{Directives, Route}
 import akka.util.Timeout
 import com.jc.auth.JwtAuthenticator
-import com.jc.user.api.openapi.definitions.{ Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
-import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
+import com.jc.user.api.openapi.definitions.{Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse}
+import com.jc.user.api.openapi.user.{UserHandler, UserResource}
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.UserEntity
-import com.jc.user.domain.proto
-import com.jc.user.service.{ UserRepository, UserService }
+import com.jc.user.domain.{UserEntity, proto}
+import com.jc.user.service.{UserRepository, UserService}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 object UserOpenApi {
 
@@ -151,7 +148,14 @@ object UserOpenApi {
       override def deleteUser(
           respond: UserResource.DeleteUserResponse.type
       )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
-        Future.successful(UserResource.DeleteUserResponseBadRequest) // FIXME
+        authenticated(extracted) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.RemoveUserCommand(id.asUserId)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
+            case _: UserEntity.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")
+          }
+        }
 
       override def searchUsers(
           respond: UserResource.SearchUsersResponse.type

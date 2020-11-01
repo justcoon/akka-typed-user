@@ -105,6 +105,18 @@ object UserGrpcApi {
         }
       }
 
+      override def removeUser(in: RemoveUserReq, metadata: Metadata): Future[RemoveUserRes] =
+        authenticated(metadata) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.RemoveUserCommand(in.id.asUserId)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserRemovedReply =>
+              RemoveUserRes(reply.entityId, RemoveUserRes.Result.Success("User removed"))
+            case reply: UserEntity.UserNotExistsReply =>
+              RemoveUserRes(reply.entityId, RemoveUserRes.Result.Failure("User not exits"))
+          }
+        }
+
       override def updateUserEmail(in: UpdateEmailReq, metadata: Metadata): Future[UpdateEmailRes] =
         authenticated(metadata) { _ =>
           import UserEntity._

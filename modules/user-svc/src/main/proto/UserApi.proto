@@ -12,33 +12,6 @@ option (scalapb.options) = {
   flat_package: true
 };
 
-//option java_multiple_files = true;
-//option java_package = "com.jc.user.api.proto";
-
-//message Address {
-//    string street = 1;
-//    string number = 2;
-//    string zip = 3;
-//    string city = 4;
-//    string state = 5;
-//    string country = 6;
-//}
-//
-//message User {
-//    string id = 1;
-//    string username = 2;
-//    string email = 3;
-//    string pass = 4;
-//    Address address = 5;
-//}
-
-//message ResResult {
-//    oneof result {
-//        string success = 1;
-//        string failure = 2;
-//    }
-//}
-
 message RegisterUserReq {
     string username = 1;
     string email = 2;
@@ -54,11 +27,22 @@ message RegisterUserRes {
     }
 }
 
+message RemoveUserReq {
+    string id = 1;
+}
+
+message RemoveUserRes {
+    string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
+}
+
 message UpdatePasswordReq {
     string id = 1;
     string pass = 2;
 }
-
 
 message UpdatePasswordRes {
     string id = 1;
@@ -67,7 +51,6 @@ message UpdatePasswordRes {
         string failure = 3;
     }
 }
-
 
 message UpdateAddressReq {
     string id = 1;
@@ -86,7 +69,6 @@ message UpdateEmailReq {
     string id = 1;
     string email = 2;
 }
-
 
 message UpdateEmailRes {
     string id = 1;
@@ -127,7 +109,6 @@ message SearchUsersReq {
     int32 pageSize = 3;
     repeated FieldSort sorts = 4;
 }
-
 
 message SearchUsersRes {
     repeated com.jc.user.domain.proto.User users = 1;
@@ -171,9 +152,11 @@ message SuggestUsersRes {
 
 
 service UserApiService {
-    //    rpc NewSession (stream Req) returns (stream Rsp) {}
 
     rpc RegisterUser (RegisterUserReq) returns (RegisterUserRes) {
+    }
+
+    rpc RemoveUser (RemoveUserReq) returns (RemoveUserRes) {
     }
 
     rpc UpdateUserEmail (UpdateEmailReq) returns (UpdateEmailRes) {

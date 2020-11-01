@@ -84,9 +84,9 @@ object OffsetStoreEntity {
   implicit val eventApplier: EventApplier[OffsetStore, OffsetStoreEvent] = (offsetStore, event) =>
     event match {
       case OffsetStorePayloadEvent(_, _, payload: OffsetStorePayloadEvent.Payload.Updated, _) =>
-        offsetStore.withOffset(payload.value.offset)
+        Some(offsetStore.withOffset(payload.value.offset))
       case _ =>
-        offsetStore
+        Some(offsetStore)
     }
 
   val offsetStoreEventTagger: OffsetStoreEvent => Set[String] = { _ =>

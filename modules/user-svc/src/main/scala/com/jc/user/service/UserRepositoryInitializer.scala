@@ -51,20 +51,20 @@ final class UserESRepositoryInitializer(indexName: String, elasticClient: Elasti
 object UserESRepositoryInitializer {
   import com.sksamuel.elastic4s.ElasticDsl._
 
+  val suggestProperties = Seq("username", "email")
+
   val fields = Seq(
-    textField("id").fielddata(true),
-    textField("username").fielddata(true),
-    completionField(ElasticUtils.getSuggestPropertyName("username")),
-    completionField(ElasticUtils.getSuggestPropertyName("email")),
-    textField("email").fielddata(true),
-    textField("address.street").fielddata(true),
-    textField("address.number").fielddata(true),
-    textField("address.city").fielddata(true),
-    textField("address.state").fielddata(true),
-    textField("address.zip").fielddata(true),
-    textField("address.country").fielddata(true),
-    booleanField("deleted")
-  )
+      textField("id").fielddata(true),
+      textField("username").fielddata(true),
+      textField("email").fielddata(true),
+      textField("address.street").fielddata(true),
+      textField("address.number").fielddata(true),
+      textField("address.city").fielddata(true),
+      textField("address.state").fielddata(true),
+      textField("address.zip").fielddata(true),
+      textField("address.country").fielddata(true),
+      booleanField("deleted")
+    ) ++ suggestProperties.map(prop => completionField(ElasticUtils.getSuggestPropertyName(prop)))
 
   def init(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext, system: ActorSystem[_]): Unit = {
     val userRepositoryInitializer = new UserESRepositoryInitializer(indexName, elasticClient)

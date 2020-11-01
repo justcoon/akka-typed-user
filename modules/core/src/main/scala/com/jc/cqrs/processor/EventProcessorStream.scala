@@ -2,7 +2,7 @@ package com.jc.cqrs.processor
 
 import akka.NotUsed
 import akka.persistence.query.Offset
-import akka.stream.{ Materializer, SharedKillSwitch }
+import akka.stream.{ Materializer, RestartSettings, SharedKillSwitch }
 import akka.stream.scaladsl.{ FlowWithContext, RestartSource, Sink, Source, SourceWithContext }
 import com.jc.cqrs.offsetstore.OffsetStore
 
@@ -38,12 +38,9 @@ object EventProcessorStream {
       override val name: String = streamName
 
       override def runStream(killSwitch: SharedKillSwitch): Unit = {
-
         val backoffSource =
           RestartSource.withBackoff(
-            config.minBackoff,
-            config.maxBackoff,
-            config.randomBackoffFactor
+            RestartSettings(config.minBackoff, config.maxBackoff, config.randomBackoffFactor)
           ) { () =>
             val oName        = offsetName(name)
             val futureOffset = offsetStore.loadOffset(oName)

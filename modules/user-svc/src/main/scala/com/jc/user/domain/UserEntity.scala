@@ -43,6 +43,10 @@ object UserEntity {
       address: Option[Address] = None
   ) extends UserCommand[CreateUserReply]
 
+  final case class RemoveUserCommand(
+      entityId: UserId
+  ) extends UserCommand[RemoveUserReply]
+
   private[domain] final case class CreateUserInternalCommand(
       entityId: UserId,
       username: String,
@@ -62,8 +66,6 @@ object UserEntity {
 
   final case class ChangeUserPasswordCommand(entityId: UserId, pass: String) extends UserCommand[ChangeUserPasswordReply]
 
-  //  final case class DeleteUserCommand(entityId: UserId) extends Command
-  //
   final case class ChangeUserAddressCommand(entityId: UserId, address: Option[Address]) extends UserCommand[ChangeUserAddressReply]
 
   private[domain] final case class ChangeUserAddressInternalCommand(entityId: UserId, address: Option[Address], errors: List[String] = Nil)
@@ -76,6 +78,10 @@ object UserEntity {
   case class UserCreatedFailedReply(entityId: UserId, error: String) extends CreateUserReply
 
   case class UserAlreadyExistsReply(entityId: UserId) extends CreateUserReply
+
+  sealed trait RemoveUserReply extends CreateOrUpdateUserReply
+
+  case class UserRemovedReply(entityId: UserId) extends RemoveUserReply
 
   sealed trait GetUserReply
 
@@ -97,6 +103,7 @@ object UserEntity {
 
   case class UserNotExistsReply(entityId: UserId)
       extends GetUserReply
+      with RemoveUserReply
       with ChangeUserEmailReply
       with ChangeUserPasswordReply
       with ChangeUserAddressReply
@@ -114,16 +121,21 @@ object UserEntity {
   implicit val eventApplier: EventApplier[User, UserEvent] = (user, event) =>
     event match {
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.EmailUpdated, _) =>
-        user.withEmail(payload.value.email)
+        val newUser = user.withEmail(payload.value.email)
+        Some(newUser)
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
-        user.withPass(payload.value.pass)
+        val newUser = user.withPass(payload.value.pass)
+        Some(newUser)
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.AddressUpdated, _) =>
-        payload.value.address match {
+        val newUser = payload.value.address match {
           case Some(a) => user.withAddress(a)
           case None    => user.clearAddress
         }
+        Some(newUser)
+      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed, _) =>
+        None
       case _ =>
-        user
+        Some(user)
     }
 
   final val userEventTagger = ShardedEntityEventTagger.sharded[UserEvent](3)
@@ -276,6 +288,14 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
             ) :: Nil
           CommandProcessResult.withReply(events, UserEntity.UserAddressChangedReply(entityId))
         }
+      case UserEntity.RemoveUserCommand(entityId) =>
+        val events =
+          UserPayloadEvent(
+            entityId,
+            Instant.now,
+            UserPayloadEvent.Payload.Removed(UserRemovedPayload())
+          ) :: Nil
+        CommandProcessResult.withReply(events, UserEntity.UserRemovedReply(entityId))
       case UserEntity.CreateUserCommand(entityId, _, _, _, _) =>
         CommandProcessResult.withReply(UserEntity.UserAlreadyExistsReply(entityId))
       case UserEntity.GetUserCommand(_) =>
@@ -309,11 +329,13 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
 
   override protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, UserEntity.UserEvent) => OuterState = {
     (entityState, event) =>
-      entityState match {
-        case uninitialized @ Uninitialized =>
-          initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
-        case Initialized(state) => Initialized(applier.apply(state, event))
+      val newEntityState = entityState match {
+        case Uninitialized =>
+          initialApplier.apply(event)
+        case Initialized(state) =>
+          applier.apply(state, event)
       }
+      newEntityState.map(Initialized).getOrElse[OuterState](Uninitialized)
   }
 }
 

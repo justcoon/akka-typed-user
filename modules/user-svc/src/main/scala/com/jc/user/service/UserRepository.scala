@@ -23,11 +23,6 @@ trait UserRepository[F[_]] {
       sorts: Iterable[UserRepository.FieldSort]
   ): F[Either[UserRepository.SearchError, UserRepository.PaginatedSequence[UserRepository.User]]]
 
-  def search(
-      query: Option[String],
-      sorts: Iterable[UserRepository.FieldSort]
-  ): F[Either[UserRepository.SearchError, Seq[UserRepository.User]]]
-
   def suggest(
       query: String
   ): F[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]]
@@ -44,6 +39,13 @@ object UserRepository {
       state: String,
       country: String
   )
+  object Address {
+    import io.circe._, io.circe.generic.semiauto._
+
+    implicit val addressDecoder: Decoder[Address] = deriveDecoder[Address]
+
+    implicit val addressEncoder: Encoder[Address] = deriveEncoder[Address]
+  }
 
   final case class User(
       id: UserEntity.UserId,
@@ -67,10 +69,6 @@ object UserRepository {
       usernameLens ~ emailLens ~ passLens ~ addressLens
 
     import io.circe._, io.circe.generic.semiauto._
-
-    implicit val addressDecoder: Decoder[Address] = deriveDecoder[Address]
-
-    implicit val addressEncoder: Encoder[Address] = deriveEncoder[Address]
 
     implicit val userDecoder: Decoder[User] = deriveDecoder[User]
 
@@ -226,49 +224,9 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
       }
   }
 
-  override def search(
-      query: Option[String],
-      sorts: Iterable[(String, Boolean)]
-  ): Future[Either[UserRepository.SearchError, Seq[UserRepository.User]]] = {
-    val q = query.map(QueryStringQuery(_)).getOrElse(MatchAllQuery())
-    val ss = sorts.map {
-      case (property, asc) =>
-        val o = if (asc) SortOrder.Asc else SortOrder.Desc
-        FieldSort(property, order = o)
-    }
-
-    logger.debug(
-      "search - query: {}, sorts: {}",
-      query.getOrElse("N/A"),
-      sorts.mkString("[", ",", "]")
-    )
-
-    elasticClient
-      .execute {
-        searchIndex(indexName).query(q).sortBy(ss)
-      }
-      .map { res =>
-        if (res.isSuccess) {
-          Right(res.result.to[UserRepository.User])
-        } else {
-          Left(UserRepository.SearchError(ElasticUtils.getReason(res.error)))
-        }
-      }
-      .recoverWith {
-        case e =>
-          logger.error(
-            "search - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
-            query.getOrElse("N/A"),
-            sorts.mkString("[", ",", "]"),
-            e.getMessage
-          )
-          Future.successful(Left(UserRepository.SearchError(e.getMessage)))
-      }
-  }
-
   override def suggest(query: String): Future[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]] = {
     // completion suggestion
-    val complSuggestions = suggestFields.map { p =>
+    val complSuggestions = UserESRepositoryInitializer.suggestProperties.map { p =>
       suggestion
         .CompletionSuggestion(ElasticUtils.getSuggestPropertyName(p), ElasticUtils.getSuggestPropertyName(p))
         .prefix(query)
@@ -283,7 +241,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
       .map { res =>
         if (res.isSuccess) {
           val elasticSuggestions = res.result.suggestions
-          val suggestions = suggestFields.map { p =>
+          val suggestions = UserESRepositoryInitializer.suggestProperties.map { p =>
             val propertySuggestions = elasticSuggestions(ElasticUtils.getSuggestPropertyName(p))
             val suggestions = propertySuggestions.flatMap { v =>
               val t = v.toCompletion
@@ -306,7 +264,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
 
 //  override def suggest(query: String): Future[Either[UserRepository.SuggestError, UserRepository.SuggestResponse]] = {
 //    // term suggestion
-//    val termSuggestions = suggestFields.map { p =>
+//    val termSuggestions = UserESRepositoryInitializer.suggestProperties.map { p =>
 //      suggestion
 //        .TermSuggestion(ElasticUtils.getTermSuggestionName(p), p, Some(query))
 //        .mode(suggestion.SuggestMode.Always)
@@ -321,7 +279,7 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
 //      .map { res =>
 //        if (res.isSuccess) {
 //          val elasticSuggestions = res.result.suggestions
-//          val suggestions = suggestFields.map { p =>
+//          val suggestions = UserESRepositoryInitializer.suggestProperties.map { p =>
 //            val propertySuggestions = elasticSuggestions(ElasticUtils.getTermSuggestionName(p))
 //            val suggestions = propertySuggestions.flatMap { v =>
 //              val t = v.toTerm
@@ -344,5 +302,4 @@ final class UserESRepository(indexName: String, elasticClient: ElasticClient)(im
 //      }
 //  }
 
-  private val suggestFields = Seq("username", "email")
 }

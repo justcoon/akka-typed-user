@@ -84,11 +84,13 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
     }
 
   protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState = { (entityState, event) =>
-    entityState match {
-      case uninitialized @ Uninitialized =>
-        initialApplier.apply(event).map(Initialized).getOrElse[OuterState](uninitialized)
-      case Initialized(state) => Initialized(applier.apply(state, event))
+    val newEntityState = entityState match {
+      case Uninitialized =>
+        initialApplier.apply(event)
+      case Initialized(state) =>
+        applier.apply(state, event)
     }
+    newEntityState.map(Initialized).getOrElse[OuterState](Uninitialized)
   }
 }
 
