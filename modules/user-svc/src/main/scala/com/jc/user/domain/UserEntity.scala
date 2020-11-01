@@ -52,6 +52,10 @@ object UserEntity {
       errors: List[String] = Nil
   ) extends UserCommand[CreateUserReply]
 
+  sealed trait CreateOrUpdateUserReply {
+    def entityId: UserId
+  }
+
   final case class GetUserCommand(entityId: UserId) extends UserCommand[GetUserReply]
 
   final case class ChangeUserEmailCommand(entityId: UserId, email: String) extends UserCommand[ChangeUserEmailReply]
@@ -65,7 +69,7 @@ object UserEntity {
   private[domain] final case class ChangeUserAddressInternalCommand(entityId: UserId, address: Option[Address], errors: List[String] = Nil)
       extends UserCommand[ChangeUserAddressReply]
 
-  sealed trait CreateUserReply
+  sealed trait CreateUserReply extends CreateOrUpdateUserReply
 
   case class UserCreatedReply(entityId: UserId) extends CreateUserReply
 
@@ -77,15 +81,15 @@ object UserEntity {
 
   case class UserReply(user: User) extends GetUserReply
 
-  sealed trait ChangeUserEmailReply
+  sealed trait ChangeUserEmailReply extends CreateOrUpdateUserReply
 
   case class UserEmailChangedReply(entityId: UserId) extends ChangeUserEmailReply
 
-  sealed trait ChangeUserPasswordReply
+  sealed trait ChangeUserPasswordReply extends CreateOrUpdateUserReply
 
   case class UserPasswordChangedReply(entityId: UserId) extends ChangeUserPasswordReply
 
-  sealed trait ChangeUserAddressReply
+  sealed trait ChangeUserAddressReply extends CreateOrUpdateUserReply
 
   case class UserAddressChangedReply(entityId: UserId) extends ChangeUserAddressReply
 
@@ -207,10 +211,9 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
       case UserEntity.CreateUserCommand(entityId, username, email, pass, addr) =>
         validateAddress(
           addr,
-          transformCommand(command, UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr)),
-          errors => transformCommand(command, UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, errors))
+          command.transformUnsafe(UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr)),
+          errors => command.transformUnsafe(UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, errors))
         )(actorContext)
-
         CommandProcessResult.withNoReply()
       case UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, errors) =>
         if (errors.nonEmpty) {
@@ -223,7 +226,6 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
               Instant.now,
               UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, addr))
             ) :: Nil
-
           CommandProcessResult.withReply(events, UserEntity.UserCreatedReply(entityId))
         }
       case otherCommand =>
@@ -258,10 +260,9 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
       case UserEntity.ChangeUserAddressCommand(entityId, addr) =>
         validateAddress(
           addr,
-          transformCommand(command, UserEntity.ChangeUserAddressInternalCommand(entityId, addr)),
-          errors => transformCommand(command, UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors))
+          command.transformUnsafe(UserEntity.ChangeUserAddressInternalCommand(entityId, addr)),
+          errors => command.transformUnsafe(UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors))
         )(actorContext)
-
         CommandProcessResult.withNoReply()
       case UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors) =>
         if (errors.nonEmpty) {
@@ -286,9 +287,6 @@ sealed class UserPersistentEntity(addressValidator: AddressValidator[Future])(
 
     BasicPersistentEntity.handleProcessResult(result, command.replyTo)
   }
-
-  protected def transformCommand[R](command: Command, newCommand: UserEntity.UserCommand[R]): Command =
-    CommandExpectingReply[R, User, UserEntity.UserCommand](newCommand)(command.replyTo.asInstanceOf[ActorRef[R]])
 
   protected def validateAddress(address: Option[Address], onSuccess: => Command, onError: List[String] => Command)(
       actorContext: ActorContext[Command]

@@ -94,7 +94,13 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
 
 object BasicPersistentEntity {
 
-  case class CommandExpectingReply[R, InnerState, C[R] <: EntityCommand[_, InnerState, R]](command: C[R])(val replyTo: ActorRef[R])
+  final case class CommandExpectingReply[R, InnerState, C[R] <: EntityCommand[_, InnerState, R]](command: C[R])(val replyTo: ActorRef[R]) {
+    def transform[NC[R] <: EntityCommand[_, InnerState, R]](newCommand: NC[R]): CommandExpectingReply[R, InnerState, NC] =
+      CommandExpectingReply[R, InnerState, NC](newCommand)(replyTo)
+
+    def transformUnsafe[NR, NC[NR] <: EntityCommand[_, InnerState, NR]](newCommand: NC[NR]): CommandExpectingReply[NR, InnerState, NC] =
+      CommandExpectingReply[NR, InnerState, NC](newCommand)(replyTo.asInstanceOf[ActorRef[NR]])
+  }
 
   def handleProcessResult[R, E <: EntityEvent[_], S](
       result: CommandProcessResult[E],

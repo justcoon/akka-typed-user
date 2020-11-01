@@ -1,20 +1,16 @@
 package com.jc.user.api
 
-import java.time.Clock
-
-import akka.{ Done, NotUsed }
 import akka.actor.{ ActorSystem, CoordinatedShutdown }
 import akka.grpc.scaladsl.Metadata
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
-import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
-import com.jc.auth.{ JwtAuthenticator, PdiJwtAuthenticator }
+import akka.{ Done, NotUsed }
+import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.UserEntity
-import com.jc.user.domain.proto
+import com.jc.user.domain.{ proto, UserEntity }
 import com.jc.user.domain.proto.User
 import com.jc.user.service.{ UserRepository, UserService }
 import org.slf4j.LoggerFactory
