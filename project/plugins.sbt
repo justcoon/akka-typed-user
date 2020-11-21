@@ -2,7 +2,7 @@
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.5.1")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.2")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")
-addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.5.1")
+addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.7.5")
 //addSbtPlugin("de.heikoseeberger" % "sbt-header"          % "1.7.0")
 //addSbtPlugin("io.spray" % "sbt-revolver" % "0.8.0")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.2")

@@ -3,7 +3,7 @@ import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
 import sbt.Keys.javaOptions
 
-scalaVersion in Scope.Global := "2.13.3"
+scalaVersion in Scope.Global := "2.13.4"
 
 // *****************************************************************************
 // Projects
@@ -66,9 +66,15 @@ lazy val `user-svc` =
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
       guardrailTasks.in(Compile) := List(
-          ScalaServer(file("modules/user-svc/src/main/openapi/UserOpenApi.yaml"), pkg = "com.jc.user.api.openapi", tracing = false, customExtraction = true)
+          ScalaServer(
+            file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
+            pkg = "com.jc.user.api.openapi",
+            tracing = false,
+            customExtraction = true
+          )
         )
     )
+    .settings(unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
           library.scalaPbRuntime,
@@ -80,6 +86,7 @@ lazy val `user-svc` =
           library.akkaHttp2Support,
           library.akkaHttpCirce,
           library.akkaHttpSprayJson,
+          library.tapirSwaggerUiAkkaHttp,
           library.akkaKryo,
           library.akkaSlf4j,
           library.akkaPersistenceQuery,
@@ -124,20 +131,21 @@ lazy val library =
       val akka                     = "2.6.10"
       val akkaHttp                 = "10.2.1"
       val akkaHttpJson             = "1.35.2"
-      val akkaPersistenceCassandra = "1.0.3"
+      val akkaPersistenceCassandra = "1.0.4"
       val akkaStreamKafka          = "2.0.5"
       val akkaProjection           = "1.0.0"
       val akkaManagement           = "1.0.9"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
-      val scalaTest                = "3.2.2"
+      val scalaTest                = "3.2.3"
       val bcrypt                   = "4.3.0"
       val elastic4s                = "7.9.1"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "1.1.5"
       val pauldijouJwt             = "4.3.0"
-      val refined                  = "0.9.17"
+      val refined                  = "0.9.18"
+      val tapir                    = "0.16.16"
 
       val kamonPrometheus = "2.1.8"
       val kamonAkka       = "2.1.8"
@@ -170,9 +178,11 @@ lazy val library =
     val akkaSlf4j         = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
 
     val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
-    val akkaTestkit     = "com.typesafe.akka" %% "akka-testkit"      % Version.akka
-    val circeGeneric    = "io.circe"          %% "circe-generic"     % Version.circe
-    val circeRefined    = "io.circe"          %% "circe-refined"     % Version.circe
+
+    val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
+
+    val circeGeneric = "io.circe" %% "circe-generic" % Version.circe
+    val circeRefined = "io.circe" %% "circe-refined" % Version.circe
 
     val logbackCore    = "ch.qos.logback" % "logback-core"    % Version.logback
     val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback
@@ -186,6 +196,8 @@ lazy val library =
     val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
     val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
+
+    val tapirSwaggerUiAkkaHttp = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % Version.tapir
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp

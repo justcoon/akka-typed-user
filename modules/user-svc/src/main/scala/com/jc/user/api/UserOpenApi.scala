@@ -1,22 +1,25 @@
 package com.jc.user.api
 
 import akka.Done
-import akka.actor.{ActorSystem, CoordinatedShutdown}
+import akka.actor.{ ActorSystem, CoordinatedShutdown }
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpHeader, IllegalRequestException, StatusCodes}
-import akka.http.scaladsl.server.{Directives, Route}
+import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCodes }
+import akka.http.scaladsl.server.{ Directives, Route }
+import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
 import com.jc.auth.JwtAuthenticator
-import com.jc.user.api.openapi.definitions.{Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse}
-import com.jc.user.api.openapi.user.{UserHandler, UserResource}
+import com.jc.user.api.openapi.definitions.{ Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
+import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{UserEntity, proto}
-import com.jc.user.service.{UserRepository, UserService}
+import com.jc.user.domain.{ proto, UserEntity }
+import com.jc.user.service.{ UserRepository, UserService }
 import org.slf4j.LoggerFactory
+import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.io.Source
+import scala.util.{ Failure, Success }
 
 object UserOpenApi {
 
@@ -31,8 +34,13 @@ object UserOpenApi {
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
     import eu.timepit.refined.auto._
 
-    val log           = LoggerFactory.getLogger(this.getClass)
-    val restApiRoutes = route(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
+    val log = LoggerFactory.getLogger(this.getClass)
+
+    val userApiRoutes = route(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
+
+    val docRoutes = docRoute()
+
+    val restApiRoutes = concat(userApiRoutes, docRoutes)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -52,6 +60,11 @@ object UserOpenApi {
           log.error("http endpoint - failed to bind, terminating system", ex)
           shutdown.run(BindFailure)
       }
+  }
+
+  def docRoute(): Route = {
+    val yaml = Source.fromResource("UserOpenApi.yaml").mkString
+    new SwaggerAkka(yaml).routes
   }
 
   def route(
@@ -194,8 +207,8 @@ object UserOpenApi {
   // sort - field:order, examples: username:asc, email:desc
   def toFieldSort(sort: String): UserRepository.FieldSort =
     sort.split(":").toList match {
-      case p :: o :: Nil if o.toLowerCase == "desc" =>
-        (p, false)
+      case p :: o :: Nil =>
+        (p, o.toLowerCase != "desc")
       case _ =>
         (sort, true)
     }

@@ -248,6 +248,7 @@ paths:
             type: integer
             format: int32
           example: 0
+          default: 0
         - name: pageSize
           description: page size
           in: query
@@ -256,6 +257,7 @@ paths:
             type: integer
             format: int32
           example: 10
+          default: 10
         - name: sort
           description: sort
           in: query
@@ -264,7 +266,7 @@ paths:
             type: array
             items:
               type: string
-          example: username:asc,email:desc
+          example: username:asc
       responses:
         '200':
           description: successful operation
@@ -318,7 +320,7 @@ components:
           example: Lytton
         number:
           type: string
-          example: 437
+          example: "437"
         city:
           type: string
           example: Palo Alto
@@ -327,10 +329,10 @@ components:
           example: CA
         zip:
           type: string
-          example: 94301
+          example: "94301"
         country:
           type: string
-          example: USA
+          example: US
       type: object
       required:
         - street
@@ -343,7 +345,7 @@ components:
       properties:
         id:
           type: string
-          example: 10
+          example: i10
         username:
           type: string
           example: theUser
@@ -352,7 +354,7 @@ components:
           example: john@email.com
         pass:
           type: string
-          example: 12345
+          example: p12345
         address:
           $ref: '#/components/schemas/Address'
       type: object
