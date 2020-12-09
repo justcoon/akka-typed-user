@@ -1,7 +1,6 @@
 package com.jc.user
 
 import java.time.Clock
-
 import akka.actor.CoordinatedShutdown
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.scaladsl.adapter._
@@ -14,8 +13,9 @@ import akka.management.scaladsl.AkkaManagement
 import akka.stream.Materializer
 import akka.util.Timeout
 import com.jc.auth.PdiJwtAuthenticator
-import com.jc.cqrs.offsetstore.{ CassandraOffsetStore, CassandraOffsetStoreService, CassandraProjectionOffsetStore }
+import com.jc.cqrs.offsetstore.CassandraProjectionOffsetStore
 import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
+import com.jc.user.domain.{ DepartmentService, SimpleAddressValidationService, UserService }
 import com.jc.user.service._
 import com.sksamuel.elastic4s.ElasticClient
 import com.sksamuel.elastic4s.akka.{ AkkaHttpClient, AkkaHttpClientSettings }
@@ -30,7 +30,8 @@ object UserApp {
 
     def apply(): Behavior[Nothing] = Behaviors.setup[Nothing] { ctx =>
       import eu.timepit.refined.auto._
-      import config._
+      import com.jc.refined.auto._
+      import com.jc.user.config._
 
       val log = ctx.log
 
@@ -49,7 +50,7 @@ object UserApp {
       // akka discovery
 
       val listener = ctx.spawn(Behaviors.receive[ClusterEvent.MemberEvent] { (ctx, event) =>
-        ctx.log.info("user cluster member event: {}", event)
+        ctx.log.info("cluster member event: {}", event)
         Behaviors.same
       }, "listener")
 
@@ -63,13 +64,11 @@ object UserApp {
 
       val jwtAuthenticator = PdiJwtAuthenticator.create(appConfig.jwt, Clock.systemUTC())
 
-      val userService = new UserService()
-
-//      val journalKeyspace = sys.settings.config.getString(CassandraOffsetStore.JournalKeyspaceConfigPath)
+      val addressValidationService = SimpleAddressValidationService
+      val departmentService        = DepartmentService()
+      val userService              = UserService(departmentService, addressValidationService)
 
       log.info("offset store - init")
-//      CassandraOffsetStore.init(journalKeyspace)
-//      val offsetStoreService = new CassandraOffsetStoreService(journalKeyspace)
       CassandraProjectionOffsetStore.init()
 
       val elasticClient = {
@@ -78,20 +77,26 @@ object UserApp {
         ElasticClient(akkaClient)
       }
 
-      log.info("user repo - init")
-      UserESRepositoryInitializer.init(appConfig.elasticsearch.indexName, elasticClient)
+      log.info("repo - init")
 
-      val userRepository = new UserESRepository(appConfig.elasticsearch.indexName, elasticClient)
+      RepositoryInitializer.init(
+        DepartmentESRepositoryInitializer(appConfig.elasticsearch.departmentIndexName, elasticClient),
+        UserESRepositoryInitializer(appConfig.elasticsearch.userIndexName, elasticClient)
+      )
 
-      log.info("user view builder - create")
-//      UserViewBuilder.create(userRepository, offsetStoreService)
+      val departmentRepository = DepartmentESRepository(appConfig.elasticsearch.departmentIndexName, elasticClient)
+
+      val userRepository = UserESRepository(appConfig.elasticsearch.userIndexName, elasticClient)
+
+      log.info("view builder - create")
+      DepartmentViewBuilder.createWithProjection(departmentRepository)
       UserViewBuilder.createWithProjection(userRepository)
 
-      log.info("user kafka producer - create")
-//      UserKafkaProducer.create(appConfig.kafka.topic, appConfig.kafka.addresses, offsetStoreService)
-      UserKafkaProducer.createWithProjection(appConfig.kafka.topic, appConfig.kafka.addresses)
+      log.info("kafka producer - create")
+      DepartmentKafkaProducer.createWithProjection(appConfig.kafka.departmentTopic)
+      UserKafkaProducer.createWithProjection(appConfig.kafka.userTopic)
 
-      log.info("user rest api server - create")
+      log.info("rest api server - create")
       UserOpenApi.server(userService, userRepository, jwtAuthenticator, shutdown, appConfig.restApi)(
         appConfig.restApi.repositoryTimeout,
         ec,
@@ -99,14 +104,15 @@ object UserApp {
         classicSys
       )
 
-      log.info("user grpc api server - create")
-      UserGrpcApi.server(userService, userRepository, jwtAuthenticator, shutdown, appConfig.grpcApi)(
-        appConfig.grpcApi.repositoryTimeout,
-        ec,
-        classicSys
-      )
+      log.info("grpc api server - create")
+      UserGrpcApi
+        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, shutdown, appConfig.grpcApi)(
+          appConfig.grpcApi.repositoryTimeout,
+          ec,
+          classicSys
+        )
 
-      log.info("user up and running")
+      log.info("service up and running")
 
       Behaviors.empty[Nothing]
     }

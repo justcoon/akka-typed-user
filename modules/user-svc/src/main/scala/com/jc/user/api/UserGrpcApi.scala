@@ -10,9 +10,9 @@ import akka.{ Done, NotUsed }
 import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{ proto, UserEntity }
+import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserService }
 import com.jc.user.domain.proto.User
-import com.jc.user.service.{ UserRepository, UserService }
+import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration._
@@ -26,14 +26,17 @@ object UserGrpcApi {
   def server(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String],
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
   )(implicit askTimeout: Timeout, ec: ExecutionContext, sys: ActorSystem): Unit = {
     import eu.timepit.refined.auto._
 
-    val log            = LoggerFactory.getLogger(this.getClass)
-    val grpcApiHandler = handler(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, sys)
+    val log = LoggerFactory.getLogger(this.getClass)
+    val grpcApiHandler =
+      handler(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator)(config.repositoryTimeout, ec, sys)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -59,17 +62,21 @@ object UserGrpcApi {
   def handler(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String]
   )(
       implicit askTimeout: Timeout,
       ec: ExecutionContext,
       sys: ActorSystem
   ): HttpRequest => Future[HttpResponse] =
-    UserApiServicePowerApiHandler(service(userService, userRepository, jwtAuthenticator))
+    UserApiServicePowerApiHandler(service(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator))
 
   def service(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext): UserApiServicePowerApi = {
 
@@ -89,6 +96,42 @@ object UserGrpcApi {
           case None          => Future.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
         }
       }
+
+      override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] = {
+        import DepartmentEntity._
+        val id  = in.id.asDepartmentId
+        val cmd = in.into[DepartmentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
+
+        departmentService.sendCommand(cmd).map {
+          case reply: DepartmentEntity.DepartmentCreatedReply =>
+            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department crateted"))
+          case reply: DepartmentEntity.DepartmentAlreadyExistsReply =>
+            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure("Department already exits"))
+          case reply: DepartmentEntity.DepartmentCreatedFailedReply =>
+            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure(s"Department create error (${reply.error})"))
+        }
+      }
+
+      override def updateDepartment(in: UpdateDepartmentReq, metadata: Metadata): Future[UpdateDepartmentRes] = {
+        import DepartmentEntity._
+        val id  = in.id.asDepartmentId
+        val cmd = in.into[DepartmentEntity.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
+
+        departmentService.sendCommand(cmd).map {
+          case reply: DepartmentEntity.DepartmentUpdatedReply =>
+            UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Success("Department updated"))
+          case reply: DepartmentEntity.DepartmentNotExistsReply =>
+            UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Failure("Department not exits"))
+        }
+      }
+
+      override def getDepartment(in: GetDepartmentReq, metadata: Metadata): Future[GetDepartmentRes] = {
+        import DepartmentEntity._
+        departmentRepository.find(in.id.asDepartmentId).map(r => GetDepartmentRes(r.map(_.transformInto[proto.Department])))
+      }
+
+      override def getDepartments(in: GetDepartmentsReq, metadata: Metadata): Future[GetDepartmentsRes] =
+        departmentRepository.findAll().map(r => GetDepartmentsRes(r.map(_.transformInto[proto.Department])))
 
       override def registerUser(in: RegisterUserReq, metadata: Metadata): Future[RegisterUserRes] = {
         import UserEntity._
@@ -117,41 +160,58 @@ object UserGrpcApi {
           }
         }
 
-      override def updateUserEmail(in: UpdateEmailReq, metadata: Metadata): Future[UpdateEmailRes] =
+      override def updateUserEmail(in: UpdateUserEmailReq, metadata: Metadata): Future[UpdateUserEmailRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
           val cmd = UserEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
           userService.sendCommand(cmd).map {
             case reply: UserEntity.UserEmailChangedReply =>
-              UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Success("User email updated"))
+              UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Success("User email updated"))
             case reply: UserEntity.UserNotExistsReply =>
-              UpdateEmailRes(reply.entityId, UpdateEmailRes.Result.Failure("User not exits"))
+              UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Failure("User not exits"))
           }
         }
 
-      override def updateUserPassword(in: UpdatePasswordReq, metadata: Metadata): Future[UpdatePasswordRes] =
+      override def updateUserPassword(in: UpdateUserPasswordReq, metadata: Metadata): Future[UpdateUserPasswordRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
           val cmd = UserEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
           userService.sendCommand(cmd).map {
             case reply: UserEntity.UserPasswordChangedReply =>
-              UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Success("User password updated"))
+              UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Success("User password updated"))
             case reply: UserEntity.UserNotExistsReply =>
-              UpdatePasswordRes(reply.entityId, UpdatePasswordRes.Result.Failure("User not exists"))
+              UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Failure("User not exists"))
           }
         }
 
-      override def updateUserAddress(in: UpdateAddressReq, metadata: Metadata): Future[UpdateAddressRes] =
+      override def updateUserAddress(in: UpdateUserAddressReq, metadata: Metadata): Future[UpdateUserAddressRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
           val cmd = UserEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
           userService.sendCommand(cmd).map {
             case reply: UserEntity.UserAddressChangedReply =>
-              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Success("User address updated"))
+              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Success("User address updated"))
             case reply: UserEntity.UserNotExistsReply =>
-              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure("User not exists"))
+              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure("User not exists"))
             case reply: UserEntity.UserAddressChangedFailedReply =>
-              UpdateAddressRes(reply.entityId, UpdateAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+          }
+        }
+
+      override def updateUserDepartment(in: UpdateUserDepartmentReq, metadata: Metadata): Future[UpdateUserDepartmentRes] =
+        authenticated(metadata) { _ =>
+          import UserEntity._
+          val cmd = UserEntity.ChangeUserDepartmentCommand(in.id.asUserId, in.department)
+          userService.sendCommand(cmd).map {
+            case reply: UserEntity.UserDepartmentChangedReply =>
+              UpdateUserDepartmentRes(reply.entityId, UpdateUserDepartmentRes.Result.Success("User department updated"))
+            case reply: UserEntity.UserNotExistsReply =>
+              UpdateUserDepartmentRes(reply.entityId, UpdateUserDepartmentRes.Result.Failure("User not exists"))
+            case reply: UserEntity.UserDepartmentChangedFailedReply =>
+              UpdateUserDepartmentRes(
+                reply.entityId,
+                UpdateUserDepartmentRes.Result.Failure(s"User department update error (${reply.error})")
+              )
           }
         }
 
@@ -164,7 +224,7 @@ object UserGrpcApi {
         userRepository.findAll().map(r => GetUsersRes(r.map(_.transformInto[proto.User])))
 
       override def searchUsers(in: SearchUsersReq, metadata: Metadata): Future[SearchUsersRes] = {
-        val ss = in.sorts.map(sort => (sort.field, sort.order.isAsc))
+        val ss = in.sorts.map(sort => SearchRepository.FieldSort(sort.field, sort.order.isAsc))
         val q  = if (in.query.isBlank) None else Some(in.query)
         userRepository.search(q, in.page, in.pageSize, ss).map {
           case Right(r) =>
@@ -175,7 +235,7 @@ object UserGrpcApi {
       }
 
       override def searchUserStream(in: SearchUserStreamReq, metadata: Metadata): Source[User, NotUsed] = {
-        val ss = in.sorts.map(sort => (sort.field, sort.order.isAsc))
+        val ss = in.sorts.map(sort => SearchRepository.FieldSort(sort.field, sort.order.isAsc))
 
         val q = if (in.query.isBlank) None else Some(in.query)
 

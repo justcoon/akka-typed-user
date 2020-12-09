@@ -5,14 +5,14 @@ import akka.actor.{ ActorSystem, CoordinatedShutdown }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCodes }
 import akka.http.scaladsl.server.{ Directives, Route }
-import akka.http.scaladsl.server.Directives._
 import akka.util.Timeout
 import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.openapi.definitions.{ Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{ proto, UserEntity }
-import com.jc.user.service.{ UserRepository, UserService }
+import com.jc.user.domain.proto.DepartmentRef
+import com.jc.user.domain.{ proto, UserEntity, UserService }
+import com.jc.user.service.{ SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
@@ -40,7 +40,7 @@ object UserOpenApi {
 
     val docRoutes = docRoute()
 
-    val restApiRoutes = concat(userApiRoutes, docRoutes)
+    val restApiRoutes = Directives.concat(userApiRoutes, docRoutes)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -104,8 +104,16 @@ object UserOpenApi {
           respond: UserResource.CreateUserResponse.type
       )(body: User)(extracted: Seq[HttpHeader]): Future[UserResource.CreateUserResponse] = {
         import UserEntity._
-        val id  = body.id.getOrElse(body.username).asUserId
-        val cmd = body.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
+        import com.jc.user.domain.DepartmentEntity._
+        val id = body.id.getOrElse(body.username).asUserId
+        val cmd = body
+          .into[UserEntity.CreateUserCommand]
+          .withFieldConst(_.entityId, id)
+          .withFieldComputed(
+            _.department,
+            u => u.department.map(_.into[DepartmentRef].withFieldComputed(_.id, _.id.asDepartmentId).transform)
+          )
+          .transform
         userService.sendCommand(cmd).map {
           case reply: UserEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
           case reply: UserEntity.UserCreatedFailedReply =>
@@ -205,11 +213,11 @@ object UserOpenApi {
 
   // TODO improve parsing
   // sort - field:order, examples: username:asc, email:desc
-  def toFieldSort(sort: String): UserRepository.FieldSort =
+  def toFieldSort(sort: String): SearchRepository.FieldSort =
     sort.split(":").toList match {
       case p :: o :: Nil =>
-        (p, o.toLowerCase != "desc")
+        SearchRepository.FieldSort(p, o.toLowerCase != "desc")
       case _ =>
-        (sort, true)
+        SearchRepository.FieldSort(sort, true)
     }
 }

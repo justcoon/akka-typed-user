@@ -129,7 +129,7 @@ lazy val library =
 
     object Version {
       val akka                     = "2.6.10"
-      val akkaHttp                 = "10.2.1"
+      val akkaHttp                 = "10.2.2"
       val akkaHttpJson             = "1.35.2"
       val akkaPersistenceCassandra = "1.0.4"
       val akkaStreamKafka          = "2.0.5"
@@ -139,17 +139,17 @@ lazy val library =
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.9.1"
+      val elastic4s                = "7.9.2"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "1.1.5"
+      val akkaKryo                 = "2.0.0"
       val pauldijouJwt             = "4.3.0"
-      val refined                  = "0.9.18"
+      val refined                  = "0.9.19"
       val tapir                    = "0.16.16"
 
-      val kamonPrometheus = "2.1.8"
-      val kamonAkka       = "2.1.8"
-      val kamonAkkaHttp   = "2.1.8"
+      val kamonPrometheus = "2.1.9"
+      val kamonAkka       = "2.1.9"
+      val kamonAkkaHttp   = "2.1.9"
       val kamonKanela     = "1.0.5"
     }
 
@@ -254,9 +254,10 @@ lazy val dockerSettings =
   Seq(
     daemonUser.in(Docker) := "root",
     maintainer.in(Docker) := "justcoon",
-    version.in(Docker) := "latest",
-    dockerBaseImage := "openjdk:11",
-    dockerExposedPorts := Vector(2551, 8000),
+//    version.in(Docker) := "latest",
+    dockerUpdateLatest := true,
+    dockerBaseImage := "openjdk:11-jre",
+    dockerExposedPorts := Vector(2552, 8558, 8000, 8010, 9080),
     dockerRepository := Some("justcoon"),
     dockerEntrypoint ++= Seq(
         """-Drest-api.port="$REST_API_PORT"""",

@@ -3,7 +3,7 @@ package com.jc.user.service
 import akka.{ Done, NotUsed }
 import akka.actor.typed.ActorSystem
 import akka.kafka.{ ProducerMessage, ProducerSettings }
-import akka.kafka.scaladsl.Producer
+import akka.kafka.scaladsl.{ DiscoverySupport, Producer }
 import akka.persistence.query.Offset
 import akka.projection.ProjectionContext
 import akka.projection.eventsourced.EventEnvelope
@@ -26,22 +26,25 @@ object UserKafkaProducer {
 
   val keepAlive: FiniteDuration = 3.seconds
 
+  private def createKafkaProducerSettings()(implicit system: ActorSystem[_]): ProducerSettings[String, UserEntity.UserEvent] = {
+    import akka.actor.typed.scaladsl.adapter._
+
+    val producerConfig = system.settings.config.getConfig("akka.kafka.producer")
+    ProducerSettings(system.toClassic, new StringSerializer, userEventProtoKafkaSerializer)
+      .withEnrichAsync(DiscoverySupport.producerBootstrapServers(producerConfig))
+  }
+
   def create(
       kafkaTopic: String,
-      kafkaBootstrapServers: List[String],
       offsetStore: OffsetStore[Offset, Future]
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
-    import akka.actor.typed.scaladsl.adapter._
-
-    val userKafkaProducerSettings =
-      ProducerSettings(system.toClassic, new StringSerializer, userEventProtoKafkaSerializer)
-        .withBootstrapServers(kafkaBootstrapServers.mkString(","))
+    val settings = createKafkaProducerSettings()
 
     val handleEvent: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
       FlowWithContext[UserEntity.UserEvent, Offset]
         .map(event => toProducerMessage(kafkaTopic, event))
-        .via(Producer.flowWithContext[String, UserEntity.UserEvent, Offset](userKafkaProducerSettings))
+        .via(Producer.flowWithContext[String, UserEntity.UserEvent, Offset](settings))
 
     CassandraJournalEventProcessor.create(
       UserKafkaProducerName,
@@ -54,21 +57,16 @@ object UserKafkaProducer {
   }
 
   def createWithProjection(
-      kafkaTopic: String,
-      kafkaBootstrapServers: List[String]
+      kafkaTopic: String
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
-    import akka.actor.typed.scaladsl.adapter._
-
-    val userKafkaProducerSettings =
-      ProducerSettings(system.toClassic, new StringSerializer, userEventProtoKafkaSerializer)
-        .withBootstrapServers(kafkaBootstrapServers.mkString(","))
+    val settings = createKafkaProducerSettings()
 
     val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
       FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
         .map(_.event)
         .map(event => toProducerMessage(kafkaTopic, event))
-        .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](userKafkaProducerSettings))
+        .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](settings))
         .map(_ => Done)
 
     CassandraProjectionJournalEventProcessor.create(

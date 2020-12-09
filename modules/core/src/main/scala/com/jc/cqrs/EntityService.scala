@@ -8,7 +8,12 @@ import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 
 import scala.concurrent.Future
 
-trait TypedActorEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entity <: BasicPersistentEntity[ID, S, C, _]] {
+trait EntityService[F[_], ID, S, C[R] <: EntityCommand[ID, S, R]] {
+  def sendCommand[R](command: C[R]): F[R]
+}
+
+trait BasicPersistentEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entity <: BasicPersistentEntity[ID, S, C, _]]
+    extends EntityService[Future, ID, S, C] {
   implicit def sharding: ClusterSharding
 
   implicit def actorSystem: ActorSystem[_]
@@ -23,7 +28,7 @@ trait TypedActorEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entity <: 
     }
   )
 
-  def sendCommand[R](command: C[R]): Future[R] =
+  override def sendCommand[R](command: C[R]): Future[R] =
     entityFor(command.entityId) ? CommandExpectingReply(command)
 
   private def entityFor(id: ID) =

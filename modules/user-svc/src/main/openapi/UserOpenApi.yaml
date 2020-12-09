@@ -1,4 +1,4 @@
-openapi: 3.0.2
+openapi: 3.0.3
 servers:
   - url: /v1
 info:
@@ -266,7 +266,7 @@ paths:
             type: array
             items:
               type: string
-          example: username:asc
+          example: ['username:asc']
       responses:
         '200':
           description: successful operation
@@ -341,6 +341,14 @@ components:
         - state
         - zip
         - country
+    DepartmentRef:
+      properties:
+        id:
+          type: string
+          example: d1
+      type: object
+      required:
+        - id
     User:
       properties:
         id:
@@ -357,6 +365,8 @@ components:
           example: p12345
         address:
           $ref: '#/components/schemas/Address'
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
       type: object
       required:
         - username

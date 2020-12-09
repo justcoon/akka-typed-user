@@ -10,7 +10,6 @@ import akka.stream.scaladsl.FlowWithContext
 import com.jc.user.domain._
 import com.jc.cqrs.offsetstore.OffsetStore
 import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
-import com.jc.user.domain.proto.UserPayloadEvent.Payload.Created
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.concurrent.{ ExecutionContext, Future }
@@ -61,12 +60,23 @@ object UserViewBuilder {
   }
 
   def processEvent(event: UserEntity.UserEvent, userRepository: UserRepository[Future])(implicit ec: ExecutionContext): Future[Boolean] =
-    userRepository
-      .find(event.entityId)
-      .flatMap {
-        case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
-        case None        => userRepository.insert(getUpdatedUser(event, None))
-      }
+    if (isUserRemoved(event))
+      userRepository.delete(event.entityId)
+    else
+      userRepository
+        .find(event.entityId)
+        .flatMap {
+          case u @ Some(_) => userRepository.update(getUpdatedUser(event, u))
+          case None        => userRepository.insert(getUpdatedUser(event, None))
+        }
+
+  def isUserRemoved(event: UserEntity.UserEvent): Boolean = {
+    import com.jc.user.domain.proto._
+    event match {
+      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed, _) => true
+      case _                                                              => false
+    }
+  }
 
   def createUser(id: UserEntity.UserId): UserRepository.User = UserRepository.User(id, "", "", "")
 
@@ -78,9 +88,10 @@ object UserViewBuilder {
     val currentUser = user.getOrElse(createUser(event.entityId))
 
     event match {
-      case UserPayloadEvent(_, _, payload: Created, _) =>
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.Created, _) =>
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
-        usernameEmailPassAddressLens.set(currentUser)((payload.value.username, payload.value.email, payload.value.pass, na))
+        val nd = payload.value.department.map(_.transformInto[UserRepository.Department])
+        usernameEmailPassAddressDepartmentLens.set(currentUser)((payload.value.username, payload.value.email, payload.value.pass, na, nd))
 
       case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.PasswordUpdated, _) =>
         passLens.set(currentUser)(payload.value.pass)
@@ -92,8 +103,9 @@ object UserViewBuilder {
         val na = payload.value.address.map(_.transformInto[UserRepository.Address])
         addressLens.set(currentUser)(na)
 
-      case UserPayloadEvent(_, _, _: UserPayloadEvent.Payload.Removed, _) =>
-        deletedLens.set(currentUser)(true)
+      case UserPayloadEvent(_, _, payload: UserPayloadEvent.Payload.DepartmentUpdated, _) =>
+        val nd = payload.value.department.map(_.transformInto[UserRepository.Department])
+        departmentLens.set(currentUser)(nd)
 
       case _ => currentUser
     }

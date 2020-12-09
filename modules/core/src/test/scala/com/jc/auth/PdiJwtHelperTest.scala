@@ -11,7 +11,7 @@ import scala.util.Try
 
 class PdiJwtHelperTest extends AnyWordSpecLike with should.Matchers with BeforeAndAfterAll {
   import eu.timepit.refined.auto._
-
+  import com.jc.refined.auto._
   implicit val clock: Clock = Clock.systemUTC
 
   val config = JwtConfig("mySecret", 604800000L, Some("akka-typed-user"))
@@ -34,7 +34,7 @@ class PdiJwtHelperTest extends AnyWordSpecLike with should.Matchers with BeforeA
   private def getTestToken(helper: PdiJwtHelper, printToken: Boolean = true) = {
 
     val authToken = "{}"
-    val claim     = helper.claim(authToken, subject = Some("test"), issuer = helper.config.issuer.map(_.value))
+    val claim     = helper.claim(authToken, subject = Some("test"), issuer = helper.config.issuer)
     val token     = helper.encodeClaim(claim)
 
     if (printToken) {

@@ -2,7 +2,7 @@ package com.jc.user.config
 
 import pureconfig.generic.semiauto.deriveReader
 
-case class KafkaConfig(addresses: Addresses, topic: TopicName)
+case class KafkaConfig(userTopic: TopicName, departmentTopic: TopicName)
 
 object KafkaConfig {
   import eu.timepit.refined.pureconfig._

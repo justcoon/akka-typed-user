@@ -12,11 +12,68 @@ option (scalapb.options) = {
   flat_package: true
 };
 
+
+message CreateDepartmentReq {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message CreateDepartmentRes {
+    string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
+}
+
+message UpdateDepartmentReq {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+}
+
+message UpdateDepartmentRes {
+    string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
+}
+
+message RemoveDepartmentReq {
+    string id = 1;
+}
+
+message RemoveDepartmentRes {
+    string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
+}
+
+message GetDepartmentReq {
+    string id = 1;
+}
+
+message GetDepartmentRes {
+    com.jc.user.domain.proto.Department department = 1;
+}
+
+message GetDepartmentsReq {
+}
+
+message GetDepartmentsRes {
+    repeated com.jc.user.domain.proto.Department departments = 1;
+}
+
 message RegisterUserReq {
     string username = 1;
     string email = 2;
     string pass = 3;
     com.jc.user.domain.proto.Address address = 4;
+    com.jc.user.domain.proto.DepartmentRef department = 5;
 }
 
 message RegisterUserRes {
@@ -39,12 +96,12 @@ message RemoveUserRes {
     }
 }
 
-message UpdatePasswordReq {
+message UpdateUserPasswordReq {
     string id = 1;
     string pass = 2;
 }
 
-message UpdatePasswordRes {
+message UpdateUserPasswordRes {
     string id = 1;
     oneof result {
         string success = 2;
@@ -52,12 +109,12 @@ message UpdatePasswordRes {
     }
 }
 
-message UpdateAddressReq {
+message UpdateUserAddressReq {
     string id = 1;
     com.jc.user.domain.proto.Address address = 2;
 }
 
-message UpdateAddressRes {
+message UpdateUserAddressRes {
     string id = 1;
     oneof result {
         string success = 2;
@@ -65,12 +122,25 @@ message UpdateAddressRes {
     }
 }
 
-message UpdateEmailReq {
+message UpdateUserEmailReq {
     string id = 1;
     string email = 2;
 }
 
-message UpdateEmailRes {
+message UpdateUserEmailRes {
+    string id = 1;
+    oneof result {
+        string success = 2;
+        string failure = 3;
+    }
+}
+
+message UpdateUserDepartmentReq {
+    string id = 1;
+    com.jc.user.domain.proto.DepartmentRef department = 2;
+}
+
+message UpdateUserDepartmentRes {
     string id = 1;
     oneof result {
         string success = 2;
@@ -153,19 +223,34 @@ message SuggestUsersRes {
 
 service UserApiService {
 
+    rpc CreateDepartment (CreateDepartmentReq) returns (CreateDepartmentRes) {
+    }
+
+    rpc UpdateDepartment (UpdateDepartmentReq) returns (UpdateDepartmentRes) {
+    }
+
+    rpc GetDepartment (GetDepartmentReq) returns (GetDepartmentRes) {
+    }
+
+    rpc GetDepartments (GetDepartmentsReq) returns (GetDepartmentsRes) {
+    }
+
     rpc RegisterUser (RegisterUserReq) returns (RegisterUserRes) {
     }
 
     rpc RemoveUser (RemoveUserReq) returns (RemoveUserRes) {
     }
 
-    rpc UpdateUserEmail (UpdateEmailReq) returns (UpdateEmailRes) {
+    rpc UpdateUserEmail (UpdateUserEmailReq) returns (UpdateUserEmailRes) {
     }
 
-    rpc UpdateUserPassword (UpdatePasswordReq) returns (UpdatePasswordRes) {
+    rpc UpdateUserPassword (UpdateUserPasswordReq) returns (UpdateUserPasswordRes) {
     }
 
-    rpc UpdateUserAddress (UpdateAddressReq) returns (UpdateAddressRes) {
+    rpc UpdateUserAddress (UpdateUserAddressReq) returns (UpdateUserAddressRes) {
+    }
+
+    rpc UpdateUserDepartment (UpdateUserDepartmentReq) returns (UpdateUserDepartmentRes) {
     }
 
     rpc GetUser (GetUserReq) returns (GetUserRes) {

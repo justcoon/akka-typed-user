@@ -46,6 +46,14 @@
     </root>
 
     <!-- For loggers in the these namespaces, log at all levels. -->
+    <logger name="org.apache.kafka" level="ERROR"/>
+
+    <logger name="kafka" level="WARN"/>
+
+    <logger name="akka" level="WARN"/>
+
+    <logger name="org.apache.zookeeper" level="ERROR"/>
+
     <logger name="com.jc" level="ALL"/>
     <!-- To log pedestal internals, enable this and change ThresholdFilter to DEBUG
     <logger name="pedestal" level="ALL" />
