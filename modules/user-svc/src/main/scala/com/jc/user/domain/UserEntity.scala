@@ -1,13 +1,16 @@
 package com.jc.user.domain
 
+import akka.Done
+
 import java.time.Instant
-import akka.actor.typed.{ ActorRef, SupervisorStrategy }
+import akka.actor.typed.SupervisorStrategy
 import akka.actor.typed.scaladsl.ActorContext
 import akka.http.scaladsl.util.FastFuture
 import akka.persistence.typed.scaladsl.{ EventSourcedBehavior, ReplyEffect, RetentionCriteria }
 import akka.persistence.typed.{ RecoveryCompleted, RecoveryFailed, SnapshotAdapter }
+import cats.data.{ Validated, ValidatedNec }
+import cats.implicits._
 import com.github.t3hnar.bcrypt._
-import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 import com.jc.cqrs._
 import com.jc.user.domain.proto._
 import io.circe.{ Decoder, Encoder }
@@ -15,7 +18,6 @@ import shapeless.tag
 import shapeless.tag.@@
 
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
 
 object UserEntity {
 
@@ -54,7 +56,7 @@ object UserEntity {
       pass: String,
       address: Option[Address] = None,
       department: Option[DepartmentRef] = None,
-      errors: List[String] = Nil
+      validation: ValidatedNec[String, Done]
   ) extends UserCommand[CreateUserReply]
 
   sealed trait CreateOrUpdateUserReply {
@@ -69,8 +71,11 @@ object UserEntity {
 
   final case class ChangeUserAddressCommand(entityId: UserId, address: Option[Address]) extends UserCommand[ChangeUserAddressReply]
 
-  private[domain] final case class ChangeUserAddressInternalCommand(entityId: UserId, address: Option[Address], errors: List[String] = Nil)
-      extends UserCommand[ChangeUserAddressReply]
+  private[domain] final case class ChangeUserAddressInternalCommand(
+      entityId: UserId,
+      address: Option[Address],
+      validation: ValidatedNec[String, Done]
+  ) extends UserCommand[ChangeUserAddressReply]
 
   final case class ChangeUserDepartmentCommand(entityId: UserId, department: Option[DepartmentRef])
       extends UserCommand[ChangeUserDepartmentReply]
@@ -78,7 +83,7 @@ object UserEntity {
   private[domain] final case class ChangeUserDepartmentInternalCommand(
       entityId: UserId,
       department: Option[DepartmentRef],
-      errors: List[String] = Nil
+      validation: ValidatedNec[String, Done]
   ) extends UserCommand[ChangeUserDepartmentReply]
 
   sealed trait CreateUserReply extends CreateOrUpdateUserReply
@@ -245,24 +250,24 @@ sealed class UserPersistentEntity(departmentService: DepartmentService, addressV
     val result = command.command match {
       case UserEntity.CreateUserCommand(entityId, username, email, pass, addr, dep) =>
         implicit val ec = actorContext.executionContext
-        validated(
+        BasicPersistentEntity.validated[Command](
           addressValidator(addr) :: departmentValidator(dep) :: Nil,
-          command.transformUnsafe(UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, dep)),
-          errors => command.transformUnsafe(UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, dep, errors))
+          v => command.transformUnsafe(UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, dep, v))
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, dep, errors) =>
-        if (errors.nonEmpty) {
-          CommandProcessResult.withReply(UserEntity.UserCreatedFailedReply(entityId, errors.mkString(",")))
-        } else {
-          val encryptedPass = pass.boundedBcrypt
-          val events =
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, addr, dep))
-            ) :: Nil
-          CommandProcessResult.withReply(events, UserEntity.UserCreatedReply(entityId))
+      case UserEntity.CreateUserInternalCommand(entityId, username, email, pass, addr, dep, v) =>
+        v match {
+          case Validated.Invalid(errors) =>
+            CommandProcessResult.withReply(UserEntity.UserCreatedFailedReply(entityId, errors.toList.mkString(", ")))
+          case Validated.Valid(_) =>
+            val encryptedPass = pass.boundedBcrypt
+            val events =
+              UserPayloadEvent(
+                entityId,
+                Instant.now,
+                UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, addr, dep))
+              ) :: Nil
+            CommandProcessResult.withReply(events, UserEntity.UserCreatedReply(entityId))
         }
       case otherCommand =>
 //        actorContext.log.error(s"Received erroneous initial command $otherCommand for entity")
@@ -295,43 +300,43 @@ sealed class UserPersistentEntity(departmentService: DepartmentService, addressV
         CommandProcessResult.withReply(events, UserEntity.UserPasswordChangedReply(entityId))
       case UserEntity.ChangeUserAddressCommand(entityId, addr) =>
         implicit val ec = actorContext.executionContext
-        validated(
-          addressValidator(addr) :: Nil,
-          command.transformUnsafe(UserEntity.ChangeUserAddressInternalCommand(entityId, addr)),
-          errors => command.transformUnsafe(UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors))
+        BasicPersistentEntity.validated[Command](
+          addressValidator(addr),
+          v => command.transformUnsafe(UserEntity.ChangeUserAddressInternalCommand(entityId, addr, v))
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserEntity.ChangeUserAddressInternalCommand(entityId, addr, errors) =>
-        if (errors.nonEmpty) {
-          CommandProcessResult.withReply(UserEntity.UserAddressChangedFailedReply(entityId, errors.mkString(",")))
-        } else {
-          val events =
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
-            ) :: Nil
-          CommandProcessResult.withReply(events, UserEntity.UserAddressChangedReply(entityId))
+      case UserEntity.ChangeUserAddressInternalCommand(entityId, addr, v) =>
+        v match {
+          case Validated.Invalid(errors) =>
+            CommandProcessResult.withReply(UserEntity.UserAddressChangedFailedReply(entityId, errors.toList.mkString(", ")))
+          case Validated.Valid(_) =>
+            val events =
+              UserPayloadEvent(
+                entityId,
+                Instant.now,
+                UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
+              ) :: Nil
+            CommandProcessResult.withReply(events, UserEntity.UserAddressChangedReply(entityId))
         }
       case UserEntity.ChangeUserDepartmentCommand(entityId, dep) =>
         implicit val ec = actorContext.executionContext
-        validated(
-          departmentValidator(dep) :: Nil,
-          command.transformUnsafe(UserEntity.ChangeUserDepartmentInternalCommand(entityId, dep)),
-          errors => command.transformUnsafe(UserEntity.ChangeUserDepartmentInternalCommand(entityId, dep, errors))
+        BasicPersistentEntity.validated[Command](
+          departmentValidator(dep),
+          v => command.transformUnsafe(UserEntity.ChangeUserDepartmentInternalCommand(entityId, dep, v))
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserEntity.ChangeUserDepartmentInternalCommand(entityId, dep, errors) =>
-        if (errors.nonEmpty) {
-          CommandProcessResult.withReply(UserEntity.UserDepartmentChangedFailedReply(entityId, errors.mkString(",")))
-        } else {
-          val events =
-            UserPayloadEvent(
-              entityId,
-              Instant.now,
-              UserPayloadEvent.Payload.DepartmentUpdated(UserDepartmentUpdatedPayload(dep))
-            ) :: Nil
-          CommandProcessResult.withReply(events, UserEntity.UserDepartmentChangedReply(entityId))
+      case UserEntity.ChangeUserDepartmentInternalCommand(entityId, dep, v) =>
+        v match {
+          case Validated.Invalid(errors) =>
+            CommandProcessResult.withReply(UserEntity.UserDepartmentChangedFailedReply(entityId, errors.toList.mkString(", ")))
+          case Validated.Valid(_) =>
+            val events =
+              UserPayloadEvent(
+                entityId,
+                Instant.now,
+                UserPayloadEvent.Payload.DepartmentUpdated(UserDepartmentUpdatedPayload(dep))
+              ) :: Nil
+            CommandProcessResult.withReply(events, UserEntity.UserDepartmentChangedReply(entityId))
         }
       case UserEntity.RemoveUserCommand(entityId) =>
         val events =
@@ -353,51 +358,25 @@ sealed class UserPersistentEntity(departmentService: DepartmentService, addressV
     BasicPersistentEntity.handleProcessResult(result, command.replyTo)
   }
 
-  protected def validated(validators: List[() => Future[Option[List[String]]]], onSuccess: => Command, onError: List[String] => Command)(
-      actorContext: ActorContext[Command]
-  ): Unit = {
-    implicit val ec = actorContext.executionContext
+  protected def addressValidator(address: Option[Address])(implicit ec: ExecutionContext): () => Future[ValidatedNec[String, Done]] =
+    () =>
+      address match {
+        case Some(address) =>
+          addressValidationService.validate(address).map(res => res.map(_ => Done))
+        case None => FastFuture.successful(Done.validNec)
+      }
 
-    val validationF: Future[Option[List[String]]] = Future.traverse(validators)(_()).map { results =>
-      val errors = results.collect {
-        case Some(errors) => errors
-      }.flatten
-
-      if (errors.nonEmpty) {
-        Some(errors)
-      } else None
-    }
-
-    actorContext.pipeToSelf(validationF) {
-      case Success(None) =>
-        onSuccess
-      case Success(Some(errors)) =>
-        onError(errors)
-      case Failure(exception) =>
-        onError(exception.getMessage :: Nil)
-    }
-  }
-
-  protected def departmentValidator(department: Option[DepartmentRef])(implicit ec: ExecutionContext): () => Future[Option[List[String]]] =
+  protected def departmentValidator(
+      department: Option[DepartmentRef]
+  )(implicit ec: ExecutionContext): () => Future[ValidatedNec[String, Done]] =
     () =>
       department match {
         case Some(dep) =>
           departmentService.sendCommand(DepartmentEntity.GetDepartmentCommand(dep.id)).map {
-            case DepartmentEntity.DepartmentReply(_)          => None
-            case _: DepartmentEntity.DepartmentNotExistsReply => Some("Department not found" :: Nil)
+            case DepartmentEntity.DepartmentReply(_)          => Done.validNec
+            case _: DepartmentEntity.DepartmentNotExistsReply => s"Department: ${dep.id} not found".invalidNec
           }
-        case None => FastFuture.successful(None)
-      }
-
-  protected def addressValidator(address: Option[Address])(implicit ec: ExecutionContext): () => Future[Option[List[String]]] =
-    () =>
-      address match {
-        case Some(address) =>
-          addressValidationService.validate(address).map {
-            case AddressValidationService.ValidResult        => None
-            case vr: AddressValidationService.NotValidResult => Some(vr.errors)
-          }
-        case None => FastFuture.successful(None)
+        case None => FastFuture.successful(Done.validNec)
       }
 
   override protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, UserEntity.UserEvent) => OuterState = {

@@ -45,6 +45,7 @@ lazy val `core` =
           library.akkaProjectionKafka,
           library.circeGeneric,
           library.circeRefined,
+          library.catsCore,
           library.logbackCore,
           library.logbackClassic,
           library.bcrypt,
@@ -100,6 +101,7 @@ lazy val `user-svc` =
           library.akkaManagementClusterHttp,
           library.circeGeneric,
           library.circeRefined,
+          library.catsCore,
           library.logbackCore,
           library.logbackClassic,
           library.bcrypt,
@@ -142,10 +144,11 @@ lazy val library =
       val elastic4s                = "7.9.2"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.0.0"
+      val akkaKryo                 = "2.0.1"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.19"
-      val tapir                    = "0.16.16"
+      val tapir                    = "0.17.0"
+      val cats                     = "2.3.1"
 
       val kamonPrometheus = "2.1.9"
       val kamonAkka       = "2.1.9"
@@ -183,6 +186,8 @@ lazy val library =
 
     val circeGeneric = "io.circe" %% "circe-generic" % Version.circe
     val circeRefined = "io.circe" %% "circe-refined" % Version.circe
+
+    val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 
     val logbackCore    = "ch.qos.logback" % "logback-core"    % Version.logback
     val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback

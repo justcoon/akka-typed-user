@@ -1,11 +1,18 @@
 package com.jc.cqrs
 
+import akka.Done
 import akka.actor.typed.ActorRef
 import akka.actor.typed.scaladsl.ActorContext
 import akka.cluster.sharding.typed.scaladsl.{ EntityContext, EntityTypeKey }
 import akka.persistence.typed.PersistenceId
 import akka.persistence.typed.scaladsl.{ Effect, EffectBuilder, EventSourcedBehavior, ReplyEffect }
+import cats.data.ValidatedNec
+import cats.kernel.Monoid
+import cats.implicits._
 import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
+
+import scala.concurrent.Future
+import scala.util.{ Failure, Success }
 
 abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
     val entityName: String
@@ -115,6 +122,38 @@ object BasicPersistentEntity {
       case CommandReply.NoReply =>
         effect.thenNoReply()
     }
+  }
+
+  def validated[C](
+      validator: () => Future[ValidatedNec[String, Done]],
+      toValidatedCommand: ValidatedNec[String, Done] => C
+  )(
+      actorContext: ActorContext[C]
+  ): Unit =
+    actorContext.pipeToSelf(validator()) {
+      case Success(v) =>
+        toValidatedCommand(v)
+      case Failure(exception) =>
+        toValidatedCommand(exception.getMessage.invalidNec)
+    }
+
+  def validated[C](
+      validators: List[() => Future[ValidatedNec[String, Done]]],
+      toValidatedCommand: ValidatedNec[String, Done] => C
+  )(
+      actorContext: ActorContext[C]
+  ): Unit = {
+
+    implicit val ec = actorContext.executionContext
+
+    implicit def doneMonoid: Monoid[Done] = new Monoid[Done] {
+      override def empty: Done                     = Done
+      override def combine(x: Done, y: Done): Done = Done
+    }
+
+    val validator = () => Future.traverse(validators)(_()).map(_.combineAll)
+
+    validated(validator, toValidatedCommand)(actorContext)
   }
 
 }

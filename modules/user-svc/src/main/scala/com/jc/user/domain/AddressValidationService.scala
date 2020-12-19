@@ -1,30 +1,24 @@
 package com.jc.user.domain
 
 import java.util.Locale
-
 import akka.http.scaladsl.util.FastFuture
+import cats.data.{ Validated, ValidatedNec }
 import com.jc.user.domain.proto._
 
 import scala.concurrent.Future
 
 trait AddressValidationService[F[_]] {
-  def validate(address: Address): F[AddressValidationService.ValidationResult]
+  def validate(address: Address): F[ValidatedNec[String, Address]]
 }
 
-object AddressValidationService {
-  sealed trait ValidationResult
-
-  final case object ValidResult extends ValidationResult
-
-  final case class NotValidResult(errors: List[String]) extends ValidationResult
-}
-
-case object SimpleAddressValidationService extends AddressValidationService[Future] {
+final case object SimpleAddressValidationService extends AddressValidationService[Future] {
   private val isoCountries = Locale.getISOCountries.toSet
 
-  override def validate(address: Address): Future[AddressValidationService.ValidationResult] =
+  override def validate(address: Address): Future[ValidatedNec[String, Address]] = {
+    import cats.implicits._
     FastFuture.successful {
-      if (isoCountries.contains(address.country)) AddressValidationService.ValidResult
-      else AddressValidationService.NotValidResult(List(s"country: ${address.country} is not valid ISO country"))
+      if (isoCountries.contains(address.country)) address.validNec
+      else s"Country: ${address.country} is not valid ISO country".invalidNec
     }
+  }
 }
