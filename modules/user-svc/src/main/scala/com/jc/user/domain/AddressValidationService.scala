@@ -2,7 +2,7 @@ package com.jc.user.domain
 
 import java.util.Locale
 import akka.http.scaladsl.util.FastFuture
-import cats.data.{ Validated, ValidatedNec }
+import cats.data.ValidatedNec
 import com.jc.user.domain.proto._
 
 import scala.concurrent.Future

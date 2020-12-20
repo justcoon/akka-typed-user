@@ -5,14 +5,14 @@ import akka.actor.{ ActorSystem, CoordinatedShutdown }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCodes }
 import akka.http.scaladsl.server.{ Directives, Route }
+import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
 import com.jc.auth.JwtAuthenticator
-import com.jc.user.api.openapi.definitions.{ Address, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
+import com.jc.user.api.openapi.definitions.{ Address, Department, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.proto.DepartmentRef
-import com.jc.user.domain.{ proto, UserEntity, UserService }
-import com.jc.user.service.{ SearchRepository, UserRepository }
+import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserService }
+import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
 
@@ -28,6 +28,8 @@ object UserOpenApi {
   def server(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String],
       shutdown: CoordinatedShutdown,
       config: HttpApiConfig
@@ -36,7 +38,8 @@ object UserOpenApi {
 
     val log = LoggerFactory.getLogger(this.getClass)
 
-    val userApiRoutes = route(userService, userRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
+    val userApiRoutes =
+      route(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
 
     val docRoutes = docRoute()
 
@@ -70,16 +73,20 @@ object UserOpenApi {
   def route(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer): Route =
     UserResource.routes(
-      handler(userService, userRepository, jwtAuthenticator),
+      handler(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator),
       _ => Directives.extractRequest.map(req => req.headers)
     )
 
   def handler(
       userService: UserService,
       userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext): UserHandler[Seq[HttpHeader]] = {
 
@@ -96,9 +103,49 @@ object UserOpenApi {
 
         maybeSubject match {
           case Some(subject) => fn(subject)
-          case None          => Future.failed(IllegalRequestException(StatusCodes.Unauthorized))
+          case None          => FastFuture.failed(IllegalRequestException(StatusCodes.Unauthorized))
         }
       }
+
+//      override def createDepartment(respond: UserResource.CreateDepartmentResponse.type)(body: Department)(
+//          extracted: Seq[HttpHeader]
+//      ): Future[UserResource.CreateDepartmentResponse] = {
+//        import DepartmentEntity._
+//        val id  = body.id.asDepartmentId
+//        val cmd = body.into[DepartmentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
+//        departmentService.sendCommand(cmd).map {
+//          case reply: DepartmentEntity.DepartmentCreatedReply =>
+//            UserResource.CreateDepartmentResponseOK(reply.entityId)
+//          case reply: DepartmentEntity.DepartmentAlreadyExistsReply =>
+//            UserResource.CreateDepartmentResponseBadRequest("Department already exits")
+//          case reply: DepartmentEntity.DepartmentCreatedFailedReply =>
+//            UserResource.CreateDepartmentResponseBadRequest(s"Department create error (${reply.error})")
+//        }
+//      }
+//
+//      override def updateDepartment(respond: UserResource.UpdateDepartmentResponse.type)(id: String, body: Department)(
+//          extracted: Seq[HttpHeader]
+//      ): Future[UserResource.UpdateDepartmentResponse] = ???
+//
+//      override def deleteDepartment(respond: UserResource.DeleteDepartmentResponse.type)(id: String)(
+//          extracted: Seq[HttpHeader]
+//      ): Future[UserResource.DeleteDepartmentResponse] = ???
+
+      override def getDepartment(respond: UserResource.GetDepartmentResponse.type)(id: String)(
+          extracted: Seq[HttpHeader]
+      ): Future[UserResource.GetDepartmentResponse] = {
+        import DepartmentEntity._
+        departmentRepository.find(id.asDepartmentId).map {
+          case Some(r) =>
+            UserResource.GetDepartmentResponseOK(r.transformInto[Department])
+          case _ => UserResource.GetDepartmentResponseNotFound
+        }
+      }
+
+      override def getDepartments(respond: UserResource.GetDepartmentsResponse.type)()(
+          extracted: Seq[HttpHeader]
+      ): Future[UserResource.GetDepartmentsResponse] =
+        departmentRepository.findAll().map(r => UserResource.GetDepartmentsResponseOK(r.map(_.transformInto[Department]).toVector))
 
       override def createUser(
           respond: UserResource.CreateUserResponse.type
@@ -111,7 +158,7 @@ object UserOpenApi {
           .withFieldConst(_.entityId, id)
           .withFieldComputed(
             _.department,
-            u => u.department.map(_.into[DepartmentRef].withFieldComputed(_.id, _.id.asDepartmentId).transform)
+            u => u.department.map(_.into[proto.DepartmentRef].withFieldComputed(_.id, _.id.asDepartmentId).transform)
           )
           .transform
         userService.sendCommand(cmd).map {

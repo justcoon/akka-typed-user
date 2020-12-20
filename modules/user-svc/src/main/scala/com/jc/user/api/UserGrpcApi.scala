@@ -4,6 +4,7 @@ import akka.actor.{ ActorSystem, CoordinatedShutdown }
 import akka.grpc.scaladsl.Metadata
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
+import akka.http.scaladsl.util.FastFuture
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
 import akka.{ Done, NotUsed }
@@ -11,7 +12,6 @@ import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserService }
-import com.jc.user.domain.proto.User
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 
@@ -93,7 +93,7 @@ object UserGrpcApi {
 
         maybeSubject match {
           case Some(subject) => fn(subject)
-          case None          => Future.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
+          case None          => FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
         }
       }
 
@@ -101,10 +101,9 @@ object UserGrpcApi {
         import DepartmentEntity._
         val id  = in.id.asDepartmentId
         val cmd = in.into[DepartmentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
-
         departmentService.sendCommand(cmd).map {
           case reply: DepartmentEntity.DepartmentCreatedReply =>
-            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department crateted"))
+            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department created"))
           case reply: DepartmentEntity.DepartmentAlreadyExistsReply =>
             CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure("Department already exits"))
           case reply: DepartmentEntity.DepartmentCreatedFailedReply =>
@@ -116,7 +115,6 @@ object UserGrpcApi {
         import DepartmentEntity._
         val id  = in.id.asDepartmentId
         val cmd = in.into[DepartmentEntity.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
-
         departmentService.sendCommand(cmd).map {
           case reply: DepartmentEntity.DepartmentUpdatedReply =>
             UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Success("Department updated"))
@@ -137,7 +135,6 @@ object UserGrpcApi {
         import UserEntity._
         val id  = in.username.asUserId
         val cmd = in.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
-
         userService.sendCommand(cmd).map {
           case reply: UserEntity.UserCreatedReply =>
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
@@ -224,7 +221,7 @@ object UserGrpcApi {
         userRepository.findAll().map(r => GetUsersRes(r.map(_.transformInto[proto.User])))
 
       override def searchUsers(in: SearchUsersReq, metadata: Metadata): Future[SearchUsersRes] = {
-        val ss = in.sorts.map(sort => SearchRepository.FieldSort(sort.field, sort.order.isAsc))
+        val ss = in.sorts.map(toFieldSort)
         val q  = if (in.query.isBlank) None else Some(in.query)
         userRepository.search(q, in.page, in.pageSize, ss).map {
           case Right(r) =>
@@ -234,25 +231,22 @@ object UserGrpcApi {
         }
       }
 
-      override def searchUserStream(in: SearchUserStreamReq, metadata: Metadata): Source[User, NotUsed] = {
-        val ss = in.sorts.map(sort => SearchRepository.FieldSort(sort.field, sort.order.isAsc))
-
-        val q = if (in.query.isBlank) None else Some(in.query)
+      override def searchUserStream(in: SearchUserStreamReq, metadata: Metadata): Source[proto.User, NotUsed] = {
+        val ss = in.sorts.map(toFieldSort)
+        val q  = if (in.query.isBlank) None else Some(in.query)
 
         val pageInitial = 0
         val pageSize    = 20
 
         Source
           .unfoldAsync(pageInitial) { page =>
-            val res = userRepository.search(q, page, pageSize, ss).map {
+            userRepository.search(q, page, pageSize, ss).flatMap {
               case Right(r) =>
-                if ((r.page * r.pageSize) < r.count || r.items.nonEmpty) Some((r.page + 1, r.items))
-                else None
+                if ((r.page * r.pageSize) < r.count || r.items.nonEmpty) FastFuture.successful(Some((r.page + 1, r.items)))
+                else FastFuture.successful(None)
               case Left(e) =>
-                throw new akka.grpc.GrpcServiceException(io.grpc.Status.INTERNAL.withDescription(e.error), metadata)
+                FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.INTERNAL.withDescription(e.error), metadata))
             }
-
-            res
           }
           .mapConcat(identity)
           .map(_.transformInto[proto.User])
@@ -265,7 +259,8 @@ object UserGrpcApi {
           case Left(e) =>
             SuggestUsersRes(result = SuggestUsersRes.Result.Failure(e.error))
         }
-
     }
   }
+
+  def toFieldSort(sort: FieldSort): SearchRepository.FieldSort = SearchRepository.FieldSort(sort.field, sort.order.isAsc)
 }

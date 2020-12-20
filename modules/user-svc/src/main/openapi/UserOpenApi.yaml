@@ -19,6 +19,134 @@ tags:
       description: TODO
       url: 'http://swagger.io'
 paths:
+  /department:
+    get:
+      tags:
+        - user
+      summary: Get departments
+      description: ''
+      operationId: getDepartments
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+#    post:
+#      tags:
+#        - user
+#      summary: Create department
+#      description: This can only be done by the logged in department.
+#      operationId: createDepartment
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '400':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              $ref: '#/components/schemas/Department'
+#        description: Created department object
+#      security:
+#        - bearerAuth: [ ]
+  '/department/{id}':
+    get:
+      tags:
+        - user
+      summary: Get department by department id
+      description: ''
+      operationId: getDepartment
+      parameters:
+        - name: id
+          in: path
+          description: 'The id that needs to be fetched. Department dep1 for testing. '
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '404':
+          description: Department not found
+#    put:
+#      tags:
+#        - user
+#      summary: Update department
+#      description: This can only be done by the logged in user.
+#      operationId: updateDepartment
+#      parameters:
+#        - name: id
+#          in: path
+#          description: The id that needs to be updated
+#          required: true
+#          schema:
+#            type: string
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '400':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              $ref: '#/components/schemas/Department'
+#        description: Update department object
+#      security:
+#        - bearerAuth: [ ]
+#    delete:
+#      tags:
+#        - user
+#      summary: Delete department
+#      description: This can only be done by the logged in department.
+#      operationId: deleteDepartment
+#      parameters:
+#        - name: id
+#          in: path
+#          description: The id that needs to be deleted
+#          required: true
+#          schema:
+#            type: string
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '404':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
   /user:
     get:
       tags:
@@ -32,7 +160,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserArray'
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
     post:
       tags:
         - user
@@ -349,6 +479,22 @@ components:
       type: object
       required:
         - id
+    Department:
+      properties:
+        id:
+          type: string
+          example: d1
+        name:
+          type: string
+          example: dep 1
+        description:
+          type: string
+          example: department 1
+      type: object
+      required:
+        - id
+        - name
+        - description
     User:
       properties:
         id:
@@ -372,11 +518,6 @@ components:
         - username
         - email
         - pass
-    UserArray:
-      type: array
-      items:
-        $ref: '#/components/schemas/User'
-      description: List of user object
     UserSearchResponse:
       description: User search response
       properties:

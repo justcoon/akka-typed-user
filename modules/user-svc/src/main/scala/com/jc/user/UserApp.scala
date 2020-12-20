@@ -97,12 +97,13 @@ object UserApp {
       UserKafkaProducer.createWithProjection(appConfig.kafka.userTopic)
 
       log.info("rest api server - create")
-      UserOpenApi.server(userService, userRepository, jwtAuthenticator, shutdown, appConfig.restApi)(
-        appConfig.restApi.repositoryTimeout,
-        ec,
-        mat,
-        classicSys
-      )
+      UserOpenApi
+        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, shutdown, appConfig.restApi)(
+          appConfig.restApi.repositoryTimeout,
+          ec,
+          mat,
+          classicSys
+        )
 
       log.info("grpc api server - create")
       UserGrpcApi
