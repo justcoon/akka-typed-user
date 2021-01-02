@@ -8,7 +8,8 @@ import com.jc.user.domain.proto._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait DepartmentService extends EntityService[Future, DepartmentEntity.DepartmentId, Department, DepartmentEntity.DepartmentCommand]
+trait DepartmentService
+    extends EntityService[Future, DepartmentEntity.DepartmentId, Department, DepartmentPersistentEntity.DepartmentCommand]
 
 object DepartmentService {
 
@@ -22,7 +23,7 @@ object DepartmentService {
   ) extends BasicPersistentEntityService[
         DepartmentEntity.DepartmentId,
         Department,
-        DepartmentEntity.DepartmentCommand,
+        DepartmentPersistentEntity.DepartmentCommand,
         DepartmentPersistentEntity
       ]
       with DepartmentService {

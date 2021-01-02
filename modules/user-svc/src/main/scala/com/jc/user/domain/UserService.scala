@@ -8,7 +8,7 @@ import com.jc.user.domain.proto._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait UserService extends EntityService[Future, UserEntity.UserId, User, UserEntity.UserCommand]
+trait UserService extends EntityService[Future, UserEntity.UserId, User, UserPersistentEntity.UserCommand]
 
 object UserService {
 
@@ -22,7 +22,7 @@ object UserService {
       implicit val sharding: ClusterSharding,
       val actorSystem: ActorSystem[_],
       val askTimeout: Timeout
-  ) extends BasicPersistentEntityService[UserEntity.UserId, User, UserEntity.UserCommand, UserPersistentEntity]
+  ) extends BasicPersistentEntityService[UserEntity.UserId, User, UserPersistentEntity.UserCommand, UserPersistentEntity]
       with UserService {
     implicit val executionContext: ExecutionContext = actorSystem.executionContext
     lazy val persistentEntity                       = UserPersistentEntity(departmentService, addressValidationService)

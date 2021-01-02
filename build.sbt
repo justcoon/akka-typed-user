@@ -13,7 +13,7 @@ lazy val `akka-typed-user` =
   project
     .in(file("."))
     .enablePlugins(GitVersioning)
-    .aggregate(`core`, `user-svc`)
+    .aggregate(`core`, `user-api`, `user-svc`)
     .settings(settings)
     .settings(
       unmanagedSourceDirectories.in(Compile) := Seq.empty,
@@ -59,23 +59,41 @@ lazy val `core` =
         )
     )
 
+lazy val `user-api` =
+  (project in file("modules/user-api"))
+    .enablePlugins(AkkaGrpcPlugin)
+    .settings(settings)
+    .settings(
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      guardrailTasks.in(Compile) := List(
+        ScalaServer(
+          file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
+          pkg = "com.jc.user.api.openapi",
+          tracing = false,
+          customExtraction = true
+        )
+      )
+    )
+    .settings(unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "openapi")
+    .settings(
+      libraryDependencies ++= Seq(
+        library.scalaPbRuntime,
+        library.akkaHttp,
+        library.akkaHttp2Support,
+        library.akkaHttpCirce,
+        library.akkaHttpSprayJson,
+        library.circeGeneric,
+        library.circeRefined,
+        library.catsCore
+      )
+    ).dependsOn(`core`)
+
+
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
     .enablePlugins(AkkaGrpcPlugin)
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
-    .settings(
-      akkaGrpcCodeGeneratorSettings += "server_power_apis",
-      guardrailTasks.in(Compile) := List(
-          ScalaServer(
-            file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
-            pkg = "com.jc.user.api.openapi",
-            tracing = false,
-            customExtraction = true
-          )
-        )
-    )
-    .settings(unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
           library.scalaPbRuntime,
@@ -120,7 +138,8 @@ lazy val `user-svc` =
           library.scalaTest       % Test
         )
     )
-    .dependsOn(`core`)
+    .aggregate(`user-api`)
+    .dependsOn(`user-api`)
 
 // *****************************************************************************
 // Library dependencies
@@ -134,20 +153,20 @@ lazy val library =
       val akkaHttp                 = "10.2.2"
       val akkaHttpJson             = "1.35.2"
       val akkaPersistenceCassandra = "1.0.4"
-      val akkaStreamKafka          = "2.0.5"
+      val akkaStreamKafka          = "2.0.6"
       val akkaProjection           = "1.0.0"
       val akkaManagement           = "1.0.9"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val scalaTest                = "3.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.9.2"
+      val elastic4s                = "7.10.0"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.0.1"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.19"
-      val tapir                    = "0.17.0"
+      val tapir                    = "0.17.1"
       val cats                     = "2.3.1"
 
       val kamonPrometheus = "2.1.9"
@@ -224,6 +243,7 @@ lazy val settings =
 lazy val commonSettings =
   Seq(
     organization := "c",
+    scalafmtOnCompile := true,
     licenses += ("Apache 2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     mappings.in(Compile, packageBin) += baseDirectory.in(ThisBuild).value / "LICENSE" -> "LICENSE",
     scalacOptions ++= Seq(

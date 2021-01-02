@@ -36,7 +36,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
 
   def entityIdToString(id: ID): String
 
-  def eventSourcedEntity(
+  final def eventSourcedEntity(
       entityContext: EntityContext[Command],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, E, OuterState] = {
@@ -44,7 +44,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
     val persistenceId = PersistenceId(entityContext.entityTypeKey.name, entityContext.entityId)
     configureEntityBehavior(
       id,
-      createEventSourcedEntity(id, persistenceId, actorContext),
+      createEventSourcedEntity(persistenceId, actorContext),
       actorContext
     )
   }
@@ -55,8 +55,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, E, OuterState]
 
-  private def createEventSourcedEntity(
-      id: ID,
+  final private def createEventSourcedEntity(
       persistenceId: PersistenceId,
       actorContext: ActorContext[Command]
   ) =
@@ -124,36 +123,37 @@ object BasicPersistentEntity {
     }
   }
 
-  def validated[C](
-      validator: () => Future[ValidatedNec[String, Done]],
-      toValidatedCommand: ValidatedNec[String, Done] => C
+  def errorMessageToValidated(error: Throwable): ValidatedNec[String, Done] =
+    error.getMessage.invalidNec
+
+  def validated[C, E](
+      validator: () => Future[ValidatedNec[E, Done]],
+      validatedToCommand: ValidatedNec[E, Done] => C,
+      errorToValidated: Throwable => ValidatedNec[E, Done]
   )(
       actorContext: ActorContext[C]
   ): Unit =
     actorContext.pipeToSelf(validator()) {
       case Success(v) =>
-        toValidatedCommand(v)
-      case Failure(exception) =>
-        toValidatedCommand(exception.getMessage.invalidNec)
+        validatedToCommand(v)
+      case Failure(error) =>
+        validatedToCommand(errorToValidated(error))
     }
 
-  def validated[C](
-      validators: List[() => Future[ValidatedNec[String, Done]]],
-      toValidatedCommand: ValidatedNec[String, Done] => C
+  def validated[C, E](
+      validators: Seq[() => Future[ValidatedNec[E, Done]]],
+      validatedToCommand: ValidatedNec[E, Done] => C,
+      errorToValidated: Throwable => ValidatedNec[E, Done]
   )(
       actorContext: ActorContext[C]
   ): Unit = {
-
     implicit val ec = actorContext.executionContext
 
-    implicit def doneMonoid: Monoid[Done] = new Monoid[Done] {
-      override def empty: Done                     = Done
-      override def combine(x: Done, y: Done): Done = Done
-    }
+    implicit val doneMonoid = Monoid.instance[Done](Done, (_, _) => Done)
 
     val validator = () => Future.traverse(validators)(_()).map(_.combineAll)
 
-    validated(validator, toValidatedCommand)(actorContext)
+    validated(validator, validatedToCommand, errorToValidated)(actorContext)
   }
 
 }

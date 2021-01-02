@@ -8,13 +8,13 @@ import com.jc.cqrs.{
   CommandProcessResult,
   CommandProcessor,
   EntityCommand,
-  EntityEvent,
   EventApplier,
   InitialCommandProcessor,
   InitialEventApplier,
   PersistentEntity,
   ShardedEntityEventTagger
 }
+import com.jc.user.domain
 import com.jc.user.domain.proto.{
   Department,
   DepartmentCreatedPayload,
@@ -23,59 +23,48 @@ import com.jc.user.domain.proto.{
   DepartmentRemovedPayload,
   DepartmentUpdatedPayload
 }
-import io.circe.{ Decoder, Encoder }
-import shapeless.tag
-import shapeless.tag.@@
+import com.jc.user.domain.DepartmentPersistentEntity._
 
 import java.time.Instant
 
-object DepartmentEntity {
+object DepartmentPersistentEntity {
 
-  implicit val departmentIdDecoder: Decoder[DepartmentId] = Decoder[String].map(_.asDepartmentId)
-  implicit val departmentIdEncoder: Encoder[DepartmentId] = Encoder.encodeString.contramap(identity)
+  def apply(): DepartmentPersistentEntity = new DepartmentPersistentEntity
 
-  implicit class DepartmentIdTaggerOps(v: String) {
-    val asDepartmentId: DepartmentId = tag[DepartmentIdTag][String](v)
-
-    def as[U]: String @@ U = tag[U][String](v)
-  }
-
-  trait DepartmentIdTag
-
-  type DepartmentId = String @@ DepartmentIdTag
+  final val entityName = "department"
 
   sealed trait DepartmentCommand[R] extends EntityCommand[DepartmentEntity.DepartmentId, Department, R]
 
   final case class CreateDepartmentCommand(
-      entityId: DepartmentId,
+      entityId: DepartmentEntity.DepartmentId,
       name: String,
       description: String
   ) extends DepartmentCommand[CreateDepartmentReply]
 
   final case class RemoveDepartmentCommand(
-      entityId: DepartmentId
+      entityId: DepartmentEntity.DepartmentId
   ) extends DepartmentCommand[RemoveDepartmentReply]
 
   sealed trait CreateOrUpdateDepartmentReply {
-    def entityId: DepartmentId
+    def entityId: DepartmentEntity.DepartmentId
   }
 
-  final case class GetDepartmentCommand(entityId: DepartmentId) extends DepartmentCommand[GetDepartmentReply]
+  final case class GetDepartmentCommand(entityId: DepartmentEntity.DepartmentId) extends DepartmentCommand[GetDepartmentReply]
 
-  final case class UpdateDepartmentCommand(entityId: DepartmentId, name: String, description: String)
+  final case class UpdateDepartmentCommand(entityId: DepartmentEntity.DepartmentId, name: String, description: String)
       extends DepartmentCommand[UpdateDepartmentReply]
 
   sealed trait CreateDepartmentReply extends CreateOrUpdateDepartmentReply
 
-  case class DepartmentCreatedReply(entityId: DepartmentId) extends CreateDepartmentReply
+  case class DepartmentCreatedReply(entityId: DepartmentEntity.DepartmentId) extends CreateDepartmentReply
 
-  case class DepartmentCreatedFailedReply(entityId: DepartmentId, error: String) extends CreateDepartmentReply
+  case class DepartmentCreatedFailedReply(entityId: DepartmentEntity.DepartmentId, error: String) extends CreateDepartmentReply
 
-  case class DepartmentAlreadyExistsReply(entityId: DepartmentId) extends CreateDepartmentReply
+  case class DepartmentAlreadyExistsReply(entityId: DepartmentEntity.DepartmentId) extends CreateDepartmentReply
 
   sealed trait RemoveDepartmentReply extends CreateOrUpdateDepartmentReply
 
-  case class DepartmentRemovedReply(entityId: DepartmentId) extends RemoveDepartmentReply
+  case class DepartmentRemovedReply(entityId: DepartmentEntity.DepartmentId) extends RemoveDepartmentReply
 
   sealed trait GetDepartmentReply
 
@@ -83,16 +72,14 @@ object DepartmentEntity {
 
   sealed trait UpdateDepartmentReply extends CreateOrUpdateDepartmentReply
 
-  case class DepartmentUpdatedReply(entityId: DepartmentId) extends UpdateDepartmentReply
+  case class DepartmentUpdatedReply(entityId: DepartmentEntity.DepartmentId) extends UpdateDepartmentReply
 
-  case class DepartmentNotExistsReply(entityId: DepartmentId)
+  case class DepartmentNotExistsReply(entityId: DepartmentEntity.DepartmentId)
       extends GetDepartmentReply
       with RemoveDepartmentReply
       with UpdateDepartmentReply
 
-  trait DepartmentEvent extends EntityEvent[DepartmentId]
-
-  implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand, DepartmentEvent] = {
+  implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand, DepartmentEntity.DepartmentEvent] = {
     case CreateDepartmentCommand(entityId, name, description) =>
       val event =
         (DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Created(DepartmentCreatedPayload(name, description))))
@@ -102,7 +89,7 @@ object DepartmentEntity {
       CommandProcessResult.withReply(DepartmentNotExistsReply(otherCommand.entityId))
   }
 
-  implicit val commandProcessor: CommandProcessor[Department, DepartmentCommand, DepartmentEvent] =
+  implicit val commandProcessor: CommandProcessor[Department, DepartmentCommand, DepartmentEntity.DepartmentEvent] =
     (state, command) =>
       command match {
         case CreateDepartmentCommand(entityId, _, _) =>
@@ -123,7 +110,7 @@ object DepartmentEntity {
           CommandProcessResult.withReply(DepartmentReply(state))
       }
 
-  implicit val initialEventApplier: InitialEventApplier[Department, DepartmentEvent] = {
+  implicit val initialEventApplier: InitialEventApplier[Department, DepartmentEntity.DepartmentEvent] = {
     case DepartmentPayloadEvent(entityId, _, payload: DepartmentPayloadEvent.Payload.Created, _) =>
       Some(Department(entityId, payload.value.name, payload.value.description))
     case _ =>
@@ -131,7 +118,7 @@ object DepartmentEntity {
       None
   }
 //
-  implicit val eventApplier: EventApplier[Department, DepartmentEvent] = (department, event) =>
+  implicit val eventApplier: EventApplier[Department, DepartmentEntity.DepartmentEvent] = (department, event) =>
     event match {
       case DepartmentPayloadEvent(_, _, payload: DepartmentPayloadEvent.Payload.Updated, _) =>
         val newDepartment = department.withName(payload.value.name).withDescription(payload.value.description)
@@ -142,7 +129,7 @@ object DepartmentEntity {
         Some(department)
     }
 
-  final val departmentEventTagger = ShardedEntityEventTagger.sharded[DepartmentEvent](3)
+  final val departmentEventTagger = ShardedEntityEventTagger.sharded[DepartmentEntity.DepartmentEvent](3)
 
 }
 
@@ -150,7 +137,7 @@ sealed class DepartmentPersistentEntity()
     extends PersistentEntity[
       DepartmentEntity.DepartmentId,
       Department,
-      DepartmentEntity.DepartmentCommand,
+      domain.DepartmentPersistentEntity.DepartmentCommand,
       DepartmentEntity.DepartmentEvent
     ](DepartmentPersistentEntity.entityName) {
 
@@ -191,7 +178,7 @@ sealed class DepartmentPersistentEntity()
         case (state, RecoveryFailed(error)) =>
           actorContext.log.error(s"Failed recovery of Department entity $id in state $state: $error")
       }
-      .withTagger(DepartmentEntity.departmentEventTagger.tags)
+      .withTagger(DepartmentPersistentEntity.departmentEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
       .snapshotAdapter(snapshotAdapter)
       .onPersistFailure(
@@ -203,10 +190,4 @@ sealed class DepartmentPersistentEntity()
           )
           .withMaxRestarts(5)
       )
-}
-
-object DepartmentPersistentEntity {
-  def apply(): DepartmentPersistentEntity = new DepartmentPersistentEntity
-
-  val entityName = "department"
 }

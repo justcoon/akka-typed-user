@@ -1,11 +1,10 @@
 package com.jc.user.domain
 
-import com.jc.user.domain.UserEntity.UserId
-import com.jc.user.domain.UserEntity._
-import com.jc.user.domain.DepartmentEntity.DepartmentId
-import com.jc.user.domain.DepartmentEntity._
-import scalapb.{ TypeMapper, UnknownFieldSet }
 import com.google.protobuf.timestamp.Timestamp
+import com.jc.user.domain.DepartmentEntity.{ DepartmentId, _ }
+import com.jc.user.domain.UserEntity.{ UserId, _ }
+import scalapb.TypeMapper
+
 import java.time.Instant
 
 package object proto {

@@ -11,7 +11,7 @@ import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.openapi.definitions.{ Address, Department, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserService }
+import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserPersistentEntity, UserService }
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
@@ -112,13 +112,13 @@ object UserOpenApi {
 //      ): Future[UserResource.CreateDepartmentResponse] = {
 //        import DepartmentEntity._
 //        val id  = body.id.asDepartmentId
-//        val cmd = body.into[DepartmentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
+//        val cmd = body.into[DepartmentPersistentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
 //        departmentService.sendCommand(cmd).map {
-//          case reply: DepartmentEntity.DepartmentCreatedReply =>
+//          case reply: DepartmentPersistentEntity.DepartmentCreatedReply =>
 //            UserResource.CreateDepartmentResponseOK(reply.entityId)
-//          case reply: DepartmentEntity.DepartmentAlreadyExistsReply =>
+//          case reply: DepartmentPersistentEntity.DepartmentAlreadyExistsReply =>
 //            UserResource.CreateDepartmentResponseBadRequest("Department already exits")
-//          case reply: DepartmentEntity.DepartmentCreatedFailedReply =>
+//          case reply: DepartmentPersistentEntity.DepartmentCreatedFailedReply =>
 //            UserResource.CreateDepartmentResponseBadRequest(s"Department create error (${reply.error})")
 //        }
 //      }
@@ -154,7 +154,7 @@ object UserOpenApi {
         import com.jc.user.domain.DepartmentEntity._
         val id = body.id.getOrElse(body.username).asUserId
         val cmd = body
-          .into[UserEntity.CreateUserCommand]
+          .into[UserPersistentEntity.CreateUserCommand]
           .withFieldConst(_.entityId, id)
           .withFieldComputed(
             _.department,
@@ -162,10 +162,10 @@ object UserOpenApi {
           )
           .transform
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
-          case reply: UserEntity.UserCreatedFailedReply =>
+          case reply: UserPersistentEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
+          case reply: UserPersistentEntity.UserCreatedFailedReply =>
             UserResource.CreateUserResponseBadRequest(s"User register error (${reply.error})")
-          case _: UserEntity.UserAlreadyExistsReply => UserResource.CreateUserResponseBadRequest("User already exits")
+          case _: UserPersistentEntity.UserAlreadyExistsReply => UserResource.CreateUserResponseBadRequest("User already exits")
         }
       }
 
@@ -190,12 +190,12 @@ object UserOpenApi {
       )(id: String, body: Address)(extracted: Seq[HttpHeader]): Future[UserResource.UpdateUserAddressResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
+          val cmd = UserPersistentEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
-            case reply: UserEntity.UserAddressChangedFailedReply =>
+            case reply: UserPersistentEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
+            case reply: UserPersistentEntity.UserAddressChangedFailedReply =>
               UserResource.UpdateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-            case _: UserEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
+            case _: UserPersistentEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
           }
         }
 
@@ -204,12 +204,12 @@ object UserOpenApi {
       )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserAddressResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserAddressCommand(id.asUserId, None)
+          val cmd = UserPersistentEntity.ChangeUserAddressCommand(id.asUserId, None)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
-            case reply: UserEntity.UserAddressChangedFailedReply =>
+            case reply: UserPersistentEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
+            case reply: UserPersistentEntity.UserAddressChangedFailedReply =>
               UserResource.DeleteUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-            case _: UserEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
+            case _: UserPersistentEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
           }
         }
 
@@ -218,10 +218,10 @@ object UserOpenApi {
       )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserEntity.RemoveUserCommand(id.asUserId)
+          val cmd = UserPersistentEntity.RemoveUserCommand(id.asUserId)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
-            case _: UserEntity.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")
+            case reply: UserPersistentEntity.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
+            case _: UserPersistentEntity.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")
           }
         }
 

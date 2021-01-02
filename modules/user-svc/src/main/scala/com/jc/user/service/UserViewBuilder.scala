@@ -33,7 +33,7 @@ object UserViewBuilder {
     CassandraJournalEventProcessor.create(
       UserViewBuilderName,
       UserViewOffsetNamePrefix,
-      UserEntity.userEventTagger,
+      UserPersistentEntity.userEventTagger,
       handleEventFlow,
       offsetStore,
       keepAlive
@@ -53,7 +53,7 @@ object UserViewBuilder {
     CassandraProjectionJournalEventProcessor.create(
       UserViewBuilderName,
       UserViewOffsetNamePrefix,
-      UserEntity.userEventTagger,
+      UserPersistentEntity.userEventTagger,
       handleEventFlow,
       keepAlive
     )

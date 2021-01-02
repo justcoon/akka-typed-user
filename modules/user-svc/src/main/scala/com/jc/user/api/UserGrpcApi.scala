@@ -11,7 +11,15 @@ import akka.{ Done, NotUsed }
 import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserService }
+import com.jc.user.domain.{
+  proto,
+  DepartmentEntity,
+  DepartmentPersistentEntity,
+  DepartmentService,
+  UserEntity,
+  UserPersistentEntity,
+  UserService
+}
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 
@@ -100,13 +108,13 @@ object UserGrpcApi {
       override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] = {
         import DepartmentEntity._
         val id  = in.id.asDepartmentId
-        val cmd = in.into[DepartmentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
+        val cmd = in.into[DepartmentPersistentEntity.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
         departmentService.sendCommand(cmd).map {
-          case reply: DepartmentEntity.DepartmentCreatedReply =>
+          case reply: DepartmentPersistentEntity.DepartmentCreatedReply =>
             CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department created"))
-          case reply: DepartmentEntity.DepartmentAlreadyExistsReply =>
+          case reply: DepartmentPersistentEntity.DepartmentAlreadyExistsReply =>
             CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure("Department already exits"))
-          case reply: DepartmentEntity.DepartmentCreatedFailedReply =>
+          case reply: DepartmentPersistentEntity.DepartmentCreatedFailedReply =>
             CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure(s"Department create error (${reply.error})"))
         }
       }
@@ -114,11 +122,11 @@ object UserGrpcApi {
       override def updateDepartment(in: UpdateDepartmentReq, metadata: Metadata): Future[UpdateDepartmentRes] = {
         import DepartmentEntity._
         val id  = in.id.asDepartmentId
-        val cmd = in.into[DepartmentEntity.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
+        val cmd = in.into[DepartmentPersistentEntity.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
         departmentService.sendCommand(cmd).map {
-          case reply: DepartmentEntity.DepartmentUpdatedReply =>
+          case reply: DepartmentPersistentEntity.DepartmentUpdatedReply =>
             UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Success("Department updated"))
-          case reply: DepartmentEntity.DepartmentNotExistsReply =>
+          case reply: DepartmentPersistentEntity.DepartmentNotExistsReply =>
             UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Failure("Department not exits"))
         }
       }
@@ -134,13 +142,13 @@ object UserGrpcApi {
       override def registerUser(in: RegisterUserReq, metadata: Metadata): Future[RegisterUserRes] = {
         import UserEntity._
         val id  = in.username.asUserId
-        val cmd = in.into[UserEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
+        val cmd = in.into[UserPersistentEntity.CreateUserCommand].withFieldConst(_.entityId, id).transform
         userService.sendCommand(cmd).map {
-          case reply: UserEntity.UserCreatedReply =>
+          case reply: UserPersistentEntity.UserCreatedReply =>
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
-          case reply: UserEntity.UserAlreadyExistsReply =>
+          case reply: UserPersistentEntity.UserAlreadyExistsReply =>
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure("User already exits"))
-          case reply: UserEntity.UserCreatedFailedReply =>
+          case reply: UserPersistentEntity.UserCreatedFailedReply =>
             RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure(s"User register error (${reply.error})"))
         }
       }
@@ -148,11 +156,11 @@ object UserGrpcApi {
       override def removeUser(in: RemoveUserReq, metadata: Metadata): Future[RemoveUserRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserEntity.RemoveUserCommand(in.id.asUserId)
+          val cmd = UserPersistentEntity.RemoveUserCommand(in.id.asUserId)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserRemovedReply =>
+            case reply: UserPersistentEntity.UserRemovedReply =>
               RemoveUserRes(reply.entityId, RemoveUserRes.Result.Success("User removed"))
-            case reply: UserEntity.UserNotExistsReply =>
+            case reply: UserPersistentEntity.UserNotExistsReply =>
               RemoveUserRes(reply.entityId, RemoveUserRes.Result.Failure("User not exits"))
           }
         }
@@ -160,11 +168,11 @@ object UserGrpcApi {
       override def updateUserEmail(in: UpdateUserEmailReq, metadata: Metadata): Future[UpdateUserEmailRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
+          val cmd = UserPersistentEntity.ChangeUserEmailCommand(in.id.asUserId, in.email)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserEmailChangedReply =>
+            case reply: UserPersistentEntity.UserEmailChangedReply =>
               UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Success("User email updated"))
-            case reply: UserEntity.UserNotExistsReply =>
+            case reply: UserPersistentEntity.UserNotExistsReply =>
               UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Failure("User not exits"))
           }
         }
@@ -172,11 +180,11 @@ object UserGrpcApi {
       override def updateUserPassword(in: UpdateUserPasswordReq, metadata: Metadata): Future[UpdateUserPasswordRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
+          val cmd = UserPersistentEntity.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserPasswordChangedReply =>
+            case reply: UserPersistentEntity.UserPasswordChangedReply =>
               UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Success("User password updated"))
-            case reply: UserEntity.UserNotExistsReply =>
+            case reply: UserPersistentEntity.UserNotExistsReply =>
               UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Failure("User not exists"))
           }
         }
@@ -184,13 +192,13 @@ object UserGrpcApi {
       override def updateUserAddress(in: UpdateUserAddressReq, metadata: Metadata): Future[UpdateUserAddressRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
+          val cmd = UserPersistentEntity.ChangeUserAddressCommand(in.id.asUserId, in.address)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserAddressChangedReply =>
+            case reply: UserPersistentEntity.UserAddressChangedReply =>
               UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Success("User address updated"))
-            case reply: UserEntity.UserNotExistsReply =>
+            case reply: UserPersistentEntity.UserNotExistsReply =>
               UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure("User not exists"))
-            case reply: UserEntity.UserAddressChangedFailedReply =>
+            case reply: UserPersistentEntity.UserAddressChangedFailedReply =>
               UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure(s"User address update error (${reply.error})"))
           }
         }
@@ -198,13 +206,13 @@ object UserGrpcApi {
       override def updateUserDepartment(in: UpdateUserDepartmentReq, metadata: Metadata): Future[UpdateUserDepartmentRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserEntity.ChangeUserDepartmentCommand(in.id.asUserId, in.department)
+          val cmd = UserPersistentEntity.ChangeUserDepartmentCommand(in.id.asUserId, in.department)
           userService.sendCommand(cmd).map {
-            case reply: UserEntity.UserDepartmentChangedReply =>
+            case reply: UserPersistentEntity.UserDepartmentChangedReply =>
               UpdateUserDepartmentRes(reply.entityId, UpdateUserDepartmentRes.Result.Success("User department updated"))
-            case reply: UserEntity.UserNotExistsReply =>
+            case reply: UserPersistentEntity.UserNotExistsReply =>
               UpdateUserDepartmentRes(reply.entityId, UpdateUserDepartmentRes.Result.Failure("User not exists"))
-            case reply: UserEntity.UserDepartmentChangedFailedReply =>
+            case reply: UserPersistentEntity.UserDepartmentChangedFailedReply =>
               UpdateUserDepartmentRes(
                 reply.entityId,
                 UpdateUserDepartmentRes.Result.Failure(s"User department update error (${reply.error})")

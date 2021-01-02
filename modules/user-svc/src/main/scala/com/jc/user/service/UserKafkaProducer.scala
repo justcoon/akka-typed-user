@@ -11,7 +11,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
 import com.jc.cqrs.offsetstore.OffsetStore
 import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
-import com.jc.user.domain.UserEntity
+import com.jc.user.domain.{ UserEntity, UserPersistentEntity }
 import com.jc.user.domain.proto.UserPayloadEvent
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
@@ -49,7 +49,7 @@ object UserKafkaProducer {
     CassandraJournalEventProcessor.create(
       UserKafkaProducerName,
       UserKafkaOffsetNamePrefix,
-      UserEntity.userEventTagger,
+      UserPersistentEntity.userEventTagger,
       handleEvent,
       offsetStore,
       keepAlive
@@ -72,7 +72,7 @@ object UserKafkaProducer {
     CassandraProjectionJournalEventProcessor.create(
       UserKafkaProducerName,
       UserKafkaOffsetNamePrefix,
-      UserEntity.userEventTagger,
+      UserPersistentEntity.userEventTagger,
       handleEvent,
       keepAlive
     )

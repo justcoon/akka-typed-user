@@ -33,7 +33,7 @@ object DepartmentViewBuilder {
     CassandraJournalEventProcessor.create(
       DepartmentViewBuilderName,
       DepartmentViewOffsetNamePrefix,
-      DepartmentEntity.departmentEventTagger,
+      DepartmentPersistentEntity.departmentEventTagger,
       handleEventFlow,
       offsetStore,
       keepAlive
@@ -53,7 +53,7 @@ object DepartmentViewBuilder {
     CassandraProjectionJournalEventProcessor.create(
       DepartmentViewBuilderName,
       DepartmentViewOffsetNamePrefix,
-      DepartmentEntity.departmentEventTagger,
+      DepartmentPersistentEntity.departmentEventTagger,
       handleEventFlow,
       keepAlive
     )
