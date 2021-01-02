@@ -12,13 +12,20 @@ trait AddressValidationService[F[_]] {
 }
 
 final case object SimpleAddressValidationService extends AddressValidationService[Future] {
+  import cats.implicits._
   private val isoCountries = Locale.getISOCountries.toSet
+  private val zipRegex     = "^\\d{5}(?:[-\\s]\\d{4})?$".r
 
-  override def validate(address: Address): Future[ValidatedNec[String, Address]] = {
-    import cats.implicits._
+  def validateCountry(country: String): ValidatedNec[String, String] =
+    if (isoCountries.contains(country)) country.validNec
+    else s"Country: ${country} is not valid ISO country".invalidNec
+
+  def validateZip(zip: String): ValidatedNec[String, String] =
+    if (zipRegex.matches(zip)) zip.validNec
+    else s"Zip: ${zip} is not valid".invalidNec
+
+  override def validate(address: Address): Future[ValidatedNec[String, Address]] =
     FastFuture.successful {
-      if (isoCountries.contains(address.country)) address.validNec
-      else s"Country: ${address.country} is not valid ISO country".invalidNec
+      validateZip(address.zip).combine(validateCountry(address.country)).map(_ => address)
     }
-  }
 }
