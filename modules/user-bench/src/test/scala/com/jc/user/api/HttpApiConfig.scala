@@ -1,11 +1,11 @@
-package com.jc.user.config
+package com.jc.user.api
 
+import eu.timepit.refined.api.Refined
+import eu.timepit.refined.string.IPv4
 import eu.timepit.refined.types.net.NonSystemPortNumber
 import pureconfig.generic.semiauto.deriveReader
 
-import scala.concurrent.duration.FiniteDuration
-
-final case class HttpApiConfig(address: IpAddress, port: NonSystemPortNumber, repositoryTimeout: FiniteDuration)
+final case class HttpApiConfig(address: String Refined IPv4, port: NonSystemPortNumber)
 
 object HttpApiConfig {
   import eu.timepit.refined.pureconfig._
