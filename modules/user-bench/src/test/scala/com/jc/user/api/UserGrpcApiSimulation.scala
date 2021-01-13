@@ -15,16 +15,12 @@ import scala.util.Random
 
 final class UserGrpcApiSimulation extends Simulation {
 
-  val config        = ConfigFactory.load
-  val grpcApiConfig = ConfigSource.fromConfig(config.getConfig("grpc-api")).loadOrThrow[HttpApiConfig]
+  import Feeders._
 
-  val grpcConf = grpc(managedChannelBuilder(name = grpcApiConfig.address, port = grpcApiConfig.port).usePlaintext())
+  val config    = ConfigFactory.load
+  val apiConfig = ConfigSource.fromConfig(config.getConfig("grpc-api")).loadOrThrow[HttpApiConfig]
 
-  val departmentIdFeeder = Array("d1", "d2", "d3", "d4").map(v => Map("id" -> v)).random
-
-  val countryFeeder = Array("CA", "UK", "UA", "US", "MX").map(v => Map("id" -> v)).random
-
-  val suggestFeeder = Array("bla", "blue", "red", "bl").map(v => Map("id" -> v)).random
+  val grpcConf = grpc(managedChannelBuilder(name = apiConfig.address, port = apiConfig.port).usePlaintext())
 
   val regUserFeeder = Iterator.continually {
     val deps   = List("d1", "d2", "d3", "d4")
@@ -75,17 +71,19 @@ final class UserGrpcApiSimulation extends Simulation {
     .payload(suggestUserPayload)
 
   val s = scenario("UserGrpcApi")
-    .feed(regUserFeeder)
-    .exec(registerUserSuccessfulCall)
-    .feed(departmentIdFeeder)
-    .exec(getDepartmentSuccessfulCall)
-    .exec(searchUsersSuccessfulCall)
-    .feed(countryFeeder)
-    .exec(searchUsersSuccessfulCall)
-    .feed(suggestFeeder)
-    .exec(suggestUsersSuccessfulCall)
+    .repeat(100) {
+      //    .feed(regUserFeeder)
+      //    .exec(registerUserSuccessfulCall)
+      feed(departmentIdFeeder)
+        .exec(getDepartmentSuccessfulCall)
+        .exec(searchUsersSuccessfulCall)
+        .feed(countryFeeder)
+        .exec(searchUsersSuccessfulCall)
+        .feed(suggestFeeder)
+        .exec(suggestUsersSuccessfulCall)
+    }
 
   setUp(
-    s.inject(atOnceUsers(54))
+    s.inject(atOnceUsers(200))
   ).protocols(grpcConf)
 }

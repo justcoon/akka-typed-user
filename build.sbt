@@ -185,7 +185,7 @@ lazy val library =
       val akkaKryo                 = "2.0.1"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.20"
-      val tapir                    = "0.17.2"
+      val tapir                    = "0.17.4"
       val cats                     = "2.3.1"
 
       val kamonPrometheus = "2.1.9"
