@@ -2,10 +2,13 @@ package com.jc.user.api
 
 import com.typesafe.config.ConfigFactory
 import io.gatling.core.Predef.{ stringToExpression => _, _ }
+import io.gatling.core.session.Expression
 import io.gatling.http.Predef.http
 import io.gatling.http.protocol.HttpProtocolBuilder
 import io.gatling.http.request.builder.HttpRequestBuilder
 import pureconfig.ConfigSource
+import com.jc.user.api.openapi.definitions.{ DepartmentRef, User }
+import io.circe.syntax._
 
 import scala.util.Random
 
@@ -28,8 +31,24 @@ final class UserOpenApiSimulation extends Simulation {
     val name  = Random.alphanumeric.take(5).mkString
     val pass  = Random.alphanumeric.take(5).mkString
     val depId = deps(Random.nextInt(deps.length))
+
     Map("username" -> name, "email" -> (name + "@test.com"), "pass" -> pass, "departmentId" -> depId)
   }
+
+  val userJsonExpression: Expression[String] = s => {
+    val username = s.attributes.getOrElse("username", "").toString
+    val email    = s.attributes.getOrElse("email", "").toString
+    val pass     = s.attributes.getOrElse("pass", "").toString
+    val depId    = s.attributes.getOrElse("departmentId", "").toString
+
+    val user = User(None, username, email, pass, address = None, department = Some(DepartmentRef(depId)))
+    user.asJson.noSpaces
+  }
+
+  val registerUserSuccessfulCall: HttpRequestBuilder = http("registerUser")
+    .post("/v1/user")
+    .body(StringBody(userJsonExpression))
+    .header("Content-Type", "application/json")
 
   val getDepartmentSuccessfulCall: HttpRequestBuilder = http("getDepartment")
     .get { s =>
@@ -37,6 +56,7 @@ final class UserOpenApiSimulation extends Simulation {
       s"/v1/department/${id}"
     }
     .header(jwtAuthHeader, jwtToken)
+    .header("Content-Type", "application/json")
 
   val searchUsersSuccessfulCall: HttpRequestBuilder = http("searchUsers")
     .get { s =>
@@ -44,6 +64,7 @@ final class UserOpenApiSimulation extends Simulation {
       s"/v1/user/search?query=${id}&page=0&pageSize=10"
     }
     .header(jwtAuthHeader, jwtToken)
+    .header("Content-Type", "application/json")
 
   val suggestUsersSuccessfulCall: HttpRequestBuilder = http("suggestUsers")
     .get { s =>
@@ -51,10 +72,13 @@ final class UserOpenApiSimulation extends Simulation {
       s"/v1/user/suggest?query=${id}"
     }
     .header(jwtAuthHeader, jwtToken)
+    .header("Content-Type", "application/json")
 
   val s = scenario("UserSearchOpenApi")
-    .repeat(100) {
-      feed(departmentIdFeeder)
+    .repeat(1) {
+      feed(regUserFeeder)
+        .exec(registerUserSuccessfulCall)
+        .feed(departmentIdFeeder)
         .exec(getDepartmentSuccessfulCall)
         .exec(searchUsersSuccessfulCall)
         .feed(countryFeeder)

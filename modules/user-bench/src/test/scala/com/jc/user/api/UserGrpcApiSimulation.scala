@@ -10,7 +10,6 @@ import io.gatling.core.Predef.{ stringToExpression => _, _ }
 import io.gatling.core.session.Expression
 import pureconfig.ConfigSource
 import eu.timepit.refined.auto._
-
 import scala.util.Random
 
 final class UserGrpcApiSimulation extends Simulation {
@@ -20,7 +19,18 @@ final class UserGrpcApiSimulation extends Simulation {
   val config    = ConfigFactory.load
   val apiConfig = ConfigSource.fromConfig(config.getConfig("grpc-api")).loadOrThrow[HttpApiConfig]
 
-  val grpcConf = grpc(managedChannelBuilder(name = apiConfig.address, port = apiConfig.port).usePlaintext())
+  //  val mcb1 = ManagedChannelBuilder
+  //    .forTarget("service")
+  //    .nameResolverFactory(
+  //      new GrpcMultiAddressNameResolverFactory(
+  //        List(new InetSocketAddress("localhost", 8010), new InetSocketAddress("localhost", 8011), new InetSocketAddress("localhost", 8012))
+  //      )
+  //    )
+  //    .defaultLoadBalancingPolicy("round_robin")
+  //    .usePlaintext()
+
+  val mcb      = managedChannelBuilder(name = apiConfig.address, port = apiConfig.port).usePlaintext()
+  val grpcConf = grpc(mcb)
 
   val regUserFeeder = Iterator.continually {
     val deps   = List("d1", "d2", "d3", "d4")
@@ -71,10 +81,10 @@ final class UserGrpcApiSimulation extends Simulation {
     .payload(suggestUserPayload)
 
   val s = scenario("UserGrpcApi")
-    .repeat(100) {
-      //    .feed(regUserFeeder)
-      //    .exec(registerUserSuccessfulCall)
-      feed(departmentIdFeeder)
+    .repeat(1) {
+      feed(regUserFeeder)
+        .exec(registerUserSuccessfulCall)
+        .feed(departmentIdFeeder)
         .exec(getDepartmentSuccessfulCall)
         .exec(searchUsersSuccessfulCall)
         .feed(countryFeeder)
