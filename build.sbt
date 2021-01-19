@@ -65,6 +65,7 @@ lazy val `user-api` =
     .settings(settings)
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      akkaGrpcCodeGeneratorSettings += "grpc",
       guardrailTasks in Compile := List(
           ScalaServer(
             file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
@@ -84,7 +85,8 @@ lazy val `user-api` =
           library.akkaHttpSprayJson,
           library.circeGeneric,
           library.circeRefined,
-          library.catsCore
+          library.catsCore,
+          library.scalapbRuntimeGrpc
         )
     )
     .dependsOn(`core`)
@@ -143,14 +145,7 @@ lazy val `user-svc` =
 
 lazy val `user-bench` =
   (project in file("modules/user-bench"))
-    .enablePlugins(GatlingPlugin)
     .settings(settings)
-    .settings(
-      PB.protoSources in Test += (baseDirectory in `user-api`).value / "src" / "main" / "proto",
-      PB.targets in Test := Seq(
-          scalapb.gen(grpc = true) -> (sourceManaged in Test).value
-        )
-    )
     .settings(
       libraryDependencies ++= Seq(
           library.randomDataGenerator,
@@ -170,7 +165,7 @@ lazy val library =
 
     object Version {
       val akka                     = "2.6.11"
-      val akkaHttp                 = "10.2.2"
+      val akkaHttp                 = "10.2.3"
       val akkaHttpJson             = "1.35.3"
       val akkaPersistenceCassandra = "1.0.4"
       val akkaStreamKafka          = "2.0.6"
@@ -185,7 +180,7 @@ lazy val library =
       val akkaKryo                 = "2.0.1"
       val pauldijouJwt             = "4.3.0"
       val refined                  = "0.9.20"
-      val tapir                    = "0.17.4"
+      val tapir                    = "0.17.6"
       val cats                     = "2.3.1"
 
       val kamonPrometheus = "2.1.9"
@@ -252,7 +247,8 @@ lazy val library =
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
     val kamonKanelaAgent = "io.kamon" % "kanela-agent"          % Version.kamonKanela
 
-    val scalaPbRuntime = "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
+    val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
+    val scalaPbRuntime     = "com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf"
 
     val randomDataGenerator = "com.danielasfregola"   %% "random-data-generator"    % Version.randomDataGenerator
     val scalaTest           = "org.scalatest"         %% "scalatest"                % Version.scalaTest
