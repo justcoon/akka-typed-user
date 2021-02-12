@@ -94,7 +94,6 @@ lazy val `user-api` =
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
     .enablePlugins(JavaAppPackaging, DockerPlugin)
-    .enablePlugins(GatlingPlugin)
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
     .settings(
       libraryDependencies ++= Seq(
@@ -146,6 +145,7 @@ lazy val `user-svc` =
 lazy val `user-bench` =
   (project in file("modules/user-bench"))
     .settings(settings)
+    .enablePlugins(GatlingPlugin)
     .settings(
       libraryDependencies ++= Seq(
           library.randomDataGenerator,
@@ -168,7 +168,7 @@ lazy val library =
       val akkaHttp                 = "10.2.3"
       val akkaHttpJson             = "1.35.3"
       val akkaPersistenceCassandra = "1.0.4"
-      val akkaStreamKafka          = "2.0.6"
+      val akkaStreamKafka          = "2.0.7"
       val akkaProjection           = "1.1.0"
       val akkaManagement           = "1.0.9"
       val circe                    = "0.13.0"
@@ -177,20 +177,20 @@ lazy val library =
       val elastic4s                = "7.10.2"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.0.1"
+      val akkaKryo                 = "2.1.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.20"
-      val tapir                    = "0.17.8"
-      val cats                     = "2.3.1"
+      val tapir                    = "0.17.10"
+      val cats                     = "2.4.1"
 
-      val kamonPrometheus = "2.1.10"
-      val kamonAkka       = "2.1.10"
-      val kamonAkkaHttp   = "2.1.10"
+      val kamonPrometheus = "2.1.12"
+      val kamonAkka       = "2.1.12"
+      val kamonAkkaHttp   = "2.1.12"
       val kamonKanela     = "1.0.5"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.3"
-      val gatling             = "3.5.0"
+      val gatling             = "3.5.1"
       val gatlingGrpc         = "0.11.1"
     }
 

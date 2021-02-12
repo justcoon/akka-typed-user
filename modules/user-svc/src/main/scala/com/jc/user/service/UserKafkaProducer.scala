@@ -27,10 +27,8 @@ object UserKafkaProducer {
   val keepAlive: FiniteDuration = 3.seconds
 
   private def createKafkaProducerSettings()(implicit system: ActorSystem[_]): ProducerSettings[String, UserEntity.UserEvent] = {
-    import akka.actor.typed.scaladsl.adapter._
-
-    val producerConfig = system.settings.config.getConfig("akka.kafka.producer")
-    ProducerSettings(system.toClassic, new StringSerializer, userEventProtoKafkaSerializer)
+    val producerConfig = system.settings.config.getConfig(ProducerSettings.configPath)
+    ProducerSettings(system, new StringSerializer, userEventProtoKafkaSerializer)
       .withEnrichAsync(DiscoverySupport.producerBootstrapServers(producerConfig))
   }
 
@@ -64,8 +62,7 @@ object UserKafkaProducer {
 
     val handleEvent: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
       FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
-        .map(_.event)
-        .map(event => toProducerMessage(kafkaTopic, event))
+        .map(event => toProducerMessage(kafkaTopic, event.event))
         .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](settings))
         .map(_ => Done)
 

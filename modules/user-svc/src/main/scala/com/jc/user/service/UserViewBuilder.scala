@@ -46,8 +46,7 @@ object UserViewBuilder {
 
     val handleEventFlow: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
       FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext]
-        .map(_.event)
-        .mapAsync(1)(event => processEvent(event, userRepository))
+        .mapAsync(1)(event => processEvent(event.event, userRepository))
         .map(_ => Done)
 
     CassandraProjectionJournalEventProcessor.create(
