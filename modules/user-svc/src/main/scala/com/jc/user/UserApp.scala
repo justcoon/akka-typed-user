@@ -44,6 +44,8 @@ object UserApp {
 
       val appConfig = ConfigSource.fromConfig(sys.settings.config).loadOrThrow[AppConfig]
 
+      log.info(sys.settings.toString)
+
       log.info("kamon - init")
       Kamon.init()
 

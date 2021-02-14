@@ -1,6 +1,6 @@
 import com.lightbend.sbt.javaagent.Modules
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
-import com.typesafe.sbt.packager.docker.{ Cmd, ExecCmd }
+import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType, ExecCmd }
 import sbt.Keys.javaOptions
 
 scalaVersion in Scope.Global := "2.13.4"
@@ -93,7 +93,7 @@ lazy val `user-api` =
 
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
-    .enablePlugins(JavaAppPackaging, DockerPlugin)
+    .enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin)
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
     .settings(
       libraryDependencies ++= Seq(
@@ -174,7 +174,7 @@ lazy val library =
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.10.2"
+      val elastic4s                = "7.10.3"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.1.0"
@@ -186,7 +186,7 @@ lazy val library =
       val kamonPrometheus = "2.1.12"
       val kamonAkka       = "2.1.12"
       val kamonAkkaHttp   = "2.1.12"
-      val kamonKanela     = "1.0.5"
+      val kamonKanela     = "1.0.7"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.3"
@@ -308,36 +308,16 @@ lazy val dockerSettings =
     dockerUpdateLatest := true,
     dockerBaseImage := "openjdk:11-jre",
     dockerExposedPorts := Vector(2552, 8558, 8000, 8010, 9080),
-    dockerRepository := Some("justcoon"),
-    dockerEntrypoint ++= Seq(
-        """-Drest-api.port="$REST_API_PORT"""",
-        """-Dgrpc-api.port="$GRPC_API_PORT"""",
-        """-Delasticsearch.addresses.0="$ELASTICSEARCH_URL"""",
-        """-Dkafka.addresses.0="$KAFKA_URL"""",
-        """-Dcmn.notifier.topology.node-size="$AKKA_SEED_NUMBER"""",
-        """-Dakka.cluster.role.processor.min-nr-of-members="$AKKA_SEED_NUMBER"""",
-        """-Dakka.cluster.min-nr-of-members="$AKKA_SEED_NUMBER"""",
-        """-Dakka.remote.artery.canonical.hostname="$(eval "echo $AKKA_REMOTING_BIND_HOST")"""",
-        """-Dakka.remote.artery.canonical.port="$AKKA_REMOTING_BIND_PORT"""",
-        """-Dkamon.prometheus.embedded-server.port="$PROMETHEUS_METRICS_PORT"""",
-        """$(IFS=','; I=0; for NODE in $AKKA_SEED_NODES; do echo "-Dakka.cluster.seed-nodes.$I=akka://user@$NODE"; I=$(expr $I + 1); done)""",
-        """akka.remote.use-passive-connections=off"""
-        //      "-Dakka.io.dns.resolver=async-dns",
-        //      "-Dakka.io.dns.async-dns.resolve-srv=true",
-        //      "-Dakka.io.dns.async-dns.resolv-conf=on"
-      ),
-    dockerCommands :=
-      dockerCommands.value.flatMap {
-        case ExecCmd("ENTRYPOINT", args @ _*) => Seq(Cmd("ENTRYPOINT", args.mkString(" ")))
-        case c @ Cmd("FROM", _)               => Seq(c, ExecCmd("RUN", "/bin/sh", "-c", "apk add --no-cache bash && ln -sf /bin/bash /bin/sh"))
-        case v                                => Seq(v)
-      }
+//    dockerRepository := Some("justcoon"),
+    dockerEntrypoint := Seq("/opt/docker/bin/user-svc"),
+//    dockerChmodType in Docker := DockerChmodType.UserGroupWriteExecute,
+    dockerUpdateLatest := true,
+    daemonUser in Docker := "daemon",
+    daemonUserUid in Docker := None,
+    dockerChmodType := DockerChmodType.UserGroupWriteExecute,
+    dockerCommands ++= Seq(Cmd("USER", "root"))
   )
 
 // https://github.com/kamon-io/kamon-bundle/blob/master/build.sbt
 // http://kamon-io.github.io/kanela/
-lazy val javaAgentsSettings =
-  Seq(
-//    javaAgents += library.kamonKanelaAgent, // FIXME scala 2.13
-    javaOptions in Universal += "-Dorg.aspectj.tracing.factory=default"
-  )
+lazy val javaAgentsSettings = Seq(javaAgents += library.kamonKanelaAgent)

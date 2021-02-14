@@ -8,8 +8,7 @@ import com.jc.user.domain.proto._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-trait DepartmentService
-    extends EntityService[Future, DepartmentEntity.DepartmentId, Department, DepartmentPersistentEntity.DepartmentCommand]
+trait DepartmentService extends EntityService[Future, DepartmentEntity.DepartmentId, Department, DepartmentAggregate.DepartmentCommand]
 
 object DepartmentService {
 
@@ -23,12 +22,12 @@ object DepartmentService {
   ) extends BasicPersistentEntityService[
         DepartmentEntity.DepartmentId,
         Department,
-        DepartmentPersistentEntity.DepartmentCommand,
-        DepartmentPersistentEntity
+        DepartmentAggregate.DepartmentCommand,
+        DepartmentAggregate
       ]
       with DepartmentService {
     implicit val executionContext: ExecutionContext = actorSystem.executionContext
-    lazy val persistentEntity                       = DepartmentPersistentEntity()
+    lazy val persistentEntity                       = DepartmentAggregate()
   }
 
 }

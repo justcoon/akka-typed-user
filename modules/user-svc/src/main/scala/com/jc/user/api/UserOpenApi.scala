@@ -11,7 +11,7 @@ import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.openapi.definitions.{ Address, Department, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
-import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserEntity, UserPersistentEntity, UserService }
+import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
 import sttp.tapir.swagger.akkahttp.SwaggerAkka
@@ -154,7 +154,7 @@ object UserOpenApi {
         import com.jc.user.domain.DepartmentEntity._
         val id = body.id.getOrElse(body.username).asUserId
         val cmd = body
-          .into[UserPersistentEntity.CreateUserCommand]
+          .into[UserAggregate.CreateUserCommand]
           .withFieldConst(_.entityId, id)
           .withFieldComputed(
             _.department,
@@ -162,10 +162,10 @@ object UserOpenApi {
           )
           .transform
         userService.sendCommand(cmd).map {
-          case reply: UserPersistentEntity.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
-          case reply: UserPersistentEntity.UserCreatedFailedReply =>
+          case reply: UserAggregate.UserCreatedReply => UserResource.CreateUserResponseOK(reply.entityId)
+          case reply: UserAggregate.UserCreatedFailedReply =>
             UserResource.CreateUserResponseBadRequest(s"User register error (${reply.error})")
-          case _: UserPersistentEntity.UserAlreadyExistsReply => UserResource.CreateUserResponseBadRequest("User already exits")
+          case _: UserAggregate.UserAlreadyExistsReply => UserResource.CreateUserResponseBadRequest("User already exits")
         }
       }
 
@@ -190,12 +190,12 @@ object UserOpenApi {
       )(id: String, body: Address)(extracted: Seq[HttpHeader]): Future[UserResource.UpdateUserAddressResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserPersistentEntity.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
+          val cmd = UserAggregate.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
           userService.sendCommand(cmd).map {
-            case reply: UserPersistentEntity.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
-            case reply: UserPersistentEntity.UserAddressChangedFailedReply =>
+            case reply: UserAggregate.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
+            case reply: UserAggregate.UserAddressChangedFailedReply =>
               UserResource.UpdateUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-            case _: UserPersistentEntity.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
+            case _: UserAggregate.UserNotExistsReply => UserResource.UpdateUserAddressResponseBadRequest("User not exists")
           }
         }
 
@@ -204,12 +204,12 @@ object UserOpenApi {
       )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserAddressResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserPersistentEntity.ChangeUserAddressCommand(id.asUserId, None)
+          val cmd = UserAggregate.ChangeUserAddressCommand(id.asUserId, None)
           userService.sendCommand(cmd).map {
-            case reply: UserPersistentEntity.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
-            case reply: UserPersistentEntity.UserAddressChangedFailedReply =>
+            case reply: UserAggregate.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
+            case reply: UserAggregate.UserAddressChangedFailedReply =>
               UserResource.DeleteUserAddressResponseBadRequest(s"User address update error (${reply.error})")
-            case _: UserPersistentEntity.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
+            case _: UserAggregate.UserNotExistsReply => UserResource.DeleteUserAddressResponseBadRequest("User not exists")
           }
         }
 
@@ -218,10 +218,10 @@ object UserOpenApi {
       )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
         authenticated(extracted) { _ =>
           import UserEntity._
-          val cmd = UserPersistentEntity.RemoveUserCommand(id.asUserId)
+          val cmd = UserAggregate.RemoveUserCommand(id.asUserId)
           userService.sendCommand(cmd).map {
-            case reply: UserPersistentEntity.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
-            case _: UserPersistentEntity.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")
+            case reply: UserAggregate.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
+            case _: UserAggregate.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")
           }
         }
 

@@ -23,13 +23,13 @@ import com.jc.user.domain.proto.{
   DepartmentRemovedPayload,
   DepartmentUpdatedPayload
 }
-import com.jc.user.domain.DepartmentPersistentEntity._
+import com.jc.user.domain.DepartmentAggregate._
 
 import java.time.Instant
 
-object DepartmentPersistentEntity {
+object DepartmentAggregate {
 
-  def apply(): DepartmentPersistentEntity = new DepartmentPersistentEntity
+  def apply(): DepartmentAggregate = new DepartmentAggregate
 
   final val entityName = "department"
 
@@ -133,13 +133,13 @@ object DepartmentPersistentEntity {
 
 }
 
-sealed class DepartmentPersistentEntity()
+sealed class DepartmentAggregate()
     extends PersistentEntity[
       DepartmentEntity.DepartmentId,
       Department,
-      domain.DepartmentPersistentEntity.DepartmentCommand,
+      domain.DepartmentAggregate.DepartmentCommand,
       DepartmentEntity.DepartmentEvent
-    ](DepartmentPersistentEntity.entityName) {
+    ](DepartmentAggregate.entityName) {
 
   import scala.concurrent.duration._
 
@@ -178,14 +178,14 @@ sealed class DepartmentPersistentEntity()
         case (state, RecoveryFailed(error)) =>
           actorContext.log.error(s"Failed recovery of Department entity $id in state $state: $error")
       }
-      .withTagger(DepartmentPersistentEntity.departmentEventTagger.tags)
+      .withTagger(DepartmentAggregate.departmentEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
       .snapshotAdapter(snapshotAdapter)
       .onPersistFailure(
         SupervisorStrategy
           .restartWithBackoff(
-            minBackoff = 10 seconds,
-            maxBackoff = 60 seconds,
+            minBackoff = 10.seconds,
+            maxBackoff = 60.seconds,
             randomFactor = 0.1
           )
           .withMaxRestarts(5)
