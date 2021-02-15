@@ -25,6 +25,9 @@ https://lernentec.com/post/running-simple-elasticsearch-kibana-minikube/
 
 https://www.elastic.co/blog/getting-started-with-elastic-cloud-on-kubernetes-deployment
 
+CREATE KEYSPACE IF NOT EXISTS c_user_projection WITH REPLICATION = { 'class' : 'SimpleStrategy','replication_factor':1 };
+CREATE KEYSPACE IF NOT EXISTS c_user_journal WITH REPLICATION = { 'class' : 'SimpleStrategy','replication_factor':1 };
+CREATE KEYSPACE IF NOT EXISTS c_user_snapshot WITH REPLICATION = { 'class' : 'SimpleStrategy','replication_factor':1 };
 
 
 operator

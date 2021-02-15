@@ -26,7 +26,7 @@ spec:
               memory: "256Mi"
             #              cpu: "250m"
             limits:
-              memory: "384Mi"
+              memory: "576Mi"
           #              cpu: "500m"
           readinessProbe:
             httpGet:
@@ -53,7 +53,7 @@ spec:
             - name: http
               containerPort: 8000
               protocol: TCP
-            - name: grcp
+            - name: grpc
               containerPort: 8010
               protocol: TCP
             - name: prometheus
@@ -72,7 +72,7 @@ spec:
             - name: REQUIRED_CONTACT_POINT_NR
               value: "1"
             - name: JAVA_OPTS
-              value: "-Dconfig.resource=application-kube.conf"
+              value: "-Xmx512m -Dconfig.resource=application-kube.conf"
             - name: CASSANDRA_HOST
               value: "cassandra"
             - name: KAFKA_HOST
