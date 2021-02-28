@@ -1,63 +1,51 @@
 package com.jc.cqrs.processor
 
-import akka.NotUsed
+import akka.Done
 import akka.actor.typed.ActorSystem
+import akka.cluster.sharding.typed.scaladsl.ShardedDaemonProcess
+import akka.cluster.sharding.typed.{ ClusterShardingSettings, ShardedDaemonProcessSettings }
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
-import akka.persistence.query.{ EventEnvelope, Offset, PersistenceQuery }
+import akka.persistence.query.Offset
+import akka.projection.cassandra.scaladsl.CassandraProjection
+import akka.projection.eventsourced.EventEnvelope
+import akka.projection.eventsourced.scaladsl.EventSourcedProvider
+import akka.projection.scaladsl.AtLeastOnceFlowProjection
+import akka.projection.{ ProjectionBehavior, ProjectionContext, ProjectionId }
 import akka.stream.Materializer
-import akka.stream.scaladsl.{ FlowWithContext, SourceWithContext }
-import com.jc.cqrs.offsetstore.OffsetStore
+import akka.stream.scaladsl.FlowWithContext
 import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.concurrent.{ ExecutionContext, Future }
 
+//https://github.com/akka/akka-projection/blob/master/examples/src/it/scala/docs/cassandra/CassandraProjectionDocExample.scala
 object CassandraJournalEventProcessor {
   val keepAliveDefault: FiniteDuration = 3.seconds
 
   def create[E <: EntityEvent[_]](
       name: String,
       eventTagger: ShardedEntityEventTagger[E],
-      handleEvent: FlowWithContext[E, Offset, _, Offset, NotUsed],
-      offsetStore: OffsetStore[Offset, Future],
+      handleEvent: FlowWithContext[EventEnvelope[E], ProjectionContext, Done, ProjectionContext, _],
       keepAliveInterval: FiniteDuration = keepAliveDefault
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit =
-    create(name, name, eventTagger, handleEvent, offsetStore, keepAliveInterval)
+    create(name, name, eventTagger, handleEvent, keepAliveInterval)
 
   def create[E <: EntityEvent[_]](
       name: String,
       offsetNamePrefix: String,
       eventTagger: ShardedEntityEventTagger[E],
-      handleEvent: FlowWithContext[E, Offset, _, Offset, NotUsed],
-      offsetStore: OffsetStore[Offset, Future],
+      handleEvent: FlowWithContext[EventEnvelope[E], ProjectionContext, Done, ProjectionContext, _],
       keepAliveInterval: FiniteDuration
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
-    val readJournal = PersistenceQuery(system).readJournalFor[CassandraReadJournal](CassandraReadJournal.Identifier)
+    val sourceProvider = (shardTag: String) =>
+      EventSourcedProvider
+        .eventsByTag[E](system = system, readJournalPluginId = CassandraReadJournal.Identifier, tag = shardTag)
 
-    val offsetName    = (shardTag: String) => s"$offsetNamePrefix-$shardTag"
-    val initialOffset = (storedOffset: Option[Offset]) => storedOffset.getOrElse(Offset.timeBasedUUID(readJournal.firstOffset))
+    val projection: String => AtLeastOnceFlowProjection[Offset, EventEnvelope[E]] = (shardTag: String) =>
+      CassandraProjection.atLeastOnceFlow(projectionId = ProjectionId(offsetNamePrefix, shardTag), sourceProvider(shardTag), handleEvent)
 
-    val eventStreamFactory = (shardTag: String, initialOffset: Offset) =>
-      SourceWithContext.fromTuples {
-        readJournal
-          .eventsByTag(shardTag, initialOffset)
-          .collect {
-            case EventEnvelope(offset, _, _, event: E) => (event, offset)
-          }
-      }
-
-    val eventProcessorStream: String => EventProcessorStream[E] = shardTag =>
-      EventProcessorStream.create(
-        shardTag,
-        offsetName,
-        initialOffset,
-        offsetStore,
-        eventStreamFactory,
-        handleEvent
-      )
-
-    EventProcessor.create(name, eventTagger, eventProcessorStream, keepAliveInterval)
+    JournalEventProcessor.create(name, eventTagger, projection, keepAliveInterval)
   }
 
 }

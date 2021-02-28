@@ -150,14 +150,14 @@ sealed class DepartmentAggregate()
 
   def entityIdToString(id: DepartmentEntity.DepartmentId): String = id.toString
 
-  val snapshotAdapter: SnapshotAdapter[OuterState] = new SnapshotAdapter[OuterState] {
-    override def toJournal(state: OuterState): Any =
+  val snapshotAdapter: SnapshotAdapter[EntityState] = new SnapshotAdapter[EntityState] {
+    override def toJournal(state: EntityState): Any =
       state match {
         case Uninitialized       => DepartmentEntityState(None)
         case Initialized(entity) => DepartmentEntityState(Some(entity))
       }
 
-    override def fromJournal(from: Any): OuterState =
+    override def fromJournal(from: Any): EntityState =
       from match {
         case DepartmentEntityState(Some(entity), _) => Initialized(entity)
         case _                                      => Uninitialized
@@ -166,9 +166,9 @@ sealed class DepartmentAggregate()
 
   override def configureEntityBehavior(
       id: DepartmentEntity.DepartmentId,
-      behavior: EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, OuterState],
+      behavior: EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, EntityState],
       actorContext: ActorContext[Command]
-  ): EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, OuterState] =
+  ): EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, EntityState] =
     behavior
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>

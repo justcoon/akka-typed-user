@@ -1,8 +1,8 @@
 package com.jc.user.service
 
 import akka.actor.typed.ActorSystem
-import com.jc.user.domain.{ DepartmentEntity, UserEntity }
 import com.jc.user.domain.UserEntity.UserId
+import com.jc.user.domain.{ DepartmentEntity, UserEntity }
 import com.sksamuel.elastic4s.ElasticClient
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -16,7 +16,8 @@ object UserRepository {
   ) extends Repository.Entity[DepartmentEntity.DepartmentId]
 
   object Department {
-    import io.circe._, io.circe.generic.semiauto._
+    import io.circe._
+    import io.circe.generic.semiauto._
     implicit val departmentDecoder: Decoder[Department] = deriveDecoder[Department]
     implicit val departmentEncoder: Encoder[Department] = deriveEncoder[Department]
   }
@@ -31,7 +32,8 @@ object UserRepository {
   )
 
   object Address {
-    import io.circe._, io.circe.generic.semiauto._
+    import io.circe._
+    import io.circe.generic.semiauto._
 
     implicit val addressDecoder: Decoder[Address] = deriveDecoder[Address]
 
@@ -59,7 +61,8 @@ object UserRepository {
     val usernameEmailPassAddressDepartmentLens: ProductLensBuilder[User, (String, String, String, Option[Address], Option[Department])] =
       usernameLens ~ emailLens ~ passLens ~ addressLens ~ departmentLens
 
-    import io.circe._, io.circe.generic.semiauto._
+    import io.circe._
+    import io.circe.generic.semiauto._
 
     implicit val userDecoder: Decoder[User] = deriveDecoder[User]
 

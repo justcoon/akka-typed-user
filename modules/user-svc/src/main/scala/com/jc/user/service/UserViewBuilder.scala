@@ -1,15 +1,13 @@
 package com.jc.user.service
 
-import akka.{ Done, NotUsed }
+import akka.Done
 import akka.actor.typed.ActorSystem
-import akka.persistence.query.Offset
 import akka.projection.ProjectionContext
 import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
+import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain._
-import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.concurrent.{ ExecutionContext, Future }
@@ -23,24 +21,6 @@ object UserViewBuilder {
   val keepAlive: FiniteDuration = 3.seconds
 
   def create(
-      userRepository: UserRepository[Future],
-      offsetStore: OffsetStore[Offset, Future]
-  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
-
-    val handleEventFlow: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
-      FlowWithContext[UserEntity.UserEvent, Offset].mapAsync(1)(event => processEvent(event, userRepository))
-
-    CassandraJournalEventProcessor.create(
-      UserViewBuilderName,
-      UserViewOffsetNamePrefix,
-      UserAggregate.userEventTagger,
-      handleEventFlow,
-      offsetStore,
-      keepAlive
-    )
-  }
-
-  def createWithProjection(
       userRepository: UserRepository[Future]
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
@@ -49,7 +29,7 @@ object UserViewBuilder {
         .mapAsync(1)(event => processEvent(event.event, userRepository))
         .map(_ => Done)
 
-    CassandraProjectionJournalEventProcessor.create(
+    CassandraJournalEventProcessor.create(
       UserViewBuilderName,
       UserViewOffsetNamePrefix,
       UserAggregate.userEventTagger,
@@ -80,9 +60,9 @@ object UserViewBuilder {
   def createUser(id: UserEntity.UserId): UserRepository.User = UserRepository.User(id, "", "", "")
 
   def getUpdatedUser(event: UserEntity.UserEvent, user: Option[UserRepository.User]): UserRepository.User = {
-    import io.scalaland.chimney.dsl._
-    import com.jc.user.domain.proto._
     import UserRepository.User._
+    import com.jc.user.domain.proto._
+    import io.scalaland.chimney.dsl._
 
     val currentUser = user.getOrElse(createUser(event.entityId))
 

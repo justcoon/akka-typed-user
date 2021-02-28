@@ -24,7 +24,8 @@ object DepartmentRepository {
 
     val nameDescriptionLens: ProductLensBuilder[Department, (String, String)] = nameLens ~ descriptionLens
 
-    import io.circe._, io.circe.generic.semiauto._
+    import io.circe._
+    import io.circe.generic.semiauto._
     implicit val departmentDecoder: Decoder[Department] = deriveDecoder[Department]
     implicit val departmentEncoder: Encoder[Department] = deriveEncoder[Department]
   }

@@ -190,14 +190,14 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   def entityIdToString(id: UserEntity.UserId): String = id.toString
 
-  val snapshotAdapter: SnapshotAdapter[OuterState] = new SnapshotAdapter[OuterState] {
-    override def toJournal(state: OuterState): Any =
+  val snapshotAdapter: SnapshotAdapter[EntityState] = new SnapshotAdapter[EntityState] {
+    override def toJournal(state: EntityState): Any =
       state match {
         case Uninitialized       => UserEntityState(None)
         case Initialized(entity) => UserEntityState(Some(entity))
       }
 
-    override def fromJournal(from: Any): OuterState =
+    override def fromJournal(from: Any): EntityState =
       from match {
         case UserEntityState(Some(entity), _) => Initialized(entity)
         case _                                => Uninitialized
@@ -206,9 +206,9 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   override def configureEntityBehavior(
       id: UserEntity.UserId,
-      behavior: EventSourcedBehavior[Command, UserEntity.UserEvent, OuterState],
+      behavior: EventSourcedBehavior[Command, UserEntity.UserEvent, EntityState],
       actorContext: ActorContext[Command]
-  ): EventSourcedBehavior[Command, UserEntity.UserEvent, OuterState] =
+  ): EventSourcedBehavior[Command, UserEntity.UserEvent, EntityState] =
     behavior
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>
@@ -233,7 +233,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   override protected def commandHandler(
       actorContext: ActorContext[Command]
-  ): (OuterState, Command) => ReplyEffect[UserEntity.UserEvent, OuterState] =
+  ): (EntityState, Command) => ReplyEffect[UserEntity.UserEvent, EntityState] =
     (entityState, command) => {
       entityState match {
         case Uninitialized =>
@@ -245,7 +245,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   protected def commandHandlerUninitialized(
       actorContext: ActorContext[Command]
-  ): Command => ReplyEffect[UserEntity.UserEvent, OuterState] = command => {
+  ): Command => ReplyEffect[UserEntity.UserEvent, EntityState] = command => {
 
     val result = command.command match {
       case cmd: UserAggregate.CreateUserCommand =>
@@ -280,7 +280,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   protected def commandHandlerInitialized(
       actorContext: ActorContext[Command]
-  ): (User, Command) => ReplyEffect[UserEntity.UserEvent, OuterState] = (state, command) => {
+  ): (User, Command) => ReplyEffect[UserEntity.UserEvent, EntityState] = (state, command) => {
     val result = command.command match {
       case UserAggregate.ChangeUserEmailCommand(entityId, email) =>
         val events =
@@ -382,7 +382,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
         case None => FastFuture.successful(Done.validNec)
       }
 
-  override protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, UserEntity.UserEvent) => OuterState = {
+  override protected def eventHandler(actorContext: ActorContext[Command]): (EntityState, UserEntity.UserEvent) => EntityState = {
     (entityState, event) =>
       val newEntityState = entityState match {
         case Uninitialized =>
@@ -390,6 +390,6 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
         case Initialized(state) =>
           applier.apply(state, event)
       }
-      newEntityState.map(Initialized).getOrElse[OuterState](Uninitialized)
+      newEntityState.map(Initialized).getOrElse[EntityState](Uninitialized)
   }
 }

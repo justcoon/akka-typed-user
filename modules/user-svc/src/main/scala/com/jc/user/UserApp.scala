@@ -91,12 +91,12 @@ object UserApp {
       val userRepository = UserESRepository(appConfig.elasticsearch.userIndexName, elasticClient)
 
       log.info("view builder - create")
-      DepartmentViewBuilder.createWithProjection(departmentRepository)
-      UserViewBuilder.createWithProjection(userRepository)
+      DepartmentViewBuilder.create(departmentRepository)
+      UserViewBuilder.create(userRepository)
 
       log.info("kafka producer - create")
-      DepartmentKafkaProducer.createWithProjection(appConfig.kafka.departmentTopic)
-      UserKafkaProducer.createWithProjection(appConfig.kafka.userTopic)
+      DepartmentKafkaProducer.create(appConfig.kafka.departmentTopic)
+      UserKafkaProducer.create(appConfig.kafka.userTopic)
 
       log.info("rest api server - create")
       UserOpenApi

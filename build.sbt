@@ -3,7 +3,7 @@ import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType, ExecCmd }
 import sbt.Keys.javaOptions
 
-scalaVersion in Scope.Global := "2.13.4"
+scalaVersion in Scope.Global := "2.13.5"
 
 // *****************************************************************************
 // Projects
@@ -23,11 +23,9 @@ lazy val `akka-typed-user` =
 
 lazy val `core` =
   (project in file("modules/core"))
-    .enablePlugins(AkkaGrpcPlugin)
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-          library.scalaPbRuntime,
           library.akkaDiscovery,
           library.akkaClusterTyped,
           library.akkaPersistenceTyped,
@@ -164,24 +162,24 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.12"
-      val akkaHttp                 = "10.2.3"
+      val akka                     = "2.6.13"
+      val akkaHttp                 = "10.2.4"
       val akkaHttpJson             = "1.35.3"
       val akkaPersistenceCassandra = "1.0.4"
       val akkaStreamKafka          = "2.0.7"
       val akkaProjection           = "1.1.0"
-      val akkaManagement           = "1.0.9"
+      val akkaManagement           = "1.0.10"
       val circe                    = "0.13.0"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.10.3"
+      val elastic4s                = "7.11.0"
       val pureconfig               = "0.14.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.1.0"
       val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.20"
-      val tapir                    = "0.17.10"
-      val cats                     = "2.4.1"
+      val refined                  = "0.9.21"
+      val tapir                    = "0.17.13"
+      val cats                     = "2.4.2"
 
       val kamonPrometheus = "2.1.12"
       val kamonAkka       = "2.1.12"
@@ -189,7 +187,7 @@ lazy val library =
       val kamonKanela     = "1.0.7"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.3"
+      val scalaTest           = "3.2.5"
       val gatling             = "3.5.1"
       val gatlingGrpc         = "0.11.1"
     }
@@ -310,7 +308,6 @@ lazy val dockerSettings =
     dockerExposedPorts := Vector(2552, 8558, 8000, 8010, 9080),
 //    dockerRepository := Some("justcoon"),
     dockerEntrypoint := Seq("/opt/docker/bin/user-svc"),
-//    dockerChmodType in Docker := DockerChmodType.UserGroupWriteExecute,
     dockerUpdateLatest := true,
     daemonUser in Docker := "daemon",
     daemonUserUid in Docker := None,

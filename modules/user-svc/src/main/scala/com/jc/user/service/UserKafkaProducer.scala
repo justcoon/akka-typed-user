@@ -1,23 +1,21 @@
 package com.jc.user.service
 
-import akka.{ Done, NotUsed }
 import akka.actor.typed.ActorSystem
-import akka.kafka.{ ProducerMessage, ProducerSettings }
 import akka.kafka.scaladsl.{ DiscoverySupport, Producer }
-import akka.persistence.query.Offset
+import akka.kafka.{ ProducerMessage, ProducerSettings }
 import akka.projection.ProjectionContext
 import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
-import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
-import com.jc.user.domain.{ UserAggregate, UserEntity }
+import akka.{ Done, NotUsed }
+import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain.proto.UserPayloadEvent
+import com.jc.user.domain.{ UserAggregate, UserEntity }
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.concurrent.{ ExecutionContext, Future }
 
 object UserKafkaProducer {
   val UserKafkaOffsetNamePrefix = "userKafka"
@@ -33,28 +31,6 @@ object UserKafkaProducer {
   }
 
   def create(
-      kafkaTopic: String,
-      offsetStore: OffsetStore[Offset, Future]
-  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
-
-    val settings = createKafkaProducerSettings()
-
-    val handleEvent: FlowWithContext[UserEntity.UserEvent, Offset, _, Offset, NotUsed] =
-      FlowWithContext[UserEntity.UserEvent, Offset]
-        .map(event => toProducerMessage(kafkaTopic, event))
-        .via(Producer.flowWithContext[String, UserEntity.UserEvent, Offset](settings))
-
-    CassandraJournalEventProcessor.create(
-      UserKafkaProducerName,
-      UserKafkaOffsetNamePrefix,
-      UserAggregate.userEventTagger,
-      handleEvent,
-      offsetStore,
-      keepAlive
-    )
-  }
-
-  def createWithProjection(
       kafkaTopic: String
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
@@ -66,7 +42,7 @@ object UserKafkaProducer {
         .via(Producer.flowWithContext[String, UserEntity.UserEvent, ProjectionContext](settings))
         .map(_ => Done)
 
-    CassandraProjectionJournalEventProcessor.create(
+    CassandraJournalEventProcessor.create(
       UserKafkaProducerName,
       UserKafkaOffsetNamePrefix,
       UserAggregate.userEventTagger,

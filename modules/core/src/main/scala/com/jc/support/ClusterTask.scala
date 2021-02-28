@@ -9,7 +9,6 @@ import scala.concurrent.duration.{ FiniteDuration, _ }
 import scala.util.{ Failure, Success }
 
 case class ClusterTaskConfig(
-    taskTimeout: FiniteDuration = 5.seconds,
     minBackoff: FiniteDuration = 3.seconds,
     maxBackoff: FiniteDuration = 30.seconds,
     randomBackoffFactor: Double = 0.2

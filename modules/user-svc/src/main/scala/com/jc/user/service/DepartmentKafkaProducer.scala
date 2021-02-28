@@ -3,21 +3,19 @@ package com.jc.user.service
 import akka.actor.typed.ActorSystem
 import akka.kafka.scaladsl.{ DiscoverySupport, Producer }
 import akka.kafka.{ ProducerMessage, ProducerSettings }
-import akka.persistence.query.Offset
 import akka.projection.ProjectionContext
 import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
 import akka.{ Done, NotUsed }
-import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
-import com.jc.user.domain.{ DepartmentAggregate, DepartmentEntity }
+import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain.proto.DepartmentPayloadEvent
+import com.jc.user.domain.{ DepartmentAggregate, DepartmentEntity }
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ Serializer, StringSerializer }
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{ FiniteDuration, _ }
-import scala.concurrent.{ ExecutionContext, Future }
 
 object DepartmentKafkaProducer {
   val DepartmentKafkaOffsetNamePrefix = "departmentKafka"
@@ -35,28 +33,6 @@ object DepartmentKafkaProducer {
   }
 
   def create(
-      kafkaTopic: String,
-      offsetStore: OffsetStore[Offset, Future]
-  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
-
-    val settings = createKafkaProducerSettings()
-
-    val handleEvent: FlowWithContext[DepartmentEntity.DepartmentEvent, Offset, _, Offset, NotUsed] =
-      FlowWithContext[DepartmentEntity.DepartmentEvent, Offset]
-        .map(event => toProducerMessage(kafkaTopic, event))
-        .via(Producer.flowWithContext[String, DepartmentEntity.DepartmentEvent, Offset](settings))
-
-    CassandraJournalEventProcessor.create(
-      DepartmentKafkaProducerName,
-      DepartmentKafkaOffsetNamePrefix,
-      DepartmentAggregate.departmentEventTagger,
-      handleEvent,
-      offsetStore,
-      keepAlive
-    )
-  }
-
-  def createWithProjection(
       kafkaTopic: String
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
@@ -69,7 +45,7 @@ object DepartmentKafkaProducer {
         .via(Producer.flowWithContext[String, DepartmentEntity.DepartmentEvent, ProjectionContext](settings))
         .map(_ => Done)
 
-    CassandraProjectionJournalEventProcessor.create(
+    CassandraJournalEventProcessor.create(
       DepartmentKafkaProducerName,
       DepartmentKafkaOffsetNamePrefix,
       DepartmentAggregate.departmentEventTagger,

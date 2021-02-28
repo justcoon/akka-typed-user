@@ -1,14 +1,12 @@
 package com.jc.user.service
 
+import akka.Done
 import akka.actor.typed.ActorSystem
-import akka.persistence.query.Offset
 import akka.projection.ProjectionContext
 import akka.projection.eventsourced.EventEnvelope
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
-import akka.{ Done, NotUsed }
-import com.jc.cqrs.offsetstore.OffsetStore
-import com.jc.cqrs.processor.{ CassandraJournalEventProcessor, CassandraProjectionJournalEventProcessor }
+import com.jc.cqrs.processor.CassandraJournalEventProcessor
 import com.jc.user.domain._
 
 import scala.concurrent.duration.{ FiniteDuration, _ }
@@ -23,24 +21,6 @@ object DepartmentViewBuilder {
   val keepAlive: FiniteDuration = 3.seconds
 
   def create(
-      departmentRepository: DepartmentRepository[Future],
-      offsetStore: OffsetStore[Offset, Future]
-  )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
-
-    val handleEventFlow: FlowWithContext[DepartmentEntity.DepartmentEvent, Offset, _, Offset, NotUsed] =
-      FlowWithContext[DepartmentEntity.DepartmentEvent, Offset].mapAsync(1)(event => processEvent(event, departmentRepository))
-
-    CassandraJournalEventProcessor.create(
-      DepartmentViewBuilderName,
-      DepartmentViewOffsetNamePrefix,
-      DepartmentAggregate.departmentEventTagger,
-      handleEventFlow,
-      offsetStore,
-      keepAlive
-    )
-  }
-
-  def createWithProjection(
       departmentRepository: DepartmentRepository[Future]
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
@@ -50,7 +30,7 @@ object DepartmentViewBuilder {
         .mapAsync(1)(event => processEvent(event, departmentRepository))
         .map(_ => Done)
 
-    CassandraProjectionJournalEventProcessor.create(
+    CassandraJournalEventProcessor.create(
       DepartmentViewBuilderName,
       DepartmentViewOffsetNamePrefix,
       DepartmentAggregate.departmentEventTagger,

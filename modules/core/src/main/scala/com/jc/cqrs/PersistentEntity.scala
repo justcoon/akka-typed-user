@@ -14,23 +14,23 @@ import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
 
-abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
+abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: EntityEvent[ID]](
     val entityName: String
 ) {
 
-  sealed trait OuterState
+  sealed trait EntityState
 
-  case class Initialized(state: InnerState) extends OuterState
+  case class Initialized(state: S) extends EntityState
 
-  case object Uninitialized extends OuterState
+  case object Uninitialized extends EntityState
 
-  type Command = CommandExpectingReply[_, InnerState, C]
+  type Command = CommandExpectingReply[_, S, C]
 
   val entityTypeKey: EntityTypeKey[Command] = EntityTypeKey[Command](entityName)
 
-  protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState]
+  protected def commandHandler(actorContext: ActorContext[Command]): (EntityState, Command) => ReplyEffect[E, EntityState]
 
-  protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState
+  protected def eventHandler(actorContext: ActorContext[Command]): (EntityState, E) => EntityState
 
   def entityIdFromString(id: String): ID
 
@@ -39,7 +39,7 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
   final def eventSourcedEntity(
       entityContext: EntityContext[Command],
       actorContext: ActorContext[Command]
-  ): EventSourcedBehavior[Command, E, OuterState] = {
+  ): EventSourcedBehavior[Command, E, EntityState] = {
     val id            = entityIdFromString(entityContext.entityId)
     val persistenceId = PersistenceId(entityContext.entityTypeKey.name, entityContext.entityId)
     configureEntityBehavior(
@@ -51,15 +51,15 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
 
   protected def configureEntityBehavior(
       id: ID,
-      behavior: EventSourcedBehavior[Command, E, OuterState],
+      behavior: EventSourcedBehavior[Command, E, EntityState],
       actorContext: ActorContext[Command]
-  ): EventSourcedBehavior[Command, E, OuterState]
+  ): EventSourcedBehavior[Command, E, EntityState]
 
   final private def createEventSourcedEntity(
       persistenceId: PersistenceId,
       actorContext: ActorContext[Command]
   ) =
-    EventSourcedBehavior[Command, E, OuterState](
+    EventSourcedBehavior[Command, E, EntityState](
       persistenceId,
       Uninitialized,
       commandHandler(actorContext),
@@ -67,17 +67,17 @@ abstract class BasicPersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, I
     )
 }
 
-abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerState, R], E <: EntityEvent[ID]](
+abstract class PersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: EntityEvent[ID]](
     entityName: String
 )(
     implicit
     initialProcessor: InitialCommandProcessor[C, E],
-    processor: CommandProcessor[InnerState, C, E],
-    initialApplier: InitialEventApplier[InnerState, E],
-    applier: EventApplier[InnerState, E]
-) extends BasicPersistentEntity[ID, InnerState, C, E](entityName) {
+    processor: CommandProcessor[S, C, E],
+    initialApplier: InitialEventApplier[S, E],
+    applier: EventApplier[S, E]
+) extends BasicPersistentEntity[ID, S, C, E](entityName) {
 
-  protected def commandHandler(actorContext: ActorContext[Command]): (OuterState, Command) => ReplyEffect[E, OuterState] =
+  protected def commandHandler(actorContext: ActorContext[Command]): (EntityState, Command) => ReplyEffect[E, EntityState] =
     (entityState, command) => {
       entityState match {
         case Uninitialized =>
@@ -89,25 +89,25 @@ abstract class PersistentEntity[ID, InnerState, C[R] <: EntityCommand[ID, InnerS
       }
     }
 
-  protected def eventHandler(actorContext: ActorContext[Command]): (OuterState, E) => OuterState = { (entityState, event) =>
+  protected def eventHandler(actorContext: ActorContext[Command]): (EntityState, E) => EntityState = { (entityState, event) =>
     val newEntityState = entityState match {
       case Uninitialized =>
         initialApplier.apply(event)
       case Initialized(state) =>
         applier.apply(state, event)
     }
-    newEntityState.map(Initialized).getOrElse[OuterState](Uninitialized)
+    newEntityState.map(Initialized).getOrElse[EntityState](Uninitialized)
   }
 }
 
 object BasicPersistentEntity {
 
-  final case class CommandExpectingReply[R, InnerState, C[R] <: EntityCommand[_, InnerState, R]](command: C[R])(val replyTo: ActorRef[R]) {
-    def transform[NC[R] <: EntityCommand[_, InnerState, R]](newCommand: NC[R]): CommandExpectingReply[R, InnerState, NC] =
-      CommandExpectingReply[R, InnerState, NC](newCommand)(replyTo)
+  final case class CommandExpectingReply[R, S, C[R] <: EntityCommand[_, S, R]](command: C[R])(val replyTo: ActorRef[R]) {
+    def transform[NC[R] <: EntityCommand[_, S, R]](newCommand: NC[R]): CommandExpectingReply[R, S, NC] =
+      CommandExpectingReply[R, S, NC](newCommand)(replyTo)
 
-    def transformUnsafe[NR, NC[NR] <: EntityCommand[_, InnerState, NR]](newCommand: NC[NR]): CommandExpectingReply[NR, InnerState, NC] =
-      CommandExpectingReply[NR, InnerState, NC](newCommand)(replyTo.asInstanceOf[ActorRef[NR]])
+    def transformUnsafe[NR, NC[NR] <: EntityCommand[_, S, NR]](newCommand: NC[NR]): CommandExpectingReply[NR, S, NC] =
+      CommandExpectingReply[NR, S, NC](newCommand)(replyTo.asInstanceOf[ActorRef[NR]])
   }
 
   def handleProcessResult[R, E <: EntityEvent[_], S](

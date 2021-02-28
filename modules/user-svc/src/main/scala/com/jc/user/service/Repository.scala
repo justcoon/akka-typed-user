@@ -163,8 +163,8 @@ class ESSearchRepository[E <: Repository.Entity[_]: Encoder: Decoder: ClassTag](
 ) extends SearchRepository[Future, E] {
   import com.sksamuel.elastic4s.ElasticDsl.{ search => searchIndex, _ }
   import com.sksamuel.elastic4s.circe._
-  import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
   import com.sksamuel.elastic4s.requests.searches.queries.QueryStringQuery
+  import com.sksamuel.elastic4s.requests.searches.queries.matches.MatchAllQuery
   import com.sksamuel.elastic4s.requests.searches.sort.{ FieldSort, SortOrder }
   import com.sksamuel.elastic4s.requests.searches.suggestion
 
