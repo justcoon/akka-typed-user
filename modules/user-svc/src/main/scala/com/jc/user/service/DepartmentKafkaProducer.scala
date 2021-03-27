@@ -33,7 +33,8 @@ object DepartmentKafkaProducer {
   }
 
   def create(
-      kafkaTopic: String
+      kafkaTopic: String,
+      keepAliveInterval: FiniteDuration = DepartmentKafkaProducer.keepAlive
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
     val settings = createKafkaProducerSettings()
@@ -50,7 +51,7 @@ object DepartmentKafkaProducer {
       DepartmentKafkaOffsetNamePrefix,
       DepartmentAggregate.departmentEventTagger,
       handleEvent,
-      keepAlive
+      keepAliveInterval
     )
   }
 

@@ -21,7 +21,8 @@ object DepartmentViewBuilder {
   val keepAlive: FiniteDuration = 3.seconds
 
   def create(
-      departmentRepository: DepartmentRepository[Future]
+      departmentRepository: DepartmentRepository[Future],
+      keepAliveInterval: FiniteDuration = DepartmentViewBuilder.keepAlive
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
     val handleEventFlow: FlowWithContext[EventEnvelope[DepartmentEntity.DepartmentEvent], ProjectionContext, Done, ProjectionContext, _] =
@@ -35,7 +36,7 @@ object DepartmentViewBuilder {
       DepartmentViewOffsetNamePrefix,
       DepartmentAggregate.departmentEventTagger,
       handleEventFlow,
-      keepAlive
+      keepAliveInterval
     )
   }
 

@@ -2,15 +2,13 @@ package com.jc.cqrs.processor
 
 import akka.Done
 import akka.actor.typed.ActorSystem
-import akka.cluster.sharding.typed.scaladsl.ShardedDaemonProcess
-import akka.cluster.sharding.typed.{ ClusterShardingSettings, ShardedDaemonProcessSettings }
 import akka.persistence.cassandra.query.scaladsl.CassandraReadJournal
 import akka.persistence.query.Offset
 import akka.projection.cassandra.scaladsl.CassandraProjection
 import akka.projection.eventsourced.EventEnvelope
 import akka.projection.eventsourced.scaladsl.EventSourcedProvider
 import akka.projection.scaladsl.AtLeastOnceFlowProjection
-import akka.projection.{ ProjectionBehavior, ProjectionContext, ProjectionId }
+import akka.projection.{ ProjectionContext, ProjectionId }
 import akka.stream.Materializer
 import akka.stream.scaladsl.FlowWithContext
 import com.jc.cqrs.{ EntityEvent, ShardedEntityEventTagger }
@@ -39,8 +37,7 @@ object CassandraJournalEventProcessor {
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
     val sourceProvider = (shardTag: String) =>
-      EventSourcedProvider
-        .eventsByTag[E](system = system, readJournalPluginId = CassandraReadJournal.Identifier, tag = shardTag)
+      EventSourcedProvider.eventsByTag[E](system = system, readJournalPluginId = CassandraReadJournal.Identifier, tag = shardTag)
 
     val projection: String => AtLeastOnceFlowProjection[Offset, EventEnvelope[E]] = (shardTag: String) =>
       CassandraProjection.atLeastOnceFlow(projectionId = ProjectionId(offsetNamePrefix, shardTag), sourceProvider(shardTag), handleEvent)

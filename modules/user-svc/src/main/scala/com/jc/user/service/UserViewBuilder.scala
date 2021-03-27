@@ -21,7 +21,8 @@ object UserViewBuilder {
   val keepAlive: FiniteDuration = 3.seconds
 
   def create(
-      userRepository: UserRepository[Future]
+      userRepository: UserRepository[Future],
+      keepAliveInterval: FiniteDuration = UserViewBuilder.keepAlive
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
     val handleEventFlow: FlowWithContext[EventEnvelope[UserEntity.UserEvent], ProjectionContext, Done, ProjectionContext, _] =
@@ -34,7 +35,7 @@ object UserViewBuilder {
       UserViewOffsetNamePrefix,
       UserAggregate.userEventTagger,
       handleEventFlow,
-      keepAlive
+      keepAliveInterval
     )
   }
 

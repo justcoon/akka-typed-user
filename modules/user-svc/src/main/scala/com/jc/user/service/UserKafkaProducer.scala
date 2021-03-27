@@ -31,7 +31,8 @@ object UserKafkaProducer {
   }
 
   def create(
-      kafkaTopic: String
+      kafkaTopic: String,
+      keepAliveInterval: FiniteDuration = UserKafkaProducer.keepAlive
   )(implicit system: ActorSystem[_], mat: Materializer, ec: ExecutionContext): Unit = {
 
     val settings = createKafkaProducerSettings()
@@ -47,7 +48,7 @@ object UserKafkaProducer {
       UserKafkaOffsetNamePrefix,
       UserAggregate.userEventTagger,
       handleEvent,
-      keepAlive
+      keepAliveInterval
     )
   }
 
