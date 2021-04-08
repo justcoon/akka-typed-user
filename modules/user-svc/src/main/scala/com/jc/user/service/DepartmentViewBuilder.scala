@@ -40,8 +40,8 @@ object DepartmentViewBuilder {
     )
   }
 
-  def processEvent(event: DepartmentEntity.DepartmentEvent, departmentRepository: DepartmentRepository[Future])(
-      implicit ec: ExecutionContext
+  def processEvent(event: DepartmentEntity.DepartmentEvent, departmentRepository: DepartmentRepository[Future])(implicit
+      ec: ExecutionContext
   ): Future[Boolean] =
     if (isDepartmentRemoved(event))
       departmentRepository.delete(event.entityId)

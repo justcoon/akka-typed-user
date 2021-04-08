@@ -15,8 +15,8 @@ object DepartmentService {
   def apply()(implicit sharding: ClusterSharding, actorSystem: ActorSystem[_], askTimeout: Timeout): DepartmentService =
     new DepartmentServiceImpl()
 
-  private final class DepartmentServiceImpl()(
-      implicit val sharding: ClusterSharding,
+  private final class DepartmentServiceImpl()(implicit
+      val sharding: ClusterSharding,
       val actorSystem: ActorSystem[_],
       val askTimeout: Timeout
   ) extends BasicPersistentEntityService[

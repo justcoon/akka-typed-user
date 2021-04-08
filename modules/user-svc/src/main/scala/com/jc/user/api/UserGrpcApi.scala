@@ -65,8 +65,8 @@ object UserGrpcApi {
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String]
-  )(
-      implicit askTimeout: Timeout,
+  )(implicit
+      askTimeout: Timeout,
       ec: ExecutionContext,
       sys: ActorSystem
   ): HttpRequest => Future[HttpResponse] =

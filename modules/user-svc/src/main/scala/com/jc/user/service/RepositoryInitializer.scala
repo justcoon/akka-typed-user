@@ -20,8 +20,8 @@ object RepositoryInitializer {
   }
 }
 
-final class ESRepositoryInitializer(indexName: String, fields: Seq[FieldDefinition], elasticClient: ElasticClient)(
-    implicit ec: ExecutionContext
+final class ESRepositoryInitializer(indexName: String, fields: Seq[FieldDefinition], elasticClient: ElasticClient)(implicit
+    ec: ExecutionContext
 ) extends RepositoryInitializer[Future] {
 
   import com.sksamuel.elastic4s.ElasticDsl._
@@ -50,9 +50,8 @@ final class ESRepositoryInitializer(indexName: String, fields: Seq[FieldDefiniti
             .map(r => r.result.acknowledged)
         }
       )
-      .recoverWith {
-        case e =>
-          logger.error("init: {} - error: {}", indexName, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("init: {} - error: {}", indexName, e.getMessage)
+        Future.failed(e)
       }
 }

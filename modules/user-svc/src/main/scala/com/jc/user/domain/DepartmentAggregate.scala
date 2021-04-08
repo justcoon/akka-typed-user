@@ -82,7 +82,7 @@ object DepartmentAggregate {
   implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand, DepartmentEntity.DepartmentEvent] = {
     case CreateDepartmentCommand(entityId, name, description) =>
       val event =
-        (DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Created(DepartmentCreatedPayload(name, description))))
+        DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Created(DepartmentCreatedPayload(name, description)))
       CommandProcessResult.withReply(event, DepartmentCreatedReply(entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
@@ -96,15 +96,15 @@ object DepartmentAggregate {
           CommandProcessResult.withReply(DepartmentAlreadyExistsReply(entityId))
         case UpdateDepartmentCommand(entityId, name, description) =>
           val event =
-            (DepartmentPayloadEvent(
+            DepartmentPayloadEvent(
               entityId,
               Instant.now,
               DepartmentPayloadEvent.Payload.Updated(DepartmentUpdatedPayload(name, description))
-            ))
+            )
           CommandProcessResult.withReply(event, DepartmentUpdatedReply(entityId))
         case RemoveDepartmentCommand(entityId) =>
           val event =
-            (DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Removed(DepartmentRemovedPayload())))
+            DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Removed(DepartmentRemovedPayload()))
           CommandProcessResult.withReply(event, DepartmentRemovedReply(entityId))
         case GetDepartmentCommand(_) =>
           CommandProcessResult.withReply(DepartmentReply(state))

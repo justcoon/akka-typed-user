@@ -116,17 +116,17 @@ object UserESRepositoryInitializer {
   val suggestProperties = Seq("username", "email")
 
   val fields = Seq(
-      textField("id").fielddata(true),
-      textField("username").fielddata(true),
-      textField("email").fielddata(true),
-      textField("address.street").fielddata(true),
-      textField("address.number").fielddata(true),
-      textField("address.city").fielddata(true),
-      textField("address.state").fielddata(true),
-      textField("address.zip").fielddata(true),
-      textField("address.country").fielddata(true),
-      textField("department.id").fielddata(true)
-    ) ++ suggestProperties.map(prop => completionField(ElasticUtils.getSuggestPropertyName(prop)))
+    textField("id").fielddata(true),
+    textField("username").fielddata(true),
+    textField("email").fielddata(true),
+    textField("address.street").fielddata(true),
+    textField("address.number").fielddata(true),
+    textField("address.city").fielddata(true),
+    textField("address.state").fielddata(true),
+    textField("address.zip").fielddata(true),
+    textField("address.country").fielddata(true),
+    textField("department.id").fielddata(true)
+  ) ++ suggestProperties.map(prop => completionField(ElasticUtils.getSuggestPropertyName(prop)))
 
   def apply(
       indexName: String,

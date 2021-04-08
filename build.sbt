@@ -1,9 +1,7 @@
-import com.lightbend.sbt.javaagent.Modules
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
-import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType, ExecCmd }
-import sbt.Keys.javaOptions
+import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
 
-scalaVersion in Scope.Global := "2.13.5"
+Scope.Global / scalaVersion := "2.13.5"
 
 // *****************************************************************************
 // Projects
@@ -16,8 +14,8 @@ lazy val `akka-typed-user` =
     .aggregate(`core`, `user-api`, `user-svc`, `user-bench`)
     .settings(settings)
     .settings(
-      unmanagedSourceDirectories.in(Compile) := Seq.empty,
-      unmanagedSourceDirectories.in(Test) := Seq.empty,
+      Compile / unmanagedSourceDirectories := Seq.empty,
+      Test / unmanagedSourceDirectories := Seq.empty,
       publishArtifact := false
     )
 
@@ -26,35 +24,35 @@ lazy val `core` =
     .settings(settings)
     .settings(
       libraryDependencies ++= Seq(
-          library.akkaDiscovery,
-          library.akkaClusterTyped,
-          library.akkaPersistenceTyped,
-          library.akkaClusterShardingTyped,
-          library.akkaHttp,
-          library.akkaHttp2Support,
-          library.akkaHttpCirce,
-          library.akkaKryo,
-          library.akkaSlf4j,
-          library.akkaPersistenceQuery,
-          library.akkaPersistenceCassandra,
-          library.akkaStreamKafka,
-          library.akkaProjectionEventsourced,
-          library.akkaProjectionCassandra,
-          library.akkaProjectionKafka,
-          library.circeGeneric,
-          library.circeRefined,
-          library.catsCore,
-          library.logbackCore,
-          library.logbackClassic,
-          library.bcrypt,
-          library.pureconfig,
-          library.refinedPureconfig,
-          library.pauldijouJwtCirce,
-          library.chimney,
-          library.akkaHttpTestkit % Test,
-          library.akkaTestkit     % Test,
-          library.scalaTest       % Test
-        )
+        library.akkaDiscovery,
+        library.akkaClusterTyped,
+        library.akkaPersistenceTyped,
+        library.akkaClusterShardingTyped,
+        library.akkaHttp,
+        library.akkaHttp2Support,
+        library.akkaHttpCirce,
+        library.akkaKryo,
+        library.akkaSlf4j,
+        library.akkaPersistenceQuery,
+        library.akkaPersistenceCassandra,
+        library.akkaStreamKafka,
+        library.akkaProjectionEventsourced,
+        library.akkaProjectionCassandra,
+        library.akkaProjectionKafka,
+        library.circeGeneric,
+        library.circeRefined,
+        library.catsCore,
+        library.logbackCore,
+        library.logbackClassic,
+        library.bcrypt,
+        library.pureconfig,
+        library.refinedPureconfig,
+        library.pauldijouJwtCirce,
+        library.chimney,
+        library.akkaHttpTestkit % Test,
+        library.akkaTestkit     % Test,
+        library.scalaTest       % Test
+      )
     )
 
 lazy val `user-api` =
@@ -64,28 +62,28 @@ lazy val `user-api` =
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis",
       akkaGrpcCodeGeneratorSettings += "grpc",
-      guardrailTasks in Compile := List(
-          ScalaServer(
-            file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
-            pkg = "com.jc.user.api.openapi",
-            tracing = false,
-            customExtraction = true
-          )
+      Compile / guardrailTasks := List(
+        ScalaServer(
+          file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
+          pkg = "com.jc.user.api.openapi",
+          tracing = false,
+          customExtraction = true
         )
+      )
     )
-    .settings(unmanagedResourceDirectories in Compile += baseDirectory.value / "src" / "main" / "openapi")
+    .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
-          library.scalaPbRuntime,
-          library.akkaHttp,
-          library.akkaHttp2Support,
-          library.akkaHttpCirce,
-          library.akkaHttpSprayJson,
-          library.circeGeneric,
-          library.circeRefined,
-          library.catsCore,
-          library.scalapbRuntimeGrpc
-        )
+        library.scalaPbRuntime,
+        library.akkaHttp,
+        library.akkaHttp2Support,
+        library.akkaHttpCirce,
+        library.akkaHttpSprayJson,
+        library.circeGeneric,
+        library.circeRefined,
+        library.catsCore,
+        library.scalapbRuntimeGrpc
+      )
     )
     .dependsOn(`core`)
 
@@ -95,47 +93,47 @@ lazy val `user-svc` =
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
     .settings(
       libraryDependencies ++= Seq(
-          library.scalaPbRuntime,
-          library.akkaDiscovery,
-          library.akkaClusterTyped,
-          library.akkaPersistenceTyped,
-          library.akkaClusterShardingTyped,
-          library.akkaHttp,
-          library.akkaHttp2Support,
-          library.akkaHttpCirce,
-          library.akkaHttpSprayJson,
-          library.tapirSwaggerUiAkkaHttp,
-          library.akkaKryo,
-          library.akkaSlf4j,
-          library.akkaPersistenceQuery,
-          library.akkaPersistenceCassandra,
-          library.akkaStreamKafka,
-          library.akkaProjectionEventsourced,
-          library.akkaProjectionCassandra,
-          library.akkaProjectionKafka,
-          library.akkaDiscoveryKubernetes,
-          library.akkaManagementClusterBootstrap,
-          library.akkaManagementClusterHttp,
-          library.circeGeneric,
-          library.circeRefined,
-          library.catsCore,
-          library.logbackCore,
-          library.logbackClassic,
-          library.bcrypt,
-          library.pureconfig,
-          library.refinedPureconfig,
-          library.elastic4sClientAkka,
-          library.elastic4sCirce,
-          library.pauldijouJwtCirce,
-          library.kamonAkka,
-          library.kamonAkkaHttp,
-          library.kamonPrometheus,
-          library.kamonSystem,
-          library.chimney,
-          library.akkaHttpTestkit % Test,
-          library.akkaTestkit     % Test,
-          library.scalaTest       % Test
-        )
+        library.scalaPbRuntime,
+        library.akkaDiscovery,
+        library.akkaClusterTyped,
+        library.akkaPersistenceTyped,
+        library.akkaClusterShardingTyped,
+        library.akkaHttp,
+        library.akkaHttp2Support,
+        library.akkaHttpCirce,
+        library.akkaHttpSprayJson,
+        library.tapirSwaggerUiAkkaHttp,
+        library.akkaKryo,
+        library.akkaSlf4j,
+        library.akkaPersistenceQuery,
+        library.akkaPersistenceCassandra,
+        library.akkaStreamKafka,
+        library.akkaProjectionEventsourced,
+        library.akkaProjectionCassandra,
+        library.akkaProjectionKafka,
+        library.akkaDiscoveryKubernetes,
+        library.akkaManagementClusterBootstrap,
+        library.akkaManagementClusterHttp,
+        library.circeGeneric,
+        library.circeRefined,
+        library.catsCore,
+        library.logbackCore,
+        library.logbackClassic,
+        library.bcrypt,
+        library.pureconfig,
+        library.refinedPureconfig,
+        library.elastic4sClientAkka,
+        library.elastic4sCirce,
+        library.pauldijouJwtCirce,
+        library.kamonAkka,
+        library.kamonAkkaHttp,
+        library.kamonPrometheus,
+        library.kamonSystem,
+        library.chimney,
+        library.akkaHttpTestkit % Test,
+        library.akkaTestkit     % Test,
+        library.scalaTest       % Test
+      )
     )
     .aggregate(`user-api`)
     .dependsOn(`user-api`)
@@ -146,11 +144,11 @@ lazy val `user-bench` =
     .enablePlugins(GatlingPlugin)
     .settings(
       libraryDependencies ++= Seq(
-          library.randomDataGenerator,
-          library.gatlingCharts,
-          library.gatlingTest,
-          library.gatlingGrpc
-        )
+        library.randomDataGenerator,
+        library.gatlingCharts,
+        library.gatlingTest,
+        library.gatlingGrpc
+      )
     )
     .dependsOn(`user-api`)
 
@@ -162,7 +160,7 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.13"
+      val akka                     = "2.6.14"
       val akkaHttp                 = "10.2.4"
       val akkaHttpJson             = "1.36.0"
       val akkaPersistenceCassandra = "1.0.5"
@@ -177,17 +175,17 @@ lazy val library =
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.1.0"
       val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.21"
+      val refined                  = "0.9.23"
       val tapir                    = "0.17.19"
-      val cats                     = "2.4.2"
+      val cats                     = "2.5.0"
 
-      val kamonPrometheus = "2.1.13"
-      val kamonAkka       = "2.1.13"
-      val kamonAkkaHttp   = "2.1.13"
-      val kamonKanela     = "1.0.8"
+      val kamonPrometheus = "2.1.15"
+      val kamonAkka       = "2.1.15"
+      val kamonAkkaHttp   = "2.1.15"
+      val kamonKanela     = "1.0.9"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.6"
+      val scalaTest           = "3.2.7"
       val gatling             = "3.5.1"
       val gatlingGrpc         = "0.11.1"
     }
@@ -243,13 +241,13 @@ lazy val library =
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
     val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
-    val kamonKanelaAgent = "io.kamon" % "kanela-agent"          % Version.kamonKanela
+    val kamonKanelaAgent = "io.kamon"  % "kanela-agent"         % Version.kamonKanela
 
     val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
     val scalaPbRuntime     = "com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf"
 
-    val randomDataGenerator = "com.danielasfregola"   %% "random-data-generator"    % Version.randomDataGenerator
-    val scalaTest           = "org.scalatest"         %% "scalatest"                % Version.scalaTest
+    val randomDataGenerator = "com.danielasfregola"  %% "random-data-generator"     % Version.randomDataGenerator
+    val scalaTest           = "org.scalatest"        %% "scalatest"                 % Version.scalaTest
     val gatlingCharts       = "io.gatling.highcharts" % "gatling-charts-highcharts" % Version.gatling
     val gatlingTest         = "io.gatling"            % "gatling-test-framework"    % Version.gatling
     val gatlingGrpc         = "com.github.phisgr"     % "gatling-grpc"              % Version.gatlingGrpc
@@ -261,30 +259,30 @@ lazy val library =
 
 lazy val settings =
   commonSettings ++
-  gitSettings
+    gitSettings
 
 lazy val commonSettings =
   Seq(
     organization := "c",
     scalafmtOnCompile := true,
     licenses += ("Apache 2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
-    mappings.in(Compile, packageBin) += baseDirectory.in(ThisBuild).value / "LICENSE" -> "LICENSE",
+    Compile / packageBin / mappings += (ThisBuild / baseDirectory).value / "LICENSE" -> "LICENSE",
     scalacOptions ++= Seq(
-        "-unchecked",
-        "-deprecation",
-        "-language:_",
-        "-target:11",
-        "-encoding",
-        "UTF-8"
-      ),
+      "-unchecked",
+      "-deprecation",
+      "-language:_",
+      "-target:11",
+      "-encoding",
+      "UTF-8"
+    ),
     javacOptions ++= Seq(
-        "-source",
-        "11",
-        "-target",
-        "11"
-      ),
-    unmanagedSourceDirectories.in(Compile) := Seq(scalaSource.in(Compile).value),
-    unmanagedSourceDirectories.in(Test) := Seq(scalaSource.in(Test).value)
+      "-source",
+      "11",
+      "-target",
+      "11"
+    ),
+    Compile / unmanagedSourceDirectories := Seq((Compile / scalaSource).value),
+    Test / unmanagedSourceDirectories := Seq((Test / scalaSource).value)
   )
 
 lazy val gitSettings =
@@ -300,17 +298,17 @@ lazy val gitSettings =
 // TODO
 lazy val dockerSettings =
   Seq(
-    daemonUser.in(Docker) := "root",
-    maintainer.in(Docker) := "justcoon",
-//    version.in(Docker) := "latest",
+    Docker / daemonUser := "root",
+    Docker / maintainer := "justcoon",
+//  Docker /   version := "latest",
     dockerUpdateLatest := true,
     dockerBaseImage := "openjdk:11-jre",
     dockerExposedPorts := Vector(2552, 8558, 8000, 8010, 9080),
 //    dockerRepository := Some("justcoon"),
     dockerEntrypoint := Seq("/opt/docker/bin/user-svc"),
     dockerUpdateLatest := true,
-    daemonUser in Docker := "daemon",
-    daemonUserUid in Docker := None,
+    Docker / daemonUser := "daemon",
+    Docker / daemonUserUid := None,
     dockerChmodType := DockerChmodType.UserGroupWriteExecute,
     dockerCommands ++= Seq(Cmd("USER", "root"))
   )

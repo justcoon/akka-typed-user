@@ -170,8 +170,7 @@ object UserAggregate {
 
 }
 
-sealed class UserAggregate(departmentService: DepartmentService, addressValidationService: AddressValidationService[Future])(
-    implicit
+sealed class UserAggregate(departmentService: DepartmentService, addressValidationService: AddressValidationService[Future])(implicit
     initialApplier: InitialEventApplier[User, UserEntity.UserEvent],
     applier: EventApplier[User, UserEntity.UserEvent]
 ) extends BasicPersistentEntity[

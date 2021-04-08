@@ -9,8 +9,8 @@ import scala.concurrent.duration.FiniteDuration
 
 object KeepAlive {
 
-  def create[C](name: String, entityIds: Iterable[String], entityKey: EntityTypeKey[C], ping: C, keepAliveInterval: FiniteDuration)(
-      implicit system: ActorSystem[_]
+  def create[C](name: String, entityIds: Iterable[String], entityKey: EntityTypeKey[C], ping: C, keepAliveInterval: FiniteDuration)(implicit
+      system: ActorSystem[_]
   ): Unit =
     ClusterSingleton(system).init(
       SingletonActor(KeepAliveActor(entityIds, entityKey, ping, keepAliveInterval), s"KeepAlive-${name}")

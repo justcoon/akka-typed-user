@@ -69,8 +69,7 @@ abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <
 
 abstract class PersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: EntityEvent[ID]](
     entityName: String
-)(
-    implicit
+)(implicit
     initialProcessor: InitialCommandProcessor[C, E],
     processor: CommandProcessor[S, C, E],
     initialApplier: InitialEventApplier[S, E],

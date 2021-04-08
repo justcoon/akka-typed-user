@@ -61,8 +61,8 @@ object SearchRepository {
 class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: Decoder: ClassTag](
     indexName: String,
     elasticClient: ElasticClient
-)(
-    implicit ec: ExecutionContext
+)(implicit
+    ec: ExecutionContext
 ) extends Repository[Future, ID, E] {
 
   import com.sksamuel.elastic4s.ElasticDsl.{ search => searchIndex, _ }
@@ -79,10 +79,9 @@ class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: De
         indexInto(indexName).doc(value).id(id)
       }
       .map(_.isSuccess)
-      .recoverWith {
-        case e =>
-          logger.error("insert - {} - id: {} - error: {}", indexName, id, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("insert - {} - id: {} - error: {}", indexName, id, e.getMessage)
+        Future.failed(e)
       }
   }
 
@@ -95,10 +94,9 @@ class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: De
         updateById(indexName, id).doc(value)
       }
       .map(_.isSuccess)
-      .recoverWith {
-        case e =>
-          logger.error("update - {} - id: {} - error: {}", indexName, id, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("update - {} - id: {} - error: {}", indexName, id, e.getMessage)
+        Future.failed(e)
       }
   }
 
@@ -110,10 +108,9 @@ class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: De
         deleteById(indexName, idStr)
       }
       .map(_.isSuccess)
-      .recoverWith {
-        case e =>
-          logger.error("delete - {} - id: {} - error: {}", indexName, idStr, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("delete - {} - id: {} - error: {}", indexName, idStr, e.getMessage)
+        Future.failed(e)
       }
   }
 
@@ -131,10 +128,9 @@ class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: De
         else
           Option.empty
       )
-      .recoverWith {
-        case e =>
-          logger.error("find - {} - id: {} - error: {}", indexName, id, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("find - {} - id: {} - error: {}", indexName, id, e.getMessage)
+        Future.failed(e)
       }
   }
 
@@ -146,10 +142,9 @@ class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: De
         searchIndex(indexName).matchAllQuery()
       }
       .map(_.result.to[E])
-      .recoverWith {
-        case e =>
-          logger.error("findAll - {} - error: {}", indexName, e.getMessage)
-          Future.failed(e)
+      .recoverWith { case e =>
+        logger.error("findAll - {} - error: {}", indexName, e.getMessage)
+        Future.failed(e)
       }
   }
 }
@@ -158,8 +153,8 @@ class ESSearchRepository[E <: Repository.Entity[_]: Encoder: Decoder: ClassTag](
     indexName: String,
     suggestProperties: Seq[String],
     elasticClient: ElasticClient
-)(
-    implicit ec: ExecutionContext
+)(implicit
+    ec: ExecutionContext
 ) extends SearchRepository[Future, E] {
   import com.sksamuel.elastic4s.ElasticDsl.{ search => searchIndex, _ }
   import com.sksamuel.elastic4s.circe._
@@ -178,10 +173,9 @@ class ESSearchRepository[E <: Repository.Entity[_]: Encoder: Decoder: ClassTag](
   ): Future[Either[SearchRepository.SearchError, SearchRepository.PaginatedSequence[E]]] = {
 
     val q = query.map(QueryStringQuery(_)).getOrElse(MatchAllQuery())
-    val ss = sorts.map {
-      case SearchRepository.FieldSort(property, asc) =>
-        val o = if (asc) SortOrder.Asc else SortOrder.Desc
-        FieldSort(property, order = o)
+    val ss = sorts.map { case SearchRepository.FieldSort(property, asc) =>
+      val o = if (asc) SortOrder.Asc else SortOrder.Desc
+      FieldSort(property, order = o)
     }
 
     logger.debug(
@@ -205,18 +199,17 @@ class ESSearchRepository[E <: Repository.Entity[_]: Encoder: Decoder: ClassTag](
           Left(SearchRepository.SearchError(ElasticUtils.getReason(res.error)))
         }
       }
-      .recoverWith {
-        case e =>
-          logger.error(
-            "search - {} - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
-            indexName,
-            query.getOrElse("N/A"),
-            page,
-            pageSize,
-            sorts.mkString("[", ",", "]"),
-            e.getMessage
-          )
-          Future.successful(Left(SearchRepository.SearchError(e.getMessage)))
+      .recoverWith { case e =>
+        logger.error(
+          "search - {} - query: {}, page: {}, pageSize: {}, sorts: {} - error: {}",
+          indexName,
+          query.getOrElse("N/A"),
+          page,
+          pageSize,
+          sorts.mkString("[", ",", "]"),
+          e.getMessage
+        )
+        Future.successful(Left(SearchRepository.SearchError(e.getMessage)))
       }
   }
 
@@ -251,10 +244,9 @@ class ESSearchRepository[E <: Repository.Entity[_]: Encoder: Decoder: ClassTag](
           Left(SearchRepository.SuggestError(ElasticUtils.getReason(res.error)))
         }
       }
-      .recoverWith {
-        case e =>
-          logger.error("suggest - {} - query: {} - error: {}", indexName, query, e.getMessage)
-          Future.successful(Left(SearchRepository.SuggestError(e.getMessage)))
+      .recoverWith { case e =>
+        logger.error("suggest - {} - query: {} - error: {}", indexName, query, e.getMessage)
+        Future.successful(Left(SearchRepository.SuggestError(e.getMessage)))
       }
   }
 }

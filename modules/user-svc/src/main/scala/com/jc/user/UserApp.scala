@@ -51,10 +51,13 @@ object UserApp {
 
       // akka discovery
 
-      val listener = ctx.spawn(Behaviors.receive[ClusterEvent.MemberEvent] { (ctx, event) =>
-        ctx.log.info("cluster member event: {}", event)
-        Behaviors.same
-      }, "listener")
+      val listener = ctx.spawn(
+        Behaviors.receive[ClusterEvent.MemberEvent] { (ctx, event) =>
+          ctx.log.info("cluster member event: {}", event)
+          Behaviors.same
+        },
+        "listener"
+      )
 
       Cluster(sys).subscriptions ! Subscribe(listener, classOf[ClusterEvent.MemberEvent])
 
