@@ -14,6 +14,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import com.jc.auth.PdiJwtAuthenticator
 import com.jc.cqrs.offsetstore.CassandraProjectionOffsetStore
+import com.jc.logging.LogbackLoggingSystem
 import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
 import com.jc.user.domain.{ DepartmentService, SimpleAddressValidationService, UserService }
 import com.jc.user.service._
@@ -40,10 +41,11 @@ object UserApp {
       implicit val sharding   = ClusterSharding(sys)
       implicit val ec         = ctx.executionContext
       implicit val mat        = Materializer(ctx)
-      val shutdown            = CoordinatedShutdown(classicSys)
+      implicit val shutdown   = CoordinatedShutdown(classicSys)
 
       val appConfig = ConfigSource.fromConfig(sys.settings.config).loadOrThrow[AppConfig]
 
+      val loggingSystem = LogbackLoggingSystem()
       // log.info(sys.settings.toString)
 
       log.info("kamon - init")
@@ -103,19 +105,18 @@ object UserApp {
 
       log.info("rest api server - create")
       UserOpenApi
-        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, shutdown, appConfig.restApi)(
-          appConfig.restApi.repositoryTimeout,
-          ec,
-          mat,
-          classicSys
-        )
+        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, appConfig.restApi)
 
       log.info("grpc api server - create")
       UserGrpcApi
-        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, shutdown, appConfig.grpcApi)(
-          appConfig.grpcApi.repositoryTimeout,
-          ec,
-          classicSys
+        .server(
+          userService,
+          userRepository,
+          departmentService,
+          departmentRepository,
+          loggingSystem,
+          jwtAuthenticator,
+          appConfig.grpcApi
         )
 
       log.info("service up and running")

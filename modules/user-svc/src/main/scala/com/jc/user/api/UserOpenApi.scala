@@ -31,15 +31,20 @@ object UserOpenApi {
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
       jwtAuthenticator: JwtAuthenticator[String],
-      shutdown: CoordinatedShutdown,
       config: HttpApiConfig
-  )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem): Unit = {
+  )(implicit ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem, shutdown: CoordinatedShutdown): Unit = {
     import eu.timepit.refined.auto._
 
     val log = LoggerFactory.getLogger(this.getClass)
 
+    def isAuthenticated(headers: Seq[HttpHeader]) =
+      for {
+        header  <- headers.find(h => h.is(JwtAuthenticator.AuthHeader.toLowerCase))
+        subject <- jwtAuthenticator.authenticated(header.value)
+      } yield subject
+
     val userApiRoutes =
-      route(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator)(config.repositoryTimeout, ec, mat)
+      route(userService, userRepository, departmentService, departmentRepository, isAuthenticated)(config.repositoryTimeout, ec, mat)
 
     val docRoutes = docRoute()
 
@@ -75,10 +80,10 @@ object UserOpenApi {
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
-      jwtAuthenticator: JwtAuthenticator[String]
+      isAuthenticated: Seq[HttpHeader] => Option[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext, mat: akka.stream.Materializer): Route =
     UserResource.routes(
-      handler(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator),
+      handler(userService, userRepository, departmentService, departmentRepository, isAuthenticated),
       _ => Directives.extractRequest.map(req => req.headers)
     )
 
@@ -87,25 +92,20 @@ object UserOpenApi {
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
-      jwtAuthenticator: JwtAuthenticator[String]
+      isAuthenticated: Seq[HttpHeader] => Option[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext): UserHandler[Seq[HttpHeader]] = {
+
+    def authenticated[R](headers: Seq[HttpHeader])(fn: String => Future[R]): Future[R] = {
+      val maybeSubject = isAuthenticated(headers)
+      maybeSubject match {
+        case Some(subject) => fn(subject)
+        case None          => FastFuture.failed(IllegalRequestException(StatusCodes.Unauthorized))
+      }
+    }
 
     import io.scalaland.chimney.dsl._
 
     new UserHandler[Seq[HttpHeader]] {
-
-      def authenticated[R](headers: Seq[HttpHeader])(fn: String => Future[R]): Future[R] = {
-        val maybeSubject =
-          for {
-            header  <- headers.find(h => h.is(JwtAuthenticator.AuthHeader.toLowerCase))
-            subject <- jwtAuthenticator.authenticated(header.value)
-          } yield subject
-
-        maybeSubject match {
-          case Some(subject) => fn(subject)
-          case None          => FastFuture.failed(IllegalRequestException(StatusCodes.Unauthorized))
-        }
-      }
 
 //      override def createDepartment(respond: UserResource.CreateDepartmentResponse.type)(body: Department)(
 //          extracted: Seq[HttpHeader]

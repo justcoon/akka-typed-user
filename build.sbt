@@ -22,6 +22,11 @@ lazy val `akka-typed-user` =
 lazy val `core` =
   (project in file("modules/core"))
     .settings(settings)
+    .enablePlugins(AkkaGrpcPlugin)
+    .settings(
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      akkaGrpcCodeGeneratorSettings += "grpc"
+    )
     .settings(
       libraryDependencies ++= Seq(
         library.akkaDiscovery,
@@ -40,6 +45,7 @@ lazy val `core` =
         library.akkaProjectionCassandra,
         library.akkaProjectionKafka,
         library.circeGeneric,
+        library.circeGenericExtras,
         library.circeRefined,
         library.catsCore,
         library.logbackCore,
@@ -49,6 +55,7 @@ lazy val `core` =
         library.refinedPureconfig,
         library.pauldijouJwtCirce,
         library.chimney,
+        library.scalapbRuntimeGrpc,
         library.akkaHttpTestkit % Test,
         library.akkaTestkit     % Test,
         library.scalaTest       % Test
@@ -218,8 +225,9 @@ lazy val library =
 
     val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
 
-    val circeGeneric = "io.circe" %% "circe-generic" % Version.circe
-    val circeRefined = "io.circe" %% "circe-refined" % Version.circe
+    val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
+    val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
+    val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
 
     val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 

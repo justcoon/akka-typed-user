@@ -1,7 +1,7 @@
 package com.jc.user.api
 
 import akka.actor.{ ActorSystem, CoordinatedShutdown }
-import akka.grpc.scaladsl.Metadata
+import akka.grpc.scaladsl.{ Metadata, ServerReflection, ServiceHandler }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse }
 import akka.http.scaladsl.util.FastFuture
@@ -9,6 +9,9 @@ import akka.stream.scaladsl.Source
 import akka.util.Timeout
 import akka.{ Done, NotUsed }
 import com.jc.auth.JwtAuthenticator
+import com.jc.logging.LoggingSystem
+import com.jc.logging.api.LoggingSystemGrpcApi
+import com.jc.logging.proto.LoggingSystemApiService
 import com.jc.user.api.proto._
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentAggregate, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
@@ -28,19 +31,40 @@ object UserGrpcApi {
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
+      loggingSystem: LoggingSystem,
       jwtAuthenticator: JwtAuthenticator[String],
-      shutdown: CoordinatedShutdown,
       config: HttpApiConfig
-  )(implicit askTimeout: Timeout, ec: ExecutionContext, sys: ActorSystem): Unit = {
+  )(implicit ec: ExecutionContext, sys: ActorSystem, shutdown: CoordinatedShutdown): Unit = {
     import eu.timepit.refined.auto._
 
     val log = LoggerFactory.getLogger(this.getClass)
-    val grpcApiHandler =
-      handler(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator)(config.repositoryTimeout, ec, sys)
+
+    def isAuthenticatedUser(metadata: Metadata): Option[String] =
+      for {
+        header  <- metadata.getText(JwtAuthenticator.AuthHeader)
+        subject <- jwtAuthenticator.authenticated(header)
+      } yield subject
+
+    def isAuthenticatedLogging(metadata: Metadata): Boolean =
+      isAuthenticatedUser(metadata).isDefined
+
+    val userApiService =
+      partialHandler(userService, userRepository, departmentService, departmentRepository, isAuthenticatedUser)(
+        config.repositoryTimeout,
+        ec,
+        sys
+      )
+
+    val loggingSystemService = LoggingSystemGrpcApi.partialHandler(loggingSystem, isAuthenticatedLogging)
+
+    val reflectionService = ServerReflection.partial(List(UserApiService, LoggingSystemApiService))
+
+    val serviceHandlers: HttpRequest => Future[HttpResponse] =
+      ServiceHandler.concatOrNotFound(userApiService, loggingSystemService, reflectionService)
 
     Http(sys)
       .newServerAt(config.address, config.port)
-      .bind(grpcApiHandler)
+      .bind(serviceHandlers)
       .onComplete {
         case Success(binding) =>
           val address = binding.localAddress
@@ -64,38 +88,46 @@ object UserGrpcApi {
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
-      jwtAuthenticator: JwtAuthenticator[String]
+      isAuthenticated: Metadata => Option[String]
   )(implicit
       askTimeout: Timeout,
       ec: ExecutionContext,
       sys: ActorSystem
   ): HttpRequest => Future[HttpResponse] =
-    UserApiServicePowerApiHandler(service(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator))
+    UserApiServicePowerApiHandler(service(userService, userRepository, departmentService, departmentRepository, isAuthenticated))
+
+  def partialHandler(
+      userService: UserService,
+      userRepository: UserRepository[Future],
+      departmentService: DepartmentService,
+      departmentRepository: DepartmentRepository[Future],
+      isAuthenticated: Metadata => Option[String]
+  )(implicit
+      askTimeout: Timeout,
+      ec: ExecutionContext,
+      sys: ActorSystem
+  ): PartialFunction[HttpRequest, Future[HttpResponse]] =
+    UserApiServicePowerApiHandler.partial(service(userService, userRepository, departmentService, departmentRepository, isAuthenticated))
 
   def service(
       userService: UserService,
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
-      jwtAuthenticator: JwtAuthenticator[String]
+      isAuthenticated: Metadata => Option[String]
   )(implicit askTimeout: Timeout, ec: ExecutionContext): UserApiServicePowerApi = {
 
+    def authenticated[R](metadata: Metadata)(fn: String => Future[R]): Future[R] = {
+      val maybeSubject = isAuthenticated(metadata)
+
+      maybeSubject match {
+        case Some(subject) => fn(subject)
+        case None          => FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
+      }
+    }
     import io.scalaland.chimney.dsl._
 
     new UserApiServicePowerApi {
-
-      def authenticated[R](metadata: Metadata)(fn: String => Future[R]): Future[R] = {
-        val maybeSubject =
-          for {
-            header  <- metadata.getText(JwtAuthenticator.AuthHeader)
-            subject <- jwtAuthenticator.authenticated(header)
-          } yield subject
-
-        maybeSubject match {
-          case Some(subject) => fn(subject)
-          case None          => FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
-        }
-      }
 
       override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] = {
         import DepartmentEntity._
