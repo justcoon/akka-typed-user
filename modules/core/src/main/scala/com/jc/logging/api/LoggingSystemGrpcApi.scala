@@ -16,27 +16,26 @@ import com.jc.logging.proto.{
   LoggingSystemApiServicePowerApiHandler,
   SetLoggerConfigurationReq
 }
-import io.scalaland.chimney.Transformer
-import io.scalaland.chimney.dsl._
 
 import scala.concurrent.{ ExecutionContext, Future }
 
 object LoggingSystemGrpcApi {
 
-  val logLevelMapping: LoggingSystem.LogLevelMapping[LogLevel] = LoggingSystem.LogLevelMapping(
-    Map(
-      (LoggingSystem.LogLevel.TRACE, LogLevel.TRACE :: Nil),
-      (LoggingSystem.LogLevel.DEBUG, LogLevel.DEBUG :: Nil),
-      (LoggingSystem.LogLevel.INFO, LogLevel.INFO :: Nil),
-      (LoggingSystem.LogLevel.WARN, LogLevel.WARN :: Nil),
-      (LoggingSystem.LogLevel.ERROR, LogLevel.ERROR :: Nil),
-      (LoggingSystem.LogLevel.FATAL, LogLevel.FATAL :: Nil),
-      (LoggingSystem.LogLevel.OFF, LogLevel.OFF :: Nil)
+  /** using [[LoggingSystem.LogLevelMapping]] for api <-> logging system level mapping
+    *
+    * [[LogLevel.NONE]] is not in mapping, it is specially handled like: log level not defined
+    */
+  private val logLevelMapping: LoggingSystem.LogLevelMapping[LogLevel] = LoggingSystem.LogLevelMapping(
+    Seq(
+      (LoggingSystem.LogLevel.TRACE, LogLevel.TRACE),
+      (LoggingSystem.LogLevel.DEBUG, LogLevel.DEBUG),
+      (LoggingSystem.LogLevel.INFO, LogLevel.INFO),
+      (LoggingSystem.LogLevel.WARN, LogLevel.WARN),
+      (LoggingSystem.LogLevel.ERROR, LogLevel.ERROR),
+      (LoggingSystem.LogLevel.FATAL, LogLevel.FATAL),
+      (LoggingSystem.LogLevel.OFF, LogLevel.OFF)
     )
   )
-
-  implicit val toLoggerLevelTransformer: Transformer[LoggingSystem.LogLevel, LogLevel]   = src => logLevelMapping.toLogger(src)
-  implicit val fromLoggerLevelTransformer: Transformer[LogLevel, LoggingSystem.LogLevel] = src => logLevelMapping.fromLogger(src)
 
   def handler(
       loggingSystem: LoggingSystem,
@@ -66,26 +65,37 @@ object LoggingSystemGrpcApi {
         FastFuture.successful(fn())
       } else FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
 
+    def getSupportedLogLevels: Seq[LogLevel] =
+      LogLevel.NONE +: loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq
+
+    def toApiLoggerConfiguration(configuration: LoggingSystem.LoggerConfiguration): LoggerConfiguration =
+      LoggerConfiguration(
+        configuration.name,
+        logLevelMapping.toLogger(configuration.effectiveLevel),
+        configuration.configuredLevel.flatMap(logLevelMapping.toLogger.get).getOrElse(LogLevel.NONE)
+      )
+
     new LoggingSystemApiServicePowerApi {
+
       override def setLoggerConfiguration(in: SetLoggerConfigurationReq, metadata: Metadata): Future[LoggerConfigurationRes] =
         authenticated(metadata) { () =>
-          val res = loggingSystem.setLogLevel(in.name, logLevelMapping.fromLogger(in.level))
-          val cfg = if (res) {
-            loggingSystem.getLoggerConfiguration(in.name).map(_.transformInto[LoggerConfiguration])
+          val res = loggingSystem.setLogLevel(in.name, logLevelMapping.fromLogger.get(in.level))
+          val configuration = if (res) {
+            loggingSystem.getLoggerConfiguration(in.name).map(toApiLoggerConfiguration)
           } else None
-          LoggerConfigurationRes(cfg, loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq)
+          LoggerConfigurationRes(configuration, getSupportedLogLevels)
         }
 
       override def getLoggerConfiguration(in: GetLoggerConfigurationReq, metadata: Metadata): Future[LoggerConfigurationRes] =
         authenticated(metadata) { () =>
-          val cfg = loggingSystem.getLoggerConfiguration(in.name).map(_.transformInto[LoggerConfiguration])
-          LoggerConfigurationRes(cfg, loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq)
+          val configuration = loggingSystem.getLoggerConfiguration(in.name).map(toApiLoggerConfiguration)
+          LoggerConfigurationRes(configuration, getSupportedLogLevels)
         }
 
       override def getLoggerConfigurations(in: GetLoggerConfigurationsReq, metadata: Metadata): Future[LoggerConfigurationsRes] =
         authenticated(metadata) { () =>
-          val cfg = loggingSystem.getLoggerConfigurations.map(_.transformInto[LoggerConfiguration])
-          LoggerConfigurationsRes(cfg, loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq)
+          val configurations = loggingSystem.getLoggerConfigurations.map(toApiLoggerConfiguration)
+          LoggerConfigurationsRes(configurations, getSupportedLogLevels)
         }
     }
   }

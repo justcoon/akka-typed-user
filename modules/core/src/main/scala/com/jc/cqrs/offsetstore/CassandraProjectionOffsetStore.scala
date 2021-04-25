@@ -6,5 +6,5 @@ import com.jc.support.ClusterTask
 
 object CassandraProjectionOffsetStore {
   def init()(implicit system: ActorSystem[_]): Unit =
-    ClusterTask.createSingleton("CassandraProjectionOffsetStoreInitializer", () => CassandraProjection.createOffsetTableIfNotExists())
+    ClusterTask.createSingleton("CassandraProjectionOffsetStoreInitializer", () => CassandraProjection.createTablesIfNotExists())
 }

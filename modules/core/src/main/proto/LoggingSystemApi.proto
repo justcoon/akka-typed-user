@@ -12,19 +12,20 @@ option (scalapb.options) = {
 };
 
 enum LogLevel {
-    TRACE = 0;
-    DEBUG = 1;
-    INFO = 2;
-    WARN = 3;
-    ERROR = 4;
-    FATAL = 5;
-    OFF = 6;
+    NONE = 0; // log level not defined
+    TRACE = 1;
+    DEBUG = 2;
+    INFO = 3;
+    WARN = 4;
+    ERROR = 5;
+    FATAL = 6;
+    OFF = 7;
 }
 
 message LoggerConfiguration {
-    string name = 1 [(scalapb.field).no_box = false];
-    LogLevel configuredLevel = 2;
-    LogLevel effectiveLevel = 3;
+    string name = 1;
+    LogLevel effectiveLevel = 2;
+    LogLevel configuredLevel = 3;
 }
 
 message SetLoggerConfigurationReq {

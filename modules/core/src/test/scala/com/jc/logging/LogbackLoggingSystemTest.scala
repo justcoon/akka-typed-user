@@ -3,6 +3,7 @@ package com.jc.logging
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.slf4j.LoggerFactory
 
 class LogbackLoggingSystemTest extends AnyWordSpecLike with should.Matchers with BeforeAndAfterAll {
 
@@ -17,7 +18,7 @@ class LogbackLoggingSystemTest extends AnyWordSpecLike with should.Matchers with
     }
 
     "LoggerConfiguration json encode decode" in {
-      val cfg  = LoggingSystem.LoggerConfiguration("root", LoggingSystem.LogLevel.INFO, LoggingSystem.LogLevel.DEBUG)
+      val cfg  = LoggingSystem.LoggerConfiguration("root", LoggingSystem.LogLevel.INFO, Some(LoggingSystem.LogLevel.DEBUG))
       val json = cfg.asJson.noSpaces
       val res  = io.circe.parser.decode[LoggingSystem.LoggerConfiguration](json).toOption
       Some(cfg) shouldBe res
@@ -36,15 +37,35 @@ class LogbackLoggingSystemTest extends AnyWordSpecLike with should.Matchers with
     "getLoggerConfiguration" in {
       val cfg = loggingSystem.getLoggerConfiguration("com.jc")
 
-      cfg shouldBe Some(LoggingSystem.LoggerConfiguration("com.jc", LoggingSystem.LogLevel.DEBUG, LoggingSystem.LogLevel.DEBUG))
+      cfg shouldBe Some(LoggingSystem.LoggerConfiguration("com.jc", LoggingSystem.LogLevel.DEBUG, Some(LoggingSystem.LogLevel.DEBUG)))
     }
 
-    "setLoggerConfiguration" in {
-      val res = loggingSystem.setLogLevel("com.jc", LoggingSystem.LogLevel.INFO)
-      val cfg = loggingSystem.getLoggerConfiguration("com.jc")
+    "setLogLevel" in {
+      val res1 = loggingSystem.setLogLevel("com.jc", Some(LoggingSystem.LogLevel.INFO))
+      val cfg1 = loggingSystem.getLoggerConfiguration("com.jc")
 
-      res shouldBe true
-      cfg shouldBe Some(LoggingSystem.LoggerConfiguration("com.jc", LoggingSystem.LogLevel.INFO, LoggingSystem.LogLevel.INFO))
+      res1 shouldBe true
+      cfg1 shouldBe Some(LoggingSystem.LoggerConfiguration("com.jc", LoggingSystem.LogLevel.INFO, Some(LoggingSystem.LogLevel.INFO)))
+
+      val res2 = loggingSystem.setLogLevel("com.jc", None)
+      val cfg2 = loggingSystem.getLoggerConfiguration("com.jc")
+
+      res2 shouldBe true
+      cfg2 shouldBe Some(LoggingSystem.LoggerConfiguration("com.jc", LoggingSystem.LogLevel.INFO, None))
+
+      val res3 = loggingSystem.setLogLevel("xyz", None)
+      val cfg3 = loggingSystem.getLoggerConfiguration("xyz")
+
+      res3 shouldBe false
+      cfg3 shouldBe None
+
+      LoggerFactory.getLogger("xyz")
+
+      val res4 = loggingSystem.setLogLevel("xyz", None)
+      val cfg4 = loggingSystem.getLoggerConfiguration("xyz")
+
+      res4 shouldBe true
+      cfg4 shouldBe Some(LoggingSystem.LoggerConfiguration("xyz", LoggingSystem.LogLevel.INFO, None))
     }
 
     "getLoggerConfigurations" in {
