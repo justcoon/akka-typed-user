@@ -65,19 +65,19 @@ final class UserGrpcApiSimulation extends Simulation {
     )
 
   val registerUserSuccessfulCall = grpc("registerUser")
-    .rpc(com.jc.user.api.proto.UserApiServiceGrpc.METHOD_REGISTER_USER)
+    .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.registerUserDescriptor)
     .payload(registerUserPayload)
 
   val getDepartmentSuccessfulCall = grpc("getDepartment")
-    .rpc(com.jc.user.api.proto.UserApiServiceGrpc.METHOD_GET_DEPARTMENT)
+    .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.getDepartmentDescriptor)
     .payload(getDepartmentPayload)
 
   val searchUsersSuccessfulCall = grpc("searchUsers")
-    .rpc(com.jc.user.api.proto.UserApiServiceGrpc.METHOD_SEARCH_USERS)
+    .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.searchUsersDescriptor)
     .payload(searchUserPayload)
 
   val suggestUsersSuccessfulCall = grpc("suggestUsers")
-    .rpc(com.jc.user.api.proto.UserApiServiceGrpc.METHOD_SUGGEST_USERS)
+    .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.suggestUsersDescriptor)
     .payload(suggestUserPayload)
 
   val s = scenario("UserGrpcApi")

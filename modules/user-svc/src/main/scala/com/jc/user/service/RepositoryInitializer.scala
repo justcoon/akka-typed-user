@@ -3,7 +3,7 @@ package com.jc.user.service
 import akka.actor.typed.ActorSystem
 import com.jc.support.ClusterTask
 import com.sksamuel.elastic4s.ElasticClient
-import com.sksamuel.elastic4s.requests.mappings.FieldDefinition
+import com.sksamuel.elastic4s.fields.ElasticField
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.{ ExecutionContext, Future }
@@ -20,7 +20,7 @@ object RepositoryInitializer {
   }
 }
 
-final class ESRepositoryInitializer(indexName: String, fields: Seq[FieldDefinition], elasticClient: ElasticClient)(implicit
+final class ESRepositoryInitializer(indexName: String, fields: Seq[ElasticField], elasticClient: ElasticClient)(implicit
     ec: ExecutionContext
 ) extends RepositoryInitializer[Future] {
 
@@ -45,7 +45,7 @@ final class ESRepositoryInitializer(indexName: String, fields: Seq[FieldDefiniti
           logger.debug("init: {} - updating ...", indexName)
           elasticClient
             .execute {
-              putMapping(indexName).fields(fields)
+              putMapping(indexName).properties(fields)
             }
             .map(r => r.result.acknowledged)
         }

@@ -24,8 +24,7 @@ lazy val `core` =
     .settings(settings)
     .enablePlugins(AkkaGrpcPlugin)
     .settings(
-      akkaGrpcCodeGeneratorSettings += "server_power_apis",
-      akkaGrpcCodeGeneratorSettings += "grpc"
+      akkaGrpcCodeGeneratorSettings += "server_power_apis"
     )
     .settings(
       libraryDependencies ++= Seq(
@@ -150,6 +149,7 @@ lazy val `user-bench` =
     .settings(settings)
     .enablePlugins(GatlingPlugin)
     .settings(
+      dependencyOverrides += library.scalapbRuntimeGrpc, // gatlig grpc issue
       libraryDependencies ++= Seq(
         library.randomDataGenerator,
         library.gatlingCharts,
@@ -174,15 +174,15 @@ lazy val library =
       val akkaStreamKafka          = "2.1.0"
       val akkaProjection           = "1.2.1"
       val akkaManagement           = "1.1.0"
-      val circe                    = "0.13.0"
+      val circe                    = "0.14.0"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.12.0"
+      val elastic4s                = "7.12.2"
       val pureconfig               = "0.15.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.2.0"
       val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.25"
+      val refined                  = "0.9.26"
       val tapir                    = "0.17.19"
       val cats                     = "2.6.1"
 
