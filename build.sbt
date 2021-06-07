@@ -1,7 +1,9 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
 
-Scope.Global / scalaVersion := "2.13.6"
+//Scope.Global / scalaVersion := "2.13.6"
+Scope.Global / scalaVersion := "3.0.0"
+Scope.Global / crossScalaVersions ++= Seq("2.13.6", "3.0.0")
 
 // *****************************************************************************
 // Projects
@@ -174,7 +176,7 @@ lazy val library =
       val akkaStreamKafka          = "2.1.0"
       val akkaProjection           = "1.2.1"
       val akkaManagement           = "1.1.0"
-      val circe                    = "0.14.0"
+      val circe                    = "0.14.1"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
       val elastic4s                = "7.12.2"
@@ -186,10 +188,10 @@ lazy val library =
       val tapir                    = "0.17.19"
       val cats                     = "2.6.1"
 
-      val kamonPrometheus = "2.1.18"
-      val kamonAkka       = "2.1.18"
-      val kamonAkkaHttp   = "2.1.18"
-      val kamonKanela     = "1.0.9"
+      val kamonPrometheus = "2.2.0"
+      val kamonAkka       = "2.2.0"
+      val kamonAkkaHttp   = "2.2.0"
+      val kamonKanela     = "1.0.11"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.9"
@@ -197,51 +199,57 @@ lazy val library =
       val gatlingGrpc         = "0.11.1"
     }
 
-    val akkaDiscoveryKubernetes        = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % Version.akkaManagement
-    val akkaManagementClusterBootstrap = "com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % Version.akkaManagement
-    val akkaManagementClusterHttp      = "com.lightbend.akka.management" %% "akka-management-cluster-http"      % Version.akkaManagement
+    val akkaDiscoveryKubernetes =
+      ("com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
+    val akkaManagementClusterBootstrap =
+      ("com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
+    val akkaManagementClusterHttp =
+      ("com.lightbend.akka.management" %% "akka-management-cluster-http" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
 
-    val akkaPersistenceQuery     = "com.typesafe.akka" %% "akka-persistence-query"     % Version.akka
-    val akkaPersistenceCassandra = "com.typesafe.akka" %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra
-    val akkaDiscovery            = "com.typesafe.akka" %% "akka-discovery"             % Version.akka
+    val akkaPersistenceQuery = ("com.typesafe.akka" %% "akka-persistence-query" % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaPersistenceCassandra =
+      ("com.typesafe.akka" %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra).cross(CrossVersion.for3Use2_13)
+    val akkaDiscovery = ("com.typesafe.akka" %% "akka-discovery" % Version.akka).cross(CrossVersion.for3Use2_13)
 
-    val akkaClusterTyped         = "com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka
-    val akkaPersistenceTyped     = "com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka
-    val akkaClusterShardingTyped = "com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka
+    val akkaClusterTyped         = ("com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaPersistenceTyped     = ("com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaClusterShardingTyped = ("com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka).cross(CrossVersion.for3Use2_13)
 
-    val akkaProjectionCassandra    = "com.lightbend.akka" %% "akka-projection-cassandra"    % Version.akkaProjection
-    val akkaProjectionEventsourced = "com.lightbend.akka" %% "akka-projection-eventsourced" % Version.akkaProjection
-    val akkaProjectionKafka        = "com.lightbend.akka" %% "akka-projection-kafka"        % Version.akkaProjection
+    val akkaProjectionCassandra =
+      ("com.lightbend.akka" %% "akka-projection-cassandra" % Version.akkaProjection).cross(CrossVersion.for3Use2_13)
+    val akkaProjectionEventsourced =
+      ("com.lightbend.akka" %% "akka-projection-eventsourced" % Version.akkaProjection).cross(CrossVersion.for3Use2_13)
+    val akkaProjectionKafka = ("com.lightbend.akka" %% "akka-projection-kafka" % Version.akkaProjection).cross(CrossVersion.for3Use2_13)
 
-    val akkaKryo          = "io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo
-    val akkaHttp          = "com.typesafe.akka" %% "akka-http"               % Version.akkaHttp
-    val akkaHttp2Support  = "com.typesafe.akka" %% "akka-http2-support"      % Version.akkaHttp
-    val akkaHttpSprayJson = "com.typesafe.akka" %% "akka-http-spray-json"    % Version.akkaHttp
-    val akkaHttpCirce     = "de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson
-    val akkaHttpTestkit   = "com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp
-    val akkaSlf4j         = "com.typesafe.akka" %% "akka-slf4j"              % Version.akka
+    val akkaKryo          = ("io.altoo"          %% "akka-kryo-serialization" % Version.akkaKryo).cross(CrossVersion.for3Use2_13)
+    val akkaHttp          = ("com.typesafe.akka" %% "akka-http"               % Version.akkaHttp).cross(CrossVersion.for3Use2_13)
+    val akkaHttp2Support  = ("com.typesafe.akka" %% "akka-http2-support"      % Version.akkaHttp).cross(CrossVersion.for3Use2_13)
+    val akkaHttpSprayJson = ("com.typesafe.akka" %% "akka-http-spray-json"    % Version.akkaHttp).cross(CrossVersion.for3Use2_13)
+    val akkaHttpCirce     = ("de.heikoseeberger" %% "akka-http-circe"         % Version.akkaHttpJson).cross(CrossVersion.for3Use2_13)
+    val akkaHttpTestkit   = ("com.typesafe.akka" %% "akka-http-testkit"       % Version.akkaHttp).cross(CrossVersion.for3Use2_13)
+    val akkaSlf4j         = ("com.typesafe.akka" %% "akka-slf4j"              % Version.akka).cross(CrossVersion.for3Use2_13)
 
-    val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
+    val akkaStreamKafka = ("com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka).cross(CrossVersion.for3Use2_13)
 
-    val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
+    val akkaTestkit = ("com.typesafe.akka" %% "akka-testkit" % Version.akka).cross(CrossVersion.for3Use2_13)
 
-    val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
-    val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
-    val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
+    val circeGeneric       = ("io.circe" %% "circe-generic"        % Version.circe).cross(CrossVersion.for3Use2_13)
+    val circeGenericExtras = ("io.circe" %% "circe-generic-extras" % Version.circe).cross(CrossVersion.for3Use2_13)
+    val circeRefined       = ("io.circe" %% "circe-refined"        % Version.circe).cross(CrossVersion.for3Use2_13)
 
     val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 
     val logbackCore    = "ch.qos.logback" % "logback-core"    % Version.logback
     val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback
 
-    val bcrypt              = "com.github.t3hnar"      %% "scala-bcrypt"          % Version.bcrypt
+    val bcrypt              = ("com.github.t3hnar"      %% "scala-bcrypt"          % Version.bcrypt).cross(CrossVersion.for3Use2_13)
     val elastic4sClientAkka = "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % Version.elastic4s
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
     val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
-    val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
-    val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
-    val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
-    val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
+    val pureconfig          = ("com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig).cross(CrossVersion.for3Use2_13)
+    val refinedPureconfig   = ("eu.timepit"             %% "refined-pureconfig"    % Version.refined).cross(CrossVersion.for3Use2_13)
+    val pauldijouJwtCirce   = ("com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt).cross(CrossVersion.for3Use2_13)
+    val chimney             = ("io.scalaland"           %% "chimney"               % Version.chimney).cross(CrossVersion.for3Use2_13)
 
     val tapirSwaggerUiAkkaHttp = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % Version.tapir
 
