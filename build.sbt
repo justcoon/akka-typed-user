@@ -174,7 +174,7 @@ lazy val library =
       val akkaStreamKafka          = "2.1.0"
       val akkaProjection           = "1.2.1"
       val akkaManagement           = "1.1.0"
-      val circe                    = "0.14.0"
+      val circe                    = "0.14.1"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
       val elastic4s                = "7.12.2"
@@ -186,10 +186,10 @@ lazy val library =
       val tapir                    = "0.17.19"
       val cats                     = "2.6.1"
 
-      val kamonPrometheus = "2.1.18"
-      val kamonAkka       = "2.1.18"
-      val kamonAkkaHttp   = "2.1.18"
-      val kamonKanela     = "1.0.9"
+      val kamonPrometheus = "2.2.0"
+      val kamonAkka       = "2.2.0"
+      val kamonAkkaHttp   = "2.2.0"
+      val kamonKanela     = "1.0.11"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.9"
