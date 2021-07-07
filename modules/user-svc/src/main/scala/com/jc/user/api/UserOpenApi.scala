@@ -131,7 +131,7 @@ object UserOpenApi {
 //          extracted: Seq[HttpHeader]
 //      ): Future[UserResource.DeleteDepartmentResponse] = ???
 
-      override def getDepartment(respond: UserResource.GetDepartmentResponse.type)(id: String)(
+      override def getDepartment(respond: UserResource.GetDepartmentResponse.type)(id: com.jc.user.domain.DepartmentEntity.DepartmentId)(
           extracted: Seq[HttpHeader]
       ): Future[UserResource.GetDepartmentResponse] = {
         import DepartmentEntity._
@@ -176,21 +176,20 @@ object UserOpenApi {
 
       override def getUser(
           respond: UserResource.GetUserResponse.type
-      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.GetUserResponse] = {
-        import UserEntity._
-        userRepository.find(id.asUserId).map {
+      )(id: com.jc.user.domain.UserEntity.UserId)(extracted: Seq[HttpHeader]): Future[UserResource.GetUserResponse] =
+        userRepository.find(id).map {
           case Some(r) =>
             UserResource.GetUserResponseOK(r.transformInto[User])
           case _ => UserResource.GetUserResponseNotFound
         }
-      }
 
       override def updateUserAddress(
           respond: UserResource.UpdateUserAddressResponse.type
-      )(id: String, body: Address)(extracted: Seq[HttpHeader]): Future[UserResource.UpdateUserAddressResponse] =
+      )(id: com.jc.user.domain.UserEntity.UserId, body: Address)(
+          extracted: Seq[HttpHeader]
+      ): Future[UserResource.UpdateUserAddressResponse] =
         authenticated(extracted) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserAddressCommand(id.asUserId, Some(body.transformInto[proto.Address]))
+          val cmd = UserAggregate.ChangeUserAddressCommand(id, Some(body.transformInto[proto.Address]))
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserAddressChangedReply => UserResource.UpdateUserAddressResponseOK(reply.entityId)
             case reply: UserAggregate.UserAddressChangedFailedReply =>
@@ -201,10 +200,9 @@ object UserOpenApi {
 
       override def deleteUserAddress(
           respond: UserResource.DeleteUserAddressResponse.type
-      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserAddressResponse] =
+      )(id: com.jc.user.domain.UserEntity.UserId)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserAddressResponse] =
         authenticated(extracted) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserAddressCommand(id.asUserId, None)
+          val cmd = UserAggregate.ChangeUserAddressCommand(id, None)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserAddressChangedReply => UserResource.DeleteUserAddressResponseOK(reply.entityId)
             case reply: UserAggregate.UserAddressChangedFailedReply =>
@@ -215,10 +213,9 @@ object UserOpenApi {
 
       override def deleteUser(
           respond: UserResource.DeleteUserResponse.type
-      )(id: String)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
+      )(id: com.jc.user.domain.UserEntity.UserId)(extracted: Seq[HttpHeader]): Future[UserResource.DeleteUserResponse] =
         authenticated(extracted) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.RemoveUserCommand(id.asUserId)
+          val cmd = UserAggregate.RemoveUserCommand(id)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserRemovedReply => UserResource.DeleteUserResponseOK(reply.entityId)
             case _: UserAggregate.UserNotExistsReply   => UserResource.DeleteUserResponseNotFound("User not exists")

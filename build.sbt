@@ -72,6 +72,7 @@ lazy val `user-api` =
         ScalaServer(
           file(s"${baseDirectory.value}/src/main/openapi/UserOpenApi.yaml"),
           pkg = "com.jc.user.api.openapi",
+          imports = List("com.jc.user.domain.circe._"),
           tracing = false,
           customExtraction = true
         )
@@ -167,28 +168,29 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.14"
+      val akka                     = "2.6.15"
       val akkaHttp                 = "10.2.4"
       val akkaHttpJson             = "1.36.0"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.0"
       val akkaProjection           = "1.2.1"
-      val akkaManagement           = "1.1.0"
+      val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
       val logback                  = "1.2.3"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.12.2"
-      val pureconfig               = "0.15.0"
+      val elastic4s                = "7.12.3"
+      val pureconfig               = "0.16.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.2.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.26"
-      val tapir                    = "0.17.19"
+      val tapir                    = "0.17.20"
       val cats                     = "2.6.1"
 
-      val kamonPrometheus = "2.2.0"
-      val kamonAkka       = "2.2.0"
-      val kamonAkkaHttp   = "2.2.0"
+      val kamon           = "2.2.2"
+      val kamonPrometheus = kamon
+      val kamonAkka       = kamon
+      val kamonAkkaHttp   = kamon
       val kamonKanela     = "1.0.11"
 
       val randomDataGenerator = "2.9"
