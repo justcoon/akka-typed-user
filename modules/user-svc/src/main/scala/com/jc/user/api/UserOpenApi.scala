@@ -8,7 +8,15 @@ import akka.http.scaladsl.server.{ Directives, Route }
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
 import com.jc.auth.JwtAuthenticator
-import com.jc.user.api.openapi.definitions.{ Address, Department, PropertySuggestion, User, UserSearchResponse, UserSuggestResponse }
+import com.jc.user.api.openapi.definitions.{
+  Address,
+  CreateUser,
+  Department,
+  PropertySuggestion,
+  User,
+  UserSearchResponse,
+  UserSuggestResponse
+}
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
@@ -149,10 +157,10 @@ object UserOpenApi {
 
       override def createUser(
           respond: UserResource.CreateUserResponse.type
-      )(body: User)(extracted: Seq[HttpHeader]): Future[UserResource.CreateUserResponse] = {
+      )(body: CreateUser)(extracted: Seq[HttpHeader]): Future[UserResource.CreateUserResponse] = {
         import UserEntity._
         import com.jc.user.domain.DepartmentEntity._
-        val id = body.id.getOrElse(body.username).asUserId
+        val id = body.id.getOrElse(body.username.asUserId)
         val cmd = body
           .into[UserAggregate.CreateUserCommand]
           .withFieldConst(_.entityId, id)

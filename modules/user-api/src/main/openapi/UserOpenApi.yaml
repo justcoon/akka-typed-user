@@ -188,7 +188,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/CreateUser'
         description: Created user object
       security:
         - bearerAuth: []
@@ -502,6 +502,30 @@ components:
         - id
         - name
         - description
+    CreateUser:
+      properties:
+        id:
+          type: string
+          example: i10
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+        username:
+          type: string
+          example: theUser
+        email:
+          type: string
+          example: john@email.com
+        pass:
+          type: string
+          example: p12345
+        address:
+          $ref: '#/components/schemas/Address'
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
+      type: object
+      required:
+        - username
+        - email
+        - pass
     User:
       properties:
         id:
@@ -523,6 +547,7 @@ components:
           $ref: '#/components/schemas/DepartmentRef'
       type: object
       required:
+        - id
         - username
         - email
         - pass

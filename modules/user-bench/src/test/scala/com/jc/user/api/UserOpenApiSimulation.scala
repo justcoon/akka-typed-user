@@ -7,7 +7,7 @@ import io.gatling.http.Predef.http
 import io.gatling.http.protocol.HttpProtocolBuilder
 import io.gatling.http.request.builder.HttpRequestBuilder
 import pureconfig.ConfigSource
-import com.jc.user.api.openapi.definitions.{ DepartmentRef, User }
+import com.jc.user.api.openapi.definitions.{ CreateUser, DepartmentRef }
 import io.circe.syntax._
 
 import scala.util.Random
@@ -15,7 +15,7 @@ import scala.util.Random
 final class UserOpenApiSimulation extends Simulation {
 
   import Feeders._
-
+  import com.jc.user.domain.DepartmentEntity._
   val config    = ConfigFactory.load
   val apiConfig = ConfigSource.fromConfig(config.getConfig("rest-api")).loadOrThrow[HttpApiConfig]
 
@@ -30,7 +30,7 @@ final class UserOpenApiSimulation extends Simulation {
     val deps  = List("d1", "d2", "d3", "d4")
     val name  = Random.alphanumeric.take(5).mkString
     val pass  = Random.alphanumeric.take(5).mkString
-    val depId = deps(Random.nextInt(deps.length))
+    val depId = deps(Random.nextInt(deps.length)).asDepartmentId
 
     Map("username" -> name, "email" -> (name + "@test.com"), "pass" -> pass, "departmentId" -> depId)
   }
@@ -39,9 +39,9 @@ final class UserOpenApiSimulation extends Simulation {
     val username = s.attributes.getOrElse("username", "").toString
     val email    = s.attributes.getOrElse("email", "").toString
     val pass     = s.attributes.getOrElse("pass", "").toString
-    val depId    = s.attributes.getOrElse("departmentId", "").toString
+    val depId    = s.attributes.getOrElse("departmentId", "").toString.asDepartmentId
 
-    val user = User(None, username, email, pass, address = None, department = Some(DepartmentRef(depId)))
+    val user = CreateUser(None, username, email, pass, address = None, department = Some(DepartmentRef(depId)))
     user.asJson.noSpaces
   }
 

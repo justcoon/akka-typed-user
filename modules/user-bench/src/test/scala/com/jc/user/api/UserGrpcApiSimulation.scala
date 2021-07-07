@@ -15,7 +15,7 @@ import scala.util.Random
 final class UserGrpcApiSimulation extends Simulation {
 
   import Feeders._
-
+  import com.jc.user.domain.DepartmentEntity._
   val config    = ConfigFactory.load
   val apiConfig = ConfigSource.fromConfig(config.getConfig("grpc-api")).loadOrThrow[HttpApiConfig]
 
@@ -49,7 +49,7 @@ final class UserGrpcApiSimulation extends Simulation {
       _.department :~ $("department")
     )
 
-  val getDepartmentPayload: Expression[GetDepartmentReq] = GetDepartmentReq(id = "d1")
+  val getDepartmentPayload: Expression[GetDepartmentReq] = GetDepartmentReq(id = "d1".asDepartmentId)
     .updateExpr(
       _.id :~ $("id")
     )
