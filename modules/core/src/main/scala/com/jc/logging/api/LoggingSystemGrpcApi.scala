@@ -22,8 +22,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 object LoggingSystemGrpcApi {
 
   /** using [[LoggingSystem.LogLevelMapping]] for api <-> logging system level mapping
-    *
-    * [[LogLevel.NONE]] is not in mapping, it is specially handled like: log level not defined
     */
   private val logLevelMapping: LoggingSystem.LogLevelMapping[LogLevel] = LoggingSystem.LogLevelMapping(
     Seq(
@@ -66,20 +64,20 @@ object LoggingSystemGrpcApi {
       } else FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
 
     def getSupportedLogLevels: Seq[LogLevel] =
-      LogLevel.NONE +: loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq
+      loggingSystem.getSupportedLogLevels.map(logLevelMapping.toLogger).toSeq
 
     def toApiLoggerConfiguration(configuration: LoggingSystem.LoggerConfiguration): LoggerConfiguration =
       LoggerConfiguration(
         configuration.name,
         logLevelMapping.toLogger(configuration.effectiveLevel),
-        configuration.configuredLevel.flatMap(logLevelMapping.toLogger.get).getOrElse(LogLevel.NONE)
+        configuration.configuredLevel.flatMap(logLevelMapping.toLogger.get)
       )
 
     new LoggingSystemApiServicePowerApi {
 
       override def setLoggerConfiguration(in: SetLoggerConfigurationReq, metadata: Metadata): Future[LoggerConfigurationRes] =
         authenticated(metadata) { () =>
-          val res = loggingSystem.setLogLevel(in.name, logLevelMapping.fromLogger.get(in.level))
+          val res = loggingSystem.setLogLevel(in.name, in.level.flatMap(logLevelMapping.fromLogger.get))
           val configuration = if (res) {
             loggingSystem.getLoggerConfiguration(in.name).map(toApiLoggerConfiguration)
           } else None
