@@ -136,6 +136,7 @@ lazy val `user-svc` =
         library.kamonAkkaHttp,
         library.kamonPrometheus,
         library.kamonSystem,
+        library.kamonCassandra,
         library.chimney,
         library.akkaHttpTestkit % Test,
         library.akkaTestkit     % Test,
@@ -178,7 +179,7 @@ lazy val library =
       val circe                    = "0.14.1"
       val logback                  = "1.2.5"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.12.3"
+      val elastic4s                = "7.13.0"
       val pureconfig               = "0.16.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.2.0"
@@ -251,6 +252,7 @@ lazy val library =
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
     val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
+    val kamonCassandra        = "io.kamon" %% "kamon-cassandra"           % Version.kamon
     val kamonKanelaAgent = "io.kamon"  % "kanela-agent"         % Version.kamonKanela
 
     val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
