@@ -1,3 +1,5 @@
+TODO how-to
+
 https://www.lightbend.com/blog/how-to-distribute-application-state-with-akka-cluster-part-3-kubernetes-monitoring
 https://github.com/michael-read/akka-typed-distributed-state-blog
 
