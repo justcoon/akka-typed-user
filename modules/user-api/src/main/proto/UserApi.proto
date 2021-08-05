@@ -8,19 +8,19 @@ package com.jc.user.api.proto;
 
 option (scalapb.options) = {
   package_name: "com.jc.user.api.proto"
-//  import: "com.jc.user.api.proto._"
+  import: "com.jc.user.domain.proto._"
   flat_package: true
 };
 
 
 message CreateDepartmentReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
     string name = 2;
     string description = 3;
 }
 
 message CreateDepartmentRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -28,13 +28,13 @@ message CreateDepartmentRes {
 }
 
 message UpdateDepartmentReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
     string name = 2;
     string description = 3;
 }
 
 message UpdateDepartmentRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -42,11 +42,11 @@ message UpdateDepartmentRes {
 }
 
 message RemoveDepartmentReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
 }
 
 message RemoveDepartmentRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -54,7 +54,7 @@ message RemoveDepartmentRes {
 }
 
 message GetDepartmentReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.DepartmentEntity.DepartmentId"];
 }
 
 message GetDepartmentRes {
@@ -77,7 +77,7 @@ message RegisterUserReq {
 }
 
 message RegisterUserRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -85,11 +85,11 @@ message RegisterUserRes {
 }
 
 message RemoveUserReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
 }
 
 message RemoveUserRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -97,12 +97,12 @@ message RemoveUserRes {
 }
 
 message UpdateUserPasswordReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     string pass = 2;
 }
 
 message UpdateUserPasswordRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -110,12 +110,12 @@ message UpdateUserPasswordRes {
 }
 
 message UpdateUserAddressReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     com.jc.user.domain.proto.Address address = 2;
 }
 
 message UpdateUserAddressRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -123,12 +123,12 @@ message UpdateUserAddressRes {
 }
 
 message UpdateUserEmailReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     string email = 2;
 }
 
 message UpdateUserEmailRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -136,12 +136,12 @@ message UpdateUserEmailRes {
 }
 
 message UpdateUserDepartmentReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     com.jc.user.domain.proto.DepartmentRef department = 2;
 }
 
 message UpdateUserDepartmentRes {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
     oneof result {
         string success = 2;
         string failure = 3;
@@ -149,7 +149,7 @@ message UpdateUserDepartmentRes {
 }
 
 message GetUserReq {
-    string id = 1;
+    string id = 1 [(scalapb.field).type = "com.jc.user.domain.UserEntity.UserId"];
 }
 
 message GetUserRes {

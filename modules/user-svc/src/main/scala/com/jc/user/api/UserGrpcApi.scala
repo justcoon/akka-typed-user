@@ -130,8 +130,7 @@ object UserGrpcApi {
     new UserApiServicePowerApi {
 
       override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] = {
-        import DepartmentEntity._
-        val id  = in.id.asDepartmentId
+        val id  = in.id
         val cmd = in.into[DepartmentAggregate.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
         departmentService.sendCommand(cmd).map {
           case reply: DepartmentAggregate.DepartmentCreatedReply =>
@@ -144,8 +143,7 @@ object UserGrpcApi {
       }
 
       override def updateDepartment(in: UpdateDepartmentReq, metadata: Metadata): Future[UpdateDepartmentRes] = {
-        import DepartmentEntity._
-        val id  = in.id.asDepartmentId
+        val id  = in.id
         val cmd = in.into[DepartmentAggregate.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
         departmentService.sendCommand(cmd).map {
           case reply: DepartmentAggregate.DepartmentUpdatedReply =>
@@ -155,10 +153,8 @@ object UserGrpcApi {
         }
       }
 
-      override def getDepartment(in: GetDepartmentReq, metadata: Metadata): Future[GetDepartmentRes] = {
-        import DepartmentEntity._
-        departmentRepository.find(in.id.asDepartmentId).map(r => GetDepartmentRes(r.map(_.transformInto[proto.Department])))
-      }
+      override def getDepartment(in: GetDepartmentReq, metadata: Metadata): Future[GetDepartmentRes] =
+        departmentRepository.find(in.id).map(r => GetDepartmentRes(r.map(_.transformInto[proto.Department])))
 
       override def getDepartments(in: GetDepartmentsReq, metadata: Metadata): Future[GetDepartmentsRes] =
         departmentRepository.findAll().map(r => GetDepartmentsRes(r.map(_.transformInto[proto.Department])))
@@ -179,8 +175,7 @@ object UserGrpcApi {
 
       override def removeUser(in: RemoveUserReq, metadata: Metadata): Future[RemoveUserRes] =
         authenticated(metadata) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.RemoveUserCommand(in.id.asUserId)
+          val cmd = UserAggregate.RemoveUserCommand(in.id)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserRemovedReply =>
               RemoveUserRes(reply.entityId, RemoveUserRes.Result.Success("User removed"))
@@ -191,8 +186,7 @@ object UserGrpcApi {
 
       override def updateUserEmail(in: UpdateUserEmailReq, metadata: Metadata): Future[UpdateUserEmailRes] =
         authenticated(metadata) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserEmailCommand(in.id.asUserId, in.email)
+          val cmd = UserAggregate.ChangeUserEmailCommand(in.id, in.email)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserEmailChangedReply =>
               UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Success("User email updated"))
@@ -204,7 +198,7 @@ object UserGrpcApi {
       override def updateUserPassword(in: UpdateUserPasswordReq, metadata: Metadata): Future[UpdateUserPasswordRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserAggregate.ChangeUserPasswordCommand(in.id.asUserId, in.pass)
+          val cmd = UserAggregate.ChangeUserPasswordCommand(in.id, in.pass)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserPasswordChangedReply =>
               UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Success("User password updated"))
@@ -216,7 +210,7 @@ object UserGrpcApi {
       override def updateUserAddress(in: UpdateUserAddressReq, metadata: Metadata): Future[UpdateUserAddressRes] =
         authenticated(metadata) { _ =>
           import UserEntity._
-          val cmd = UserAggregate.ChangeUserAddressCommand(in.id.asUserId, in.address)
+          val cmd = UserAggregate.ChangeUserAddressCommand(in.id, in.address)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserAddressChangedReply =>
               UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Success("User address updated"))
@@ -229,8 +223,7 @@ object UserGrpcApi {
 
       override def updateUserDepartment(in: UpdateUserDepartmentReq, metadata: Metadata): Future[UpdateUserDepartmentRes] =
         authenticated(metadata) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserDepartmentCommand(in.id.asUserId, in.department)
+          val cmd = UserAggregate.ChangeUserDepartmentCommand(in.id, in.department)
           userService.sendCommand(cmd).map {
             case reply: UserAggregate.UserDepartmentChangedReply =>
               UpdateUserDepartmentRes(reply.entityId, UpdateUserDepartmentRes.Result.Success("User department updated"))
@@ -244,10 +237,8 @@ object UserGrpcApi {
           }
         }
 
-      override def getUser(in: GetUserReq, metadata: Metadata): Future[GetUserRes] = {
-        import UserEntity._
-        userRepository.find(in.id.asUserId).map(r => GetUserRes(r.map(_.transformInto[proto.User])))
-      }
+      override def getUser(in: GetUserReq, metadata: Metadata): Future[GetUserRes] =
+        userRepository.find(in.id).map(r => GetUserRes(r.map(_.transformInto[proto.User])))
 
       override def getUsers(in: GetUsersReq, metadata: Metadata): Future[GetUsersRes] =
         userRepository.findAll().map(r => GetUsersRes(r.map(_.transformInto[proto.User])))
