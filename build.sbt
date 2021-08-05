@@ -24,6 +24,7 @@ lazy val `akka-typed-user` =
 lazy val `core` =
   (project in file("modules/core"))
     .settings(settings)
+    .settings(inConfig(Compile)(scalaBinaryVersion := "2.13"))
     .enablePlugins(AkkaGrpcPlugin)
     .settings(
       akkaGrpcCodeGeneratorSettings += "server_power_apis"
@@ -240,7 +241,7 @@ lazy val library =
     val circeGenericExtras = ("io.circe" %% "circe-generic-extras" % Version.circe).cross(CrossVersion.for3Use2_13)
     val circeRefined       = ("io.circe" %% "circe-refined"        % Version.circe).cross(CrossVersion.for3Use2_13)
 
-    val catsCore = "org.typelevel" %% "cats-core" % Version.cats
+    val catsCore = ("org.typelevel" %% "cats-core" % Version.cats).cross(CrossVersion.for3Use2_13)
 
     val logbackCore    = "ch.qos.logback" % "logback-core"    % Version.logback
     val logbackClassic = "ch.qos.logback" % "logback-classic" % Version.logback
@@ -263,8 +264,8 @@ lazy val library =
     val kamonCassandra        = "io.kamon" %% "kamon-cassandra"           % Version.kamon
     val kamonKanelaAgent = "io.kamon"  % "kanela-agent"         % Version.kamonKanela
 
-    val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
-    val scalaPbRuntime     = "com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf"
+    val scalapbRuntimeGrpc = ("com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion).cross(CrossVersion.for3Use2_13)
+    val scalaPbRuntime     = ("com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf").cross(CrossVersion.for3Use2_13)
 
     val randomDataGenerator = "com.danielasfregola"  %% "random-data-generator"     % Version.randomDataGenerator
     val scalaTest           = "org.scalatest"        %% "scalatest"                 % Version.scalaTest
