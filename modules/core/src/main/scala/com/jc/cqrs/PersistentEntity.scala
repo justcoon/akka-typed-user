@@ -80,11 +80,11 @@ abstract class PersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: Ent
     (entityState, command) => {
       entityState match {
         case Uninitialized =>
-          val result = initialProcessor.process(command.command)
-          BasicPersistentEntity.handleProcessResult(result, command.replyTo)
+          val result: CommandProcessResult[E, command.command.Reply] = initialProcessor.process(command.command)
+           BasicPersistentEntity.handleProcessResult2(result, command)
         case Initialized(innerState) =>
           val result = processor.process(innerState, command.command)
-          BasicPersistentEntity.handleProcessResult(result, command.replyTo)
+          BasicPersistentEntity.handleProcessResult2(result, command)
       }
     }
 
@@ -109,8 +109,21 @@ object BasicPersistentEntity {
       CommandExpectingReply[NR, S, NC](newCommand)(replyTo.asInstanceOf[ActorRef[NR]])
   }
 
+  def handleProcessResult2[R, E <: EntityEvent[_], S, S1, C[R] <: EntityCommand[_, S1, R]](
+      result: CommandProcessResult[E, R],
+      command: CommandExpectingReply[R, S1, C]
+  ): ReplyEffect[E, S] = {
+    val effect: EffectBuilder[E, S] = if (result.events.nonEmpty) Effect.persist(result.events) else Effect.none
+    result.reply match {
+      case commandReply: CommandReply.Reply[R] =>
+        effect.thenReply(command.replyTo)(_ => commandReply.reply)
+      case CommandReply.NoReply =>
+        effect.thenNoReply()
+    }
+  }
+
   def handleProcessResult[R, E <: EntityEvent[_], S](
-      result: CommandProcessResult[E],
+      result: CommandProcessResult[E, R],
       replyTo: ActorRef[R]
   ): ReplyEffect[E, S] = {
     val effect: EffectBuilder[E, S] = if (result.events.nonEmpty) Effect.persist(result.events) else Effect.none

@@ -2,28 +2,43 @@ package com.jc.cqrs
 
 trait CommandProcessor[S, C[R] <: EntityCommand[_, _, R], E <: EntityEvent[_]] {
 
-  def process(state: S, command: C[_]): CommandProcessResult[E]
+  def process(state: S, command: C[_]): CommandProcessResult[E, command.Reply]
 }
 
 trait InitialCommandProcessor[C[R] <: EntityCommand[_, _, R], E <: EntityEvent[_]] {
 
-  def process(command: C[_]): CommandProcessResult[E]
+  def process(command: C[_]): CommandProcessResult[E, command.Reply]
 }
 
-final case class CommandProcessResult[E <: EntityEvent[_]](events: List[E], reply: CommandReply[_])
+final case class CommandProcessResult[E <: EntityEvent[_], +R](events: List[E], reply: CommandReply[R])
 
 object CommandProcessResult {
 
-  def withReply[E <: EntityEvent[_], R](reply: R): CommandProcessResult[E] =
+  def withCmdReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](command: C)(
+      reply: command.Reply
+  ): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(Nil, CommandReply.Reply(reply))
 
-  def withReply[E <: EntityEvent[_], R](events: List[E], reply: R): CommandProcessResult[E] =
+  def withCmdEventsReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](
+      command: C
+  )(events: List[E], reply: command.Reply): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(events, CommandReply.Reply(reply))
 
-  def withReply[E <: EntityEvent[_], R](event: E, reply: R): CommandProcessResult[E] =
+  def withCmdEventReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](
+      command: C
+  )(event: E, reply: command.Reply): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(event :: Nil, CommandReply.Reply(reply))
 
-  def withNoReply[E <: EntityEvent[_]](): CommandProcessResult[E] =
+  def withReply[E <: EntityEvent[_], R](reply: R): CommandProcessResult[E, R] =
+    CommandProcessResult(Nil, CommandReply.Reply(reply))
+
+  def withReply[E <: EntityEvent[_], R](events: List[E], reply: R): CommandProcessResult[E, R] =
+    CommandProcessResult(events, CommandReply.Reply(reply))
+
+  def withReply[E <: EntityEvent[_], R](event: E, reply: R): CommandProcessResult[E, R] =
+    CommandProcessResult(event :: Nil, CommandReply.Reply(reply))
+
+  def withNoReply[E <: EntityEvent[_]](): CommandProcessResult[E, Nothing] =
     CommandProcessResult(Nil, CommandReply.NoReply)
 }
 
