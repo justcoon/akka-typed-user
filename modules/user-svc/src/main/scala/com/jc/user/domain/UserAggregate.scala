@@ -255,19 +255,19 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
           BasicPersistentEntity.errorMessageToValidated
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserAggregate.CreateUserInternalCommand(entityId, username, email, pass, addr, dep, v) =>
-        v match {
+      case cmd: UserAggregate.CreateUserInternalCommand =>
+        cmd.validation match {
           case Validated.Invalid(errors) =>
-            CommandProcessResult.withReply(UserAggregate.UserCreatedFailedReply(entityId, errors.toList.mkString(", ")))
+            CommandProcessResult.withReply(UserAggregate.UserCreatedFailedReply(cmd.entityId, errors.toList.mkString(", ")))
           case Validated.Valid(_) =>
-            val encryptedPass = pass.boundedBcrypt
+            val encryptedPass = cmd.pass.boundedBcrypt
             val events =
               UserPayloadEvent(
-                entityId,
+                cmd.entityId,
                 Instant.now,
-                UserPayloadEvent.Payload.Created(UserCreatedPayload(username, email, encryptedPass, addr, dep))
+                UserPayloadEvent.Payload.Created(UserCreatedPayload(cmd.username, cmd.email, encryptedPass, cmd.address, cmd.department))
               ) :: Nil
-            CommandProcessResult.withReply(events, UserAggregate.UserCreatedReply(entityId))
+            CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserCreatedReply(cmd.entityId))
         }
       case otherCommand =>
 //        actorContext.log.error(s"Received erroneous initial command $otherCommand for entity")
@@ -281,23 +281,23 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
       actorContext: ActorContext[Command]
   ): (User, Command) => ReplyEffect[UserEntity.UserEvent, EntityState] = (state, command) => {
     val result = command.command match {
-      case UserAggregate.ChangeUserEmailCommand(entityId, email) =>
+      case cmd: UserAggregate.ChangeUserEmailCommand =>
         val events =
           UserPayloadEvent(
-            entityId,
+            cmd.entityId,
             Instant.now,
-            UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(email))
+            UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(cmd.email))
           ) :: Nil
-        CommandProcessResult.withReply(events, UserAggregate.UserEmailChangedReply(entityId))
-      case UserAggregate.ChangeUserPasswordCommand(entityId, pass) =>
-        val encryptedPass = pass.boundedBcrypt
+        CommandProcessResult.withReply(events, UserAggregate.UserEmailChangedReply(cmd.entityId))
+      case cmd: UserAggregate.ChangeUserPasswordCommand =>
+        val encryptedPass = cmd.pass.boundedBcrypt
         val events =
           UserPayloadEvent(
-            entityId,
+            cmd.entityId,
             Instant.now,
             UserPayloadEvent.Payload.PasswordUpdated(UserPasswordUpdatedPayload(encryptedPass))
           ) :: Nil
-        CommandProcessResult.withReply(events, UserAggregate.UserPasswordChangedReply(entityId))
+        CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserPasswordChangedReply(cmd.entityId))
       case cmd: UserAggregate.ChangeUserAddressCommand =>
         implicit val ec = actorContext.executionContext
         BasicPersistentEntity.validated[Command, String](
@@ -306,18 +306,18 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
           BasicPersistentEntity.errorMessageToValidated
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserAggregate.ChangeUserAddressInternalCommand(entityId, addr, v) =>
-        v match {
+      case cmd: UserAggregate.ChangeUserAddressInternalCommand =>
+        cmd.validation match {
           case Validated.Invalid(errors) =>
-            CommandProcessResult.withReply(UserAggregate.UserAddressChangedFailedReply(entityId, errors.toList.mkString(", ")))
+            CommandProcessResult.withReply(UserAggregate.UserAddressChangedFailedReply(cmd.entityId, errors.toList.mkString(", ")))
           case Validated.Valid(_) =>
             val events =
               UserPayloadEvent(
-                entityId,
+                cmd.entityId,
                 Instant.now,
-                UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(addr))
+                UserPayloadEvent.Payload.AddressUpdated(UserAddressUpdatedPayload(cmd.address))
               ) :: Nil
-            CommandProcessResult.withReply(events, UserAggregate.UserAddressChangedReply(entityId))
+            CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserAddressChangedReply(cmd.entityId))
         }
       case cmd: UserAggregate.ChangeUserDepartmentCommand =>
         implicit val ec = actorContext.executionContext
@@ -327,31 +327,33 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
           BasicPersistentEntity.errorMessageToValidated
         )(actorContext)
         CommandProcessResult.withNoReply()
-      case UserAggregate.ChangeUserDepartmentInternalCommand(entityId, dep, v) =>
-        v match {
+      case cmd: UserAggregate.ChangeUserDepartmentInternalCommand =>
+        cmd.validation match {
           case Validated.Invalid(errors) =>
-            CommandProcessResult.withReply(UserAggregate.UserDepartmentChangedFailedReply(entityId, errors.toList.mkString(", ")))
+            CommandProcessResult.withCmdReply(cmd)(
+              UserAggregate.UserDepartmentChangedFailedReply(cmd.entityId, errors.toList.mkString(", "))
+            )
           case Validated.Valid(_) =>
             val events =
               UserPayloadEvent(
-                entityId,
+                cmd.entityId,
                 Instant.now,
-                UserPayloadEvent.Payload.DepartmentUpdated(UserDepartmentUpdatedPayload(dep))
+                UserPayloadEvent.Payload.DepartmentUpdated(UserDepartmentUpdatedPayload(cmd.department))
               ) :: Nil
-            CommandProcessResult.withReply(events, UserAggregate.UserDepartmentChangedReply(entityId))
+            CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserDepartmentChangedReply(cmd.entityId))
         }
-      case UserAggregate.RemoveUserCommand(entityId) =>
+      case cmd: UserAggregate.RemoveUserCommand =>
         val events =
           UserPayloadEvent(
-            entityId,
+            cmd.entityId,
             Instant.now,
             UserPayloadEvent.Payload.Removed(UserRemovedPayload())
           ) :: Nil
-        CommandProcessResult.withReply(events, UserAggregate.UserRemovedReply(entityId))
-      case UserAggregate.CreateUserCommand(entityId, _, _, _, _, _) =>
-        CommandProcessResult.withReply(UserAggregate.UserAlreadyExistsReply(entityId))
-      case UserAggregate.GetUserCommand(_) =>
-        CommandProcessResult.withReply(UserAggregate.UserReply(state))
+        CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserRemovedReply(cmd.entityId))
+      case cmd: UserAggregate.CreateUserCommand =>
+        CommandProcessResult.withCmdReply(cmd)(UserAggregate.UserAlreadyExistsReply(cmd.entityId))
+      case cmd: UserAggregate.GetUserCommand =>
+        CommandProcessResult.withCmdReply(cmd)(UserAggregate.UserReply(state))
       case otherCommand =>
         //      actorContext.log.error(s"Received erroneous command $otherCommand for entity")
         CommandProcessResult.withReply(UserAggregate.UserAlreadyExistsReply(otherCommand.entityId))

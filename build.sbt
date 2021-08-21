@@ -169,12 +169,12 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.15"
-      val akkaHttp                 = "10.2.5"
+      val akka                     = "2.6.16"
+      val akkaHttp                 = "10.2.6"
       val akkaHttpJson             = "1.37.0"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.1"
-      val akkaProjection           = "1.2.1"
+      val akkaProjection           = "1.2.2"
       val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
       val logback                  = "1.2.5"
@@ -185,7 +185,7 @@ lazy val library =
       val akkaKryo                 = "2.2.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.27"
-      val tapir                    = "0.18.1"
+      val tapir                    = "0.18.3"
       val cats                     = "2.6.1"
 
       val kamon           = "2.2.3"
