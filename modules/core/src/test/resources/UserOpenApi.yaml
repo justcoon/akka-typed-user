@@ -1,0 +1,622 @@
+openapi: 3.0.3
+servers:
+  - url: /v1
+info:
+  description: |-
+    User svc OpenAPI 3.0 specification.
+  version: 1.0.0-SNAPSHOT
+  title: User svc - OpenAPI 3.0
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    email: xxx@xxx.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: user
+    description: Access to users
+    externalDocs:
+      description: TODO
+      url: 'http://swagger.io'
+paths:
+  /department:
+    get:
+      tags:
+        - user
+      summary: Get departments
+      description: ''
+      operationId: getDepartments
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Department'
+#    post:
+#      tags:
+#        - user
+#      summary: Create department
+#      description: This can only be done by the logged in department.
+#      operationId: createDepartment
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '400':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              $ref: '#/components/schemas/Department'
+#        description: Created department object
+#      security:
+#        - bearerAuth: [ ]
+  '/department/{id}':
+    get:
+      tags:
+        - user
+      summary: Get department by department id
+      description: ''
+      operationId: getDepartment
+      parameters:
+        - name: id
+          in: path
+          description: 'The id that needs to be fetched. Department dep1 for testing. '
+          required: true
+          schema:
+            type: string
+          x-scala-type: com.jc.user.domain.DepartmentEntity.DepartmentId
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+        '404':
+          description: Department not found
+#    put:
+#      tags:
+#        - user
+#      summary: Update department
+#      description: This can only be done by the logged in user.
+#      operationId: updateDepartment
+#      parameters:
+#        - name: id
+#          in: path
+#          description: The id that needs to be updated
+#          required: true
+#          schema:
+#            type: string
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '400':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#      requestBody:
+#        required: true
+#        content:
+#          application/json:
+#            schema:
+#              $ref: '#/components/schemas/Department'
+#        description: Update department object
+#      security:
+#        - bearerAuth: [ ]
+#    delete:
+#      tags:
+#        - user
+#      summary: Delete department
+#      description: This can only be done by the logged in department.
+#      operationId: deleteDepartment
+#      parameters:
+#        - name: id
+#          in: path
+#          description: The id that needs to be deleted
+#          required: true
+#          schema:
+#            type: string
+#      responses:
+#        '200':
+#          description: successful operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+#        '404':
+#          description: failed operation
+#          content:
+#            application/json:
+#              schema:
+#                type: string
+  /user:
+    get:
+      tags:
+        - user
+      summary: Get users
+      description: ''
+      operationId: getUsers
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+    post:
+      tags:
+        - user
+      summary: Create user
+      description: This can only be done by the logged in user.
+      operationId: createUser
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUser'
+        description: Created user object
+      security:
+        - bearerAuth: []
+  #  /user/login:
+  #    get:
+  #      tags:
+  #        - user
+  #      summary: Logs user into the system
+  #      description: ''
+  #      operationId: loginUser
+  #      parameters:
+  #        - name: username
+  #          in: query
+  #          description: The user name for login
+  #          required: false
+  #          schema:
+  #            type: string
+  #        - name: password
+  #          in: query
+  #          description: The password for login in clear text
+  #          required: false
+  #          schema:
+  #            type: string
+  #      responses:
+  #        '200':
+  #          description: successful operation
+  #          headers:
+  #            X-Rate-Limit:
+  #              description: calls per hour allowed by the user
+  #              schema:
+  #                type: integer
+  #                format: int32
+  #            X-Expires-After:
+  #              description: date in UTC when toekn expires
+  #              schema:
+  #                type: string
+  #                format: date-time
+  #          content:
+  #            application/xml:
+  #              schema:
+  #                type: string
+  #            application/json:
+  #              schema:
+  #                type: string
+  #        '400':
+  #          description: Invalid username/password supplied
+  #  /user/logout:
+  #    get:
+  #      tags:
+  #        - user
+  #      summary: Logs out current logged in user session
+  #      description: ''
+  #      operationId: logoutUser
+  #      parameters: []
+  #      responses:
+  #        default:
+  #          description: successful operation
+  '/user/{id}':
+    get:
+      tags:
+        - user
+      summary: Get user by user id
+      description: ''
+      operationId: getUser
+      parameters:
+        - name: id
+          in: path
+          description: 'The id that needs to be fetched. Use user1 for testing. '
+          required: true
+          schema:
+            type: string
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description: failed operation
+    delete:
+      tags:
+        - user
+      summary: Delete user
+      description: This can only be done by the logged in user.
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          description: The id that needs to be deleted
+          required: true
+          schema:
+            type: string
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '404':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+  '/user/{id}/address':
+    put:
+      tags:
+        - user
+      summary: Update user adddress
+      x-swagger-router-controller: UserController
+      description: This can only be done by the logged in user.
+      operationId: updateUserAddress
+      parameters:
+        - name: id
+          in: path
+          description: id that need to be deleted
+          required: true
+          schema:
+            type: string
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+      requestBody:
+        required: true
+        description: Update an existent user address in the store
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+    delete:
+      tags:
+        - user
+      summary: Delete user address
+      description: This can only be done by the logged in user.
+      operationId: deleteUserAddress
+      parameters:
+        - name: id
+          in: path
+          description: The id that needs to be deleted
+          required: true
+          schema:
+            type: string
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+        '400':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+  /user/search:
+    get:
+      tags:
+        - user
+      summary: Search users
+      description: ''
+      operationId: searchUsers
+      parameters:
+        - name: query
+          description: search query
+          in: query
+          required: false
+          schema:
+            type: string
+          example: search
+        - name: page
+          description: page number
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 0
+          default: 0
+        - name: pageSize
+          description: page size
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int32
+          example: 10
+          default: 10
+        - name: sort
+          description: sort
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+          example: ['username:asc']
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSearchResponse'
+        '400':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+  /user/suggest:
+    get:
+      tags:
+        - user
+      summary: Suggest users
+      description: ''
+      operationId: suggestUsers
+      parameters:
+        - name: query
+          description: suggest query
+          in: query
+          required: false
+          schema:
+            type: string
+          example: search
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSuggestResponse'
+        '400':
+          description: failed operation
+          content:
+            application/json:
+              schema:
+                type: string
+externalDocs:
+  description: Find out more about Swagger
+  url: 'http://swagger.io'
+components:
+  schemas:
+    Address:
+      properties:
+        street:
+          type: string
+          example: Lytton
+        number:
+          type: string
+          example: "437"
+        city:
+          type: string
+          example: Palo Alto
+        state:
+          type: string
+          example: CA
+        zip:
+          type: string
+          example: "94301"
+        country:
+          type: string
+          example: US
+      type: object
+      required:
+        - street
+        - number
+        - city
+        - state
+        - zip
+        - country
+    DepartmentRef:
+      properties:
+        id:
+          type: string
+          example: d1
+          x-scala-type: com.jc.user.domain.DepartmentEntity.DepartmentId
+      type: object
+      required:
+        - id
+    Department:
+      properties:
+        id:
+          type: string
+          example: d1
+          x-scala-type: com.jc.user.domain.DepartmentEntity.DepartmentId
+        name:
+          type: string
+          example: dep 1
+        description:
+          type: string
+          example: department 1
+      type: object
+      required:
+        - id
+        - name
+        - description
+    CreateUser:
+      properties:
+        id:
+          type: string
+          example: i10
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+        username:
+          type: string
+          example: theUser
+        email:
+          type: string
+          example: john@email.com
+        pass:
+          type: string
+          example: p12345
+        address:
+          $ref: '#/components/schemas/Address'
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
+      type: object
+      required:
+        - username
+        - email
+        - pass
+    User:
+      properties:
+        id:
+          type: string
+          example: i10
+          x-scala-type: com.jc.user.domain.UserEntity.UserId
+        username:
+          type: string
+          example: theUser
+        email:
+          type: string
+          example: john@email.com
+        pass:
+          type: string
+          example: p12345
+        address:
+          $ref: '#/components/schemas/Address'
+        department:
+          $ref: '#/components/schemas/DepartmentRef'
+      type: object
+      required:
+        - id
+        - username
+        - email
+        - pass
+    UserSearchResponse:
+      description: User search response
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        page:
+          type: integer
+          format: int32
+          example: 0
+        pageSize:
+          type: integer
+          format: int32
+          example: 10
+        count:
+          type: integer
+          format: int32
+          example: 12
+      type: object
+      required:
+        - items
+        - page
+        - pageSize
+        - count
+    UserSuggestResponse:
+      description: User suggest response
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropertySuggestion'
+      type: object
+      required:
+        - suggestions
+    PropertySuggestion:
+      description: Property suggestion
+      properties:
+        property:
+          type: string
+        suggestions:
+          type: array
+          items:
+            $ref: '#/components/schemas/TermSuggestion'
+      type: object
+      required:
+        - property
+        - suggestions
+    TermSuggestion:
+      description: Term suggestion
+      properties:
+        text:
+          type: string
+        score:
+          type: number
+          format: double
+      #        freq:
+      #          type: number
+      #          format: int32
+      type: object
+      required:
+        - text
+        - score
+  #        - freq
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

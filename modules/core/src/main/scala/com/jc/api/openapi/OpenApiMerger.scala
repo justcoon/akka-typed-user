@@ -40,9 +40,10 @@ object OpenApiMerger {
         o1.path(k, v)
       }
 
-      o2.getPaths.getExtensions.forEach { (k, v) =>
-        o1.getPaths.addExtension(k, v)
-      }
+      if (o2.getPaths.getExtensions != null)
+        o2.getPaths.getExtensions.forEach { (k, v) =>
+          o1.getPaths.addExtension(k, v)
+        }
     }
 
     if (o2.getComponents != null) {
