@@ -80,10 +80,14 @@ object DepartmentAggregate {
       with UpdateDepartmentReply
 
   implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand, DepartmentEntity.DepartmentEvent] = {
-    case CreateDepartmentCommand(entityId, name, description) =>
+    case cmd: CreateDepartmentCommand =>
       val event =
-        DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Created(DepartmentCreatedPayload(name, description)))
-      CommandProcessResult.withReply(event, DepartmentCreatedReply(entityId))
+        DepartmentPayloadEvent(
+          cmd.entityId,
+          Instant.now,
+          DepartmentPayloadEvent.Payload.Created(DepartmentCreatedPayload(cmd.name, cmd.description))
+        )
+      CommandProcessResult.withCmdEventReply(cmd)(event, DepartmentCreatedReply(cmd.entityId))
     case otherCommand =>
       //      logError(s"Received erroneous initial command $otherCommand for entity")
       CommandProcessResult.withReply(DepartmentNotExistsReply(otherCommand.entityId))
@@ -92,22 +96,22 @@ object DepartmentAggregate {
   implicit val commandProcessor: CommandProcessor[Department, DepartmentCommand, DepartmentEntity.DepartmentEvent] =
     (state, command) =>
       command match {
-        case CreateDepartmentCommand(entityId, _, _) =>
-          CommandProcessResult.withReply(DepartmentAlreadyExistsReply(entityId))
-        case UpdateDepartmentCommand(entityId, name, description) =>
+        case cmd: CreateDepartmentCommand =>
+          CommandProcessResult.withCmdReply(cmd)(DepartmentAlreadyExistsReply(cmd.entityId))
+        case cmd: UpdateDepartmentCommand =>
           val event =
             DepartmentPayloadEvent(
-              entityId,
+              cmd.entityId,
               Instant.now,
-              DepartmentPayloadEvent.Payload.Updated(DepartmentUpdatedPayload(name, description))
+              DepartmentPayloadEvent.Payload.Updated(DepartmentUpdatedPayload(cmd.name, cmd.description))
             )
-          CommandProcessResult.withReply(event, DepartmentUpdatedReply(entityId))
-        case RemoveDepartmentCommand(entityId) =>
+          CommandProcessResult.withCmdEventReply(cmd)(event, DepartmentUpdatedReply(cmd.entityId))
+        case cmd: RemoveDepartmentCommand =>
           val event =
-            DepartmentPayloadEvent(entityId, Instant.now, DepartmentPayloadEvent.Payload.Removed(DepartmentRemovedPayload()))
-          CommandProcessResult.withReply(event, DepartmentRemovedReply(entityId))
-        case GetDepartmentCommand(_) =>
-          CommandProcessResult.withReply(DepartmentReply(state))
+            DepartmentPayloadEvent(cmd.entityId, Instant.now, DepartmentPayloadEvent.Payload.Removed(DepartmentRemovedPayload()))
+          CommandProcessResult.withCmdEventReply(cmd)(event, DepartmentRemovedReply(cmd.entityId))
+        case cmd: GetDepartmentCommand =>
+          CommandProcessResult.withCmdReply(cmd)(DepartmentReply(state))
       }
 
   implicit val initialEventApplier: InitialEventApplier[Department, DepartmentEntity.DepartmentEvent] = {
