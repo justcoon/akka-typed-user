@@ -3,7 +3,7 @@ servers:
   - url: /v1
 info:
   description: |-
-    User svc OpenAPI 3.0 specification.
+    Logging system OpenAPI 3.0 specification.
   version: 1.0.0-SNAPSHOT
   title: Logging system - OpenAPI 3.0
   termsOfService: 'http://swagger.io/terms/'
@@ -66,13 +66,13 @@ components:
     LogLevel:
       type: string
       enum:
-        - TRACE
-        - DEBUG
-        - INFO
-        - WARN
-        - ERROR
-        - FATAL
-        - OFF
+        - "TRACE"
+        - "DEBUG"
+        - "INFO"
+        - "WARN"
+        - "ERROR"
+        - "FATAL"
+        - "OFF"
     LoggerConfiguration:
       properties:
         name:

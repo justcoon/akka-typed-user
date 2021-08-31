@@ -17,13 +17,43 @@ object OpenApiMerger {
       o2.getServers.forEach(o1.addServersItem)
     }
 
-//    if (o2.getInfo != null) {
-//
-//    }
-//
-//    if (o2.getExternalDocs != null) {
-//
-//    }
+    if (o2.getInfo != null) {
+      if (o1.getInfo == null) {
+        o1.setInfo(o2.getInfo)
+      } else {
+        if (o2.getInfo.getTitle != null && o1.getInfo.getTitle == null) {
+          o1.getInfo.setTitle(o2.getInfo.getTitle)
+        }
+        if (o2.getInfo.getTermsOfService != null && o1.getInfo.getTermsOfService == null) {
+          o1.getInfo.setTermsOfService(o2.getInfo.getTermsOfService)
+        }
+        if (o2.getInfo.getVersion != null && o1.getInfo.getVersion == null) {
+          o1.getInfo.setVersion(o2.getInfo.getVersion)
+        }
+        if (o2.getInfo.getDescription != null) {
+          if (o1.getInfo.getDescription == null) {
+            o1.getInfo.setDescription(o2.getInfo.getDescription)
+          } else {
+            o1.getInfo.setDescription(o1.getInfo.getDescription + "\n" + o2.getInfo.getDescription)
+          }
+        }
+        if (o2.getInfo.getContact != null && o1.getInfo.getContact == null) {
+          o1.getInfo.setContact(o2.getInfo.getContact)
+        }
+        if (o2.getInfo.getLicense != null && o1.getInfo.getLicense == null) {
+          o1.getInfo.setLicense(o2.getInfo.getLicense)
+        }
+
+        if (o2.getInfo.getExtensions != null)
+          o2.getInfo.getExtensions.forEach { (k, v) =>
+            o1.getInfo.addExtension(k, v)
+          }
+      }
+    }
+
+    if (o2.getExternalDocs != null || o1.getExternalDocs == null) {
+      o1.externalDocs(o2.getExternalDocs)
+    }
 
     if (o2.getExtensions != null) {
       o2.getExtensions.forEach { (k, v) =>
