@@ -19,7 +19,7 @@ tags:
       description: TODO
       url: 'http://swagger.io'
 paths:
-  /logger:
+  /configuration/logger:
     get:
       tags:
         - logging
@@ -32,10 +32,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/LoggerConfiguration'
-  '/logger/{name}':
+                $ref: '#/components/schemas/LoggerConfigurationsRes'
+  '/configuration/logger/{name}':
     get:
       tags:
         - logging
@@ -55,7 +53,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoggerConfiguration'
+                $ref: '#/components/schemas/LoggerConfigurationRes'
         '404':
           description: Logger not found
 externalDocs:
@@ -86,6 +84,34 @@ components:
       required:
         - name
         - effectiveLevel
+    LoggerConfigurationRes:
+      properties:
+        configuration:
+          $ref: '#/components/schemas/LoggerConfiguration'
+        levels:
+          type: array
+          x-scala-array-type: Seq
+          items:
+            $ref: '#/components/schemas/LogLevel'
+      type: object
+      required:
+        - levels
+    LoggerConfigurationsRes:
+      properties:
+        configurations:
+          type: array
+          x-scala-array-type: Seq
+          items:
+            $ref: '#/components/schemas/LoggerConfiguration'
+        levels:
+          type: array
+          x-scala-array-type: Seq
+          items:
+            $ref: '#/components/schemas/LogLevel'
+      type: object
+      required:
+        - configurations
+        - levels
 
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme

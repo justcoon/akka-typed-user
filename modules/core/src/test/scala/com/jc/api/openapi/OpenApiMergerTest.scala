@@ -10,11 +10,11 @@ import scala.io.Source
 class OpenApiMergerTest extends AnyWordSpecLike with should.Matchers with BeforeAndAfterAll {
 
   val y1 = Source.fromResource("UserOpenApi.yaml").mkString
-  val y2 = Source.fromResource("LoggingOpenApi.yaml").mkString
+  val y2 = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
 
   "OpenApiMerger" must {
 
-    "merge" in {
+    "mergeOpenAPIs" in {
       val p1 = OpenApiReader.read(y1)
       val p2 = OpenApiReader.read(y2)
 
@@ -24,7 +24,7 @@ class OpenApiMergerTest extends AnyWordSpecLike with should.Matchers with Before
       val m = for {
         o1 <- p1
         o2 <- p2
-      } yield OpenApiMerger.merge(o1, o2)
+      } yield OpenApiMerger.mergeOpenAPIs(o1, o2)
 
       m.isRight shouldBe true
 

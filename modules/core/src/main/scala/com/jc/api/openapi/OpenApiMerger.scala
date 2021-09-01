@@ -4,17 +4,26 @@ import io.swagger.v3.oas.models.{ Components, OpenAPI, Paths }
 
 object OpenApiMerger {
 
-  def merge(o1: OpenAPI, o2: OpenAPI): OpenAPI = {
+  def mergeOpenAPIs(o1: OpenAPI, o2: OpenAPI): OpenAPI = {
     if (o2.getTags != null) {
-      o2.getTags.forEach(o1.addTagsItem)
+      o2.getTags.forEach { v =>
+        if (o1.getTags == null || !o1.getTags.contains(v))
+          o1.addTagsItem(v)
+      }
     }
 
     if (o2.getSecurity != null) {
-      o2.getSecurity.forEach(o1.addSecurityItem)
+      o2.getSecurity.forEach { v =>
+        if (o1.getSecurity == null || !o1.getSecurity.contains(v))
+          o1.addSecurityItem(v)
+      }
     }
 
     if (o2.getServers != null) {
-      o2.getServers.forEach(o1.addServersItem)
+      o2.getServers.forEach { v =>
+        if (o1.getServers == null || !o1.getServers.contains(v))
+          o1.addServersItem(v)
+      }
     }
 
     if (o2.getInfo != null) {
@@ -126,7 +135,17 @@ object OpenApiMerger {
     o1
   }
 
-  def merge(main: OpenAPI, others: Iterable[OpenAPI]): OpenAPI =
-    others.foldLeft(main)(merge)
+  def mergeOpenAPIs(main: OpenAPI, others: Iterable[OpenAPI]): OpenAPI =
+    others.foldLeft(main)(mergeOpenAPIs)
+
+  def mergeSpecs(main: String, others: Iterable[String]): Either[String, OpenAPI] = {
+    val m = OpenApiReader.read(main)
+    others.map(OpenApiReader.read).foldLeft(m) { (p1, p2) =>
+      for {
+        o1 <- p1
+        o2 <- p2
+      } yield OpenApiMerger.mergeOpenAPIs(o1, o2)
+    }
+  }
 
 }

@@ -24,8 +24,17 @@ lazy val `core` =
     .settings(settings)
     .enablePlugins(AkkaGrpcPlugin)
     .settings(
-      akkaGrpcCodeGeneratorSettings += "server_power_apis"
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      Compile / guardrailTasks := List(
+        ScalaServer(
+          file(s"${baseDirectory.value}/src/main/openapi/LoggingSystemOpenApi.yaml"),
+          pkg = "com.jc.logging.openapi",
+          tracing = false,
+          customExtraction = true
+        )
+      )
     )
+    .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
         library.akkaDiscovery,
