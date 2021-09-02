@@ -93,7 +93,6 @@ object UserOpenApi {
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
     val my   = OpenApiMerger.mergeYamls(y1, y2 :: Nil)
     val yaml = my.getOrElse("")
-//    val yaml = Source.fromResource("UserOpenApi.yaml").mkString
     new SwaggerAkka(yaml).routes
   }
 
