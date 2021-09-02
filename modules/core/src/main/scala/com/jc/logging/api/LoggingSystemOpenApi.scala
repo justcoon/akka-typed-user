@@ -55,6 +55,18 @@ object LoggingSystemOpenApi {
       )
 
     new LoggingHandler[Seq[HttpHeader]] {
+
+      override def setLoggerConfiguration(
+          respond: LoggingResource.SetLoggerConfigurationResponse.type
+      )(name: String, body: Option[LogLevel])(extracted: Seq[HttpHeader]): Future[LoggingResource.SetLoggerConfigurationResponse] =
+        authenticated(extracted) { () =>
+          val res = loggingSystem.setLogLevel(name, body.flatMap(logLevelMapping.fromLogger.get))
+          val configuration = if (res) {
+            loggingSystem.getLoggerConfiguration(name).map(toApiLoggerConfiguration)
+          } else None
+          respond.OK(LoggerConfigurationRes(configuration, getSupportedLogLevels))
+        }
+
       override def getLoggerConfigurations(respond: LoggingResource.GetLoggerConfigurationsResponse.type)()(
           extracted: Seq[HttpHeader]
       ): Future[LoggingResource.GetLoggerConfigurationsResponse] =
@@ -68,7 +80,7 @@ object LoggingSystemOpenApi {
       ): Future[LoggingResource.GetLoggerConfigurationResponse] =
         authenticated(extracted) { () =>
           val configuration = loggingSystem.getLoggerConfiguration(name).map(toApiLoggerConfiguration)
-          LoggerConfigurationRes(configuration, getSupportedLogLevels)
+          respond.OK(LoggerConfigurationRes(configuration, getSupportedLogLevels))
         }
     }
   }

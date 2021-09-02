@@ -1,9 +1,11 @@
 package com.jc.api.openapi
 
+import io.swagger.v3.core.util.Yaml
 import io.swagger.v3.oas.models.{ Components, OpenAPI, Paths }
 
 object OpenApiMerger {
 
+  //TODO improve merge (shallow, deep merging based on parts), see https://bitbucket.org/echo_rm/openapi-merge/src/master/
   def mergeOpenAPIs(o1: OpenAPI, o2: OpenAPI): OpenAPI = {
     if (o2.getTags != null) {
       o2.getTags.forEach { v =>
@@ -138,14 +140,15 @@ object OpenApiMerger {
   def mergeOpenAPIs(main: OpenAPI, others: Iterable[OpenAPI]): OpenAPI =
     others.foldLeft(main)(mergeOpenAPIs)
 
-  def mergeSpecs(main: String, others: Iterable[String]): Either[String, OpenAPI] = {
+  def mergeYamls(main: String, others: Iterable[String]): Either[String, String] = {
     val m = OpenApiReader.read(main)
-    others.map(OpenApiReader.read).foldLeft(m) { (p1, p2) =>
+    val oa = others.map(OpenApiReader.read).foldLeft(m) { (p1, p2) =>
       for {
         o1 <- p1
         o2 <- p2
       } yield OpenApiMerger.mergeOpenAPIs(o1, o2)
     }
+    oa.map(o => Yaml.pretty(o))
   }
 
 }

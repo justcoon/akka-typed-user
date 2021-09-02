@@ -34,6 +34,17 @@ class OpenApiMergerTest extends AnyWordSpecLike with should.Matchers with Before
       }
     }
 
+    "mergeYamls" in {
+      val m = OpenApiMerger.mergeYamls(y1, y2 :: Nil)
+
+      m.isRight shouldBe true
+
+      m.foreach { o =>
+        val y = Yaml.pretty(o)
+        println(y)
+      }
+    }
+
   }
 
 }

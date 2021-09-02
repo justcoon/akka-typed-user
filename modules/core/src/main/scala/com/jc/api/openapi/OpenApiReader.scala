@@ -15,7 +15,7 @@ object OpenApiReader {
       val opts = new ParseOptions()
       opts.setResolve(true)
       val result = new OpenAPIParser().readLocation(path.toAbsolutePath.toString, new util.LinkedList(), opts)
-      Option(result.getMessages()).foreach(_.asScala.foreach(println))
+//      Option(result.getMessages()).foreach(_.asScala.foreach(println))
       Option(result.getOpenAPI).toRight(s"Spec file ${path} is incorrectly formatted.")
     } else {
       Left(s"Spec file ${path} does not exist.")
@@ -25,7 +25,7 @@ object OpenApiReader {
     val opts = new ParseOptions()
     opts.setResolve(true)
     val result = new OpenAPIParser().readContents(spec, new util.LinkedList(), opts)
-    Option(result.getMessages()).foreach(_.asScala.foreach(println))
+//    Option(result.getMessages()).foreach(_.asScala.foreach(println))
     Option(result.getOpenAPI).toRight(s"Spec is incorrectly formatted.")
   }
 }

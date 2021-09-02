@@ -33,11 +33,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LoggerConfigurationsRes'
+      security:
+        - bearerAuth: [ ]
   '/configuration/logger/{name}':
     get:
       tags:
         - logging
-      summary: Get loggers configuration
+      summary: Get logger configuration
       description: ''
       operationId: getLoggerConfiguration
       parameters:
@@ -56,6 +58,37 @@ paths:
                 $ref: '#/components/schemas/LoggerConfigurationRes'
         '404':
           description: Logger not found
+      security:
+        - bearerAuth: [ ]
+    put:
+      tags:
+        - logging
+      summary: Set logger configuration
+      description: ''
+      operationId: setLoggerConfiguration
+      parameters:
+        - name: name
+          in: path
+          description: 'Logger name'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogLevel'
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggerConfigurationRes'
+        '404':
+          description: Logger not found
+      security:
+        - bearerAuth: [ ]
 externalDocs:
   description: Find out more about Swagger
   url: 'http://swagger.io'
@@ -112,7 +145,6 @@ components:
       required:
         - configurations
         - levels
-
   securitySchemes:
     bearerAuth: # arbitrary name for the security scheme
       type: http

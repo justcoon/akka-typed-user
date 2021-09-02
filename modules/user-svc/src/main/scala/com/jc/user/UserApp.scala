@@ -105,7 +105,7 @@ object UserApp {
 
       log.info("rest api server - create")
       UserOpenApi
-        .server(userService, userRepository, departmentService, departmentRepository, jwtAuthenticator, appConfig.restApi)
+        .server(userService, userRepository, departmentService, departmentRepository, loggingSystem, jwtAuthenticator, appConfig.restApi)
 
       log.info("grpc api server - create")
       UserGrpcApi
