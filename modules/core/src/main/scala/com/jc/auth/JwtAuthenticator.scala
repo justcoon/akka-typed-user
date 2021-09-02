@@ -25,7 +25,10 @@ trait JwtAuthenticator[S] {
 }
 
 object JwtAuthenticator {
-  val AuthHeader = "Authorization"
+  val AuthHeader        = "Authorization"
+  val BearerTokenPrefix = "Bearer "
+
+  def sanitizeBearerAuthToken(header: String): String = header.replaceFirst(BearerTokenPrefix, "")
 }
 
 class PdiJwtAuthenticator(val helper: PdiJwtHelper, val clock: Clock) extends JwtAuthenticator[String] {

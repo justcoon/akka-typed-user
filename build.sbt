@@ -24,8 +24,17 @@ lazy val `core` =
     .settings(settings)
     .enablePlugins(AkkaGrpcPlugin)
     .settings(
-      akkaGrpcCodeGeneratorSettings += "server_power_apis"
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      Compile / guardrailTasks := List(
+        ScalaServer(
+          file(s"${baseDirectory.value}/src/main/openapi/LoggingSystemOpenApi.yaml"),
+          pkg = "com.jc.logging.openapi",
+          tracing = false,
+          customExtraction = true
+        )
+      )
     )
+    .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
         library.akkaDiscovery,
@@ -57,7 +66,8 @@ lazy val `core` =
         library.scalapbRuntimeGrpc,
         library.akkaHttpTestkit % Test,
         library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.scalaTest       % Test,
+        library.swaggerParser
       )
     )
 
@@ -252,7 +262,7 @@ lazy val library =
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
     val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
-    val kamonCassandra        = "io.kamon" %% "kamon-cassandra"           % Version.kamon
+    val kamonCassandra   = "io.kamon" %% "kamon-cassandra"      % Version.kamon
     val kamonKanelaAgent = "io.kamon"  % "kanela-agent"         % Version.kamonKanela
 
     val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
@@ -263,6 +273,8 @@ lazy val library =
     val gatlingCharts       = "io.gatling.highcharts" % "gatling-charts-highcharts" % Version.gatling
     val gatlingTest         = "io.gatling"            % "gatling-test-framework"    % Version.gatling
     val gatlingGrpc         = "com.github.phisgr"     % "gatling-grpc"              % Version.gatlingGrpc
+
+    val swaggerParser = "io.swagger.parser.v3" % "swagger-parser" % "2.0.27"
   }
 
 // *****************************************************************************
