@@ -55,6 +55,7 @@ lazy val `core` =
         library.circeGeneric,
         library.circeGenericExtras,
         library.circeRefined,
+        library.circeYaml,
         library.catsCore,
         library.logbackCore,
         library.logbackClassic,
@@ -66,8 +67,7 @@ lazy val `core` =
         library.scalapbRuntimeGrpc,
         library.akkaHttpTestkit % Test,
         library.akkaTestkit     % Test,
-        library.scalaTest       % Test,
-        library.swaggerParser
+        library.scalaTest       % Test
       )
     )
 
@@ -181,15 +181,15 @@ lazy val library =
     object Version {
       val akka                     = "2.6.16"
       val akkaHttp                 = "10.2.6"
-      val akkaHttpJson             = "1.37.0"
+      val akkaHttpJson             = "1.38.2"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.1"
       val akkaProjection           = "1.2.2"
       val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
-      val logback                  = "1.2.5"
+      val logback                  = "1.2.6"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.14.0"
+      val elastic4s                = "7.14.1"
       val pureconfig               = "0.16.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.2.0"
@@ -205,7 +205,7 @@ lazy val library =
       val kamonKanela     = "1.0.11"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.9"
+      val scalaTest           = "3.2.10"
       val gatling             = "3.5.1"
       val gatlingGrpc         = "0.11.1"
     }
@@ -241,6 +241,7 @@ lazy val library =
     val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
     val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
     val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
+    val circeYaml          = "io.circe" %% "circe-yaml"           % Version.circe
 
     val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 
@@ -273,8 +274,6 @@ lazy val library =
     val gatlingCharts       = "io.gatling.highcharts" % "gatling-charts-highcharts" % Version.gatling
     val gatlingTest         = "io.gatling"            % "gatling-test-framework"    % Version.gatling
     val gatlingGrpc         = "com.github.phisgr"     % "gatling-grpc"              % Version.gatlingGrpc
-
-    val swaggerParser = "io.swagger.parser.v3" % "swagger-parser" % "2.0.27"
   }
 
 // *****************************************************************************

@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCod
 import akka.http.scaladsl.server.{ Directives, Route }
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
-import com.jc.api.openapi.OpenApiMerger
+import com.jc.api.openapi.OpenApiCirceMerger
 import com.jc.auth.JwtAuthenticator
 import com.jc.logging.LoggingSystem
 import com.jc.logging.api.LoggingSystemOpenApi
@@ -91,7 +91,7 @@ object UserOpenApi {
   def docRoute(): Route = {
     val y1   = Source.fromResource("UserOpenApi.yaml").mkString
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
-    val my   = OpenApiMerger.mergeYamls(y1, y2 :: Nil)
+    val my   = OpenApiCirceMerger.mergeYamls(y1, y2 :: Nil)
     val yaml = my.getOrElse("")
     new SwaggerAkka(yaml).routes
   }
