@@ -16,9 +16,9 @@ import com.jc.user.api.openapi.definitions.{
   CreateUser,
   Department,
   PropertySuggestion,
+  SuggestResponse,
   User,
-  UserSearchResponse,
-  UserSuggestResponse
+  UserSearchResponse
 }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
@@ -91,7 +91,7 @@ object UserOpenApi {
   def docRoute(): Route = {
     val y1   = Source.fromResource("UserOpenApi.yaml").mkString
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
-    val my   = OpenApiCirceMerger.mergeYamls(y1, y2 :: Nil)
+    val my   = OpenApiCirceMerger().mergeYamls(y1, y2)
     val yaml = my.getOrElse("")
     new SwaggerAkka(yaml).routes
   }
@@ -269,7 +269,7 @@ object UserOpenApi {
         userRepository.suggest(query.getOrElse("")).map {
           case Right(res) =>
             val items = res.items.map(_.transformInto[PropertySuggestion]).toVector
-            UserResource.SuggestUsersResponseOK(UserSuggestResponse(items))
+            UserResource.SuggestUsersResponseOK(SuggestResponse(items))
           case Left(e) =>
             UserResource.SuggestUsersResponseBadRequest(e.error)
         }

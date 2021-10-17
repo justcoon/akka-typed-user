@@ -9,11 +9,14 @@ kubectl apply -k https://github.com/Yolean/kubernetes-kafka/variants/dev-small/?
 
 kafka
 https://strimzi.io/quickstarts/
+
 kubectl apply -f 'https://strimzi.io/install/latest?namespace=kafka' -n kafka
+kubectl apply -f https://strimzi.io/examples/latest/kafka/kafka-persistent-single.yaml -n kafka
 kubectl apply -f kube/strimzi-kafka.yaml -n kafka
 
 kubectl apply -f 'https://strimzi.io/install/latest?namespace=default'
 kubectl apply -f kube/strimzi-kafka.yaml
+
 
 
 kafka-topics.sh --bootstrap-server kafka-kafka-brokers:9092 --create --topic c-user --partitions 3

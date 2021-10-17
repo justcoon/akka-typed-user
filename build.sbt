@@ -179,7 +179,7 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.16"
+      val akka                     = "2.6.17"
       val akkaHttp                 = "10.2.6"
       val akkaHttpJson             = "1.38.2"
       val akkaPersistenceCassandra = "1.0.5"
@@ -189,8 +189,8 @@ lazy val library =
       val circe                    = "0.14.1"
       val logback                  = "1.2.6"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.14.1"
-      val pureconfig               = "0.16.0"
+      val elastic4s                = "7.15.0"
+      val pureconfig               = "0.17.0"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.2.0"
       val pauldijouJwt             = "5.0.0"
@@ -202,7 +202,7 @@ lazy val library =
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
-      val kamonKanela     = "1.0.11"
+      val kamonKanela     = "1.0.13"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.10"
@@ -251,7 +251,6 @@ lazy val library =
     val bcrypt              = "com.github.t3hnar"      %% "scala-bcrypt"          % Version.bcrypt
     val elastic4sClientAkka = "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % Version.elastic4s
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
-    val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
     val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
     val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
     val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt

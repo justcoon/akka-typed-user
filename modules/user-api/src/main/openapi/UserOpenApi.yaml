@@ -436,7 +436,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserSuggestResponse'
+                $ref: '#/components/schemas/SuggestResponse'
         '400':
           description: failed operation
           content:
@@ -576,7 +576,7 @@ components:
         - page
         - pageSize
         - count
-    UserSuggestResponse:
+    SuggestResponse:
       description: User suggest response
       properties:
         suggestions:
