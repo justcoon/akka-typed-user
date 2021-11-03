@@ -1,7 +1,7 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
 
-Scope.Global / scalaVersion := "2.13.6"
+Scope.Global / scalaVersion := "2.13.7"
 
 // *****************************************************************************
 // Projects
@@ -119,7 +119,8 @@ lazy val `user-svc` =
         library.akkaHttp2Support,
         library.akkaHttpCirce,
         library.akkaHttpSprayJson,
-        library.tapirSwaggerUiAkkaHttp,
+        library.tapirAkkaHttpServer,
+        library.tapirSwaggerUi,
         library.akkaKryo,
         library.akkaSlf4j,
         library.akkaPersistenceQuery,
@@ -180,7 +181,7 @@ lazy val library =
 
     object Version {
       val akka                     = "2.6.17"
-      val akkaHttp                 = "10.2.6"
+      val akkaHttp                 = "10.2.7"
       val akkaHttpJson             = "1.38.2"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.1"
@@ -189,16 +190,16 @@ lazy val library =
       val circe                    = "0.14.1"
       val logback                  = "1.2.6"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.15.0"
+      val elastic4s                = "7.15.1"
       val pureconfig               = "0.17.0"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.2.0"
+      val akkaKryo                 = "2.3.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.27"
-      val tapir                    = "0.18.3"
+      val tapir                    = "0.19.0-M13"
       val cats                     = "2.6.1"
 
-      val kamon           = "2.2.3"
+      val kamon           = "2.3.1"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
@@ -256,7 +257,8 @@ lazy val library =
     val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
 
-    val tapirSwaggerUiAkkaHttp = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % Version.tapir
+    val tapirAkkaHttpServer = "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.tapir
+    val tapirSwaggerUi = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui" % Version.tapir
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp

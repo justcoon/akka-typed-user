@@ -25,7 +25,8 @@ import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
-import sttp.tapir.swagger.akkahttp.SwaggerAkka
+import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
+import sttp.tapir.swagger.SwaggerUI
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -93,7 +94,8 @@ object UserOpenApi {
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
     val my   = OpenApiCirceMerger().mergeYamls(y1, y2)
     val yaml = my.getOrElse("")
-    new SwaggerAkka(yaml).routes
+
+    AkkaHttpServerInterpreter().toRoute(SwaggerUI[Future](yaml))
   }
 
   def route(
