@@ -65,9 +65,9 @@ lazy val `core` =
         library.pauldijouJwtCirce,
         library.chimney,
         library.scalapbRuntimeGrpc,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
 
@@ -106,8 +106,21 @@ lazy val `user-api` =
 
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
-    .enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin)
+    .enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin, EmbeddedCassandraPlugin)
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
+    .settings(
+      embeddedCassandraCQLFileSetting := Some(new File(s"${baseDirectory.value}/src/test/resources/cassandra/migrations/1_init.cql")),
+      embeddedCassandraPropertiesSetting := Map(
+        clusterNameProp         -> "user-svc-tests-cluster",
+        storagePortProp         -> "7001",
+        storagePortSSLProp      -> "7002",
+        listenAddressProp       -> "127.0.0.1",
+        nativeTransportPortProp -> "9043",
+        rpcAddressProp          -> "localhost",
+        rpcPortProp             -> "9161"
+      ),
+      Test / parallelExecution := false
+    )
     .settings(
       libraryDependencies ++= Seq(
         library.scalaPbRuntime,
@@ -149,9 +162,9 @@ lazy val `user-svc` =
         library.kamonSystem,
         library.kamonCassandra,
         library.chimney,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
     .aggregate(`user-api`)
@@ -196,7 +209,7 @@ lazy val library =
       val akkaKryo                 = "2.3.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.27"
-      val tapir                    = "0.19.0-M13"
+      val tapir                    = "0.19.0-M14"
       val cats                     = "2.6.1"
 
       val kamon           = "2.3.1"
@@ -237,7 +250,7 @@ lazy val library =
 
     val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
 
-    val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
+    val akkaTestkitTyped = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version.akka
 
     val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
     val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
@@ -258,7 +271,7 @@ lazy val library =
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
 
     val tapirAkkaHttpServer = "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.tapir
-    val tapirSwaggerUi = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui" % Version.tapir
+    val tapirSwaggerUi      = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui"       % Version.tapir
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
