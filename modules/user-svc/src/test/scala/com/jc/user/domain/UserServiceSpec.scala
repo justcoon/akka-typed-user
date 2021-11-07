@@ -12,7 +12,6 @@ import org.scalatest.wordspec.AsyncWordSpecLike
 import com.jc.user.domain.UserEntity._
 
 import java.util.UUID
-import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.io.Source
 
@@ -26,7 +25,6 @@ class UserServiceSpec extends AsyncWordSpecLike with Matchers with BeforeAndAfte
   implicit private val sharding: ClusterSharding = ClusterSharding(sys)
   implicit private val askTimeout: Timeout       = 30.seconds
 
-  private val cassandraSession         = CassandraUtils.get()
   private val addressValidationService = SimpleAddressValidationService
   private val departmentService        = DepartmentService()
   private val userService              = UserService(departmentService, addressValidationService)
@@ -43,13 +41,9 @@ class UserServiceSpec extends AsyncWordSpecLike with Matchers with BeforeAndAfte
   override def beforeAll(): Unit = {
     val statements =
       CassandraUtils.readCqlStatements(Source.fromInputStream(getClass.getResourceAsStream("/cassandra/migrations/1_init.cql")))
-    val f = CassandraUtils.executeStatements(statements, cassandraSession)
-
-    Await.result(f, 10.seconds)
+    CassandraUtils.init(statements)
   }
 
-  override def afterAll(): Unit = {
-    cassandraSession.close(testKit.system.executionContext)
+  override def afterAll(): Unit =
     testKit.shutdownTestKit()
-  }
 }
