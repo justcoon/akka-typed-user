@@ -1,4 +1,4 @@
-CREATE KEYSPACE test_c_user_journal WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};
+CREATE KEYSPACE IF NOT EXISTS test_c_user_journal WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};
 
 CREATE TABLE IF NOT EXISTS test_c_user_journal.messages (
                                         persistence_id text,

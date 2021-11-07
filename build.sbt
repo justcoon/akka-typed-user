@@ -106,21 +106,8 @@ lazy val `user-api` =
 
 lazy val `user-svc` =
   (project in file("modules/user-svc"))
-    .enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin, EmbeddedCassandraPlugin)
+    .enablePlugins(JavaAppPackaging, JavaAgent, DockerPlugin)
     .settings(settings ++ dockerSettings ++ javaAgentsSettings)
-    .settings(
-      embeddedCassandraCQLFileSetting := Some(new File(s"${baseDirectory.value}/src/test/resources/cassandra/migrations/1_init.cql")),
-      embeddedCassandraPropertiesSetting := Map(
-        clusterNameProp         -> "user-svc-tests-cluster",
-        storagePortProp         -> "7001",
-        storagePortSSLProp      -> "7002",
-        listenAddressProp       -> "127.0.0.1",
-        nativeTransportPortProp -> "9043",
-        rpcAddressProp          -> "localhost",
-        rpcPortProp             -> "9161"
-      ),
-      Test / parallelExecution := false
-    )
     .settings(
       libraryDependencies ++= Seq(
         library.scalaPbRuntime,

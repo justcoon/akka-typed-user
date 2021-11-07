@@ -49,13 +49,3 @@ nodes VMs arguments
 ```
  -Dakka.remote.artery.canonical.port=2553 -Dakka.management.http.port=8553 -Drest-api.port=8002 -Dgrpc-api.port=8012 -Dkamon.prometheus.embedded-server.port=9082 -javaagent:kanela-agent.jar
 ```
-
-
-## tests
-
-tests using https://github.com/47degrees/sbt-embedded-cassandra
-
-sbt task to execute cassandra:
-```
-embeddedCassandraStart
-```
