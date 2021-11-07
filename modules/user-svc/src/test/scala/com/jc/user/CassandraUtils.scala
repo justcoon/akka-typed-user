@@ -19,7 +19,7 @@ object CassandraUtils {
       ec: ExecutionContext
   ): Future[Done] = {
     val session = CassandraSessionRegistry.get(system).sessionFor(cfgNamespace, s => executeStatements(statements, s))
-    session.close(ec)
+    session.underlying().map(_ => Done) // underlying initialized session
   }
 
   def readCqlStatements(src: scala.io.Source): Seq[String] =

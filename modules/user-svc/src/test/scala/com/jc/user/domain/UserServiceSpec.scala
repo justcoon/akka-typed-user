@@ -10,6 +10,8 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpecLike
 import com.jc.user.domain.UserEntity._
+import com.jc.user.domain.DepartmentEntity._
+import com.jc.user.domain.proto.DepartmentRef
 
 import java.util.UUID
 import scala.concurrent.duration._
@@ -30,10 +32,27 @@ class UserServiceSpec extends AsyncWordSpecLike with Matchers with BeforeAndAfte
   private val userService              = UserService(departmentService, addressValidationService)
 
   "UserService" should {
-    "createUser" in {
-      val id = UUID.randomUUID().toString.asUserId
-      userService.sendCommand(UserAggregate.CreateUserCommand(id, "c", "c@cc.com", "p")).map { res =>
-        res shouldBe UserAggregate.UserCreatedReply(id)
+
+    "createUser with department" in {
+      val userId = UUID.randomUUID().toString.asUserId
+      val depId  = "d1".asDepartmentId
+      for {
+        depCreateRes <- departmentService.sendCommand(DepartmentAggregate.CreateDepartmentCommand(depId, "dep1", "department 1"))
+        userCreateRes <- userService.sendCommand(
+          UserAggregate.CreateUserCommand(userId, "d", "d@dd.com", "p", department = Some(DepartmentRef(depId)))
+        )
+      } yield {
+        depCreateRes shouldBe DepartmentAggregate.DepartmentCreatedReply(depId)
+        userCreateRes shouldBe UserAggregate.UserCreatedReply(userId)
+      }
+    }
+
+    "fail on createUser with not existing department" in {
+      val userId = UUID.randomUUID().toString.asUserId
+      val depId  = UUID.randomUUID().toString.asDepartmentId
+      userService.sendCommand(UserAggregate.CreateUserCommand(userId, "c", "c@cc.com", "p", department = Some(DepartmentRef(depId)))).map {
+        res =>
+          res.isInstanceOf[UserAggregate.UserCreatedFailedReply] shouldBe true
       }
     }
   }
@@ -41,7 +60,9 @@ class UserServiceSpec extends AsyncWordSpecLike with Matchers with BeforeAndAfte
   override def beforeAll(): Unit = {
     val statements =
       CassandraUtils.readCqlStatements(Source.fromInputStream(getClass.getResourceAsStream("/cassandra/migrations/1_init.cql")))
-    CassandraUtils.init(statements)
+    CassandraUtils.init(statements).onComplete { res =>
+      res.isSuccess shouldBe true
+    }
   }
 
   override def afterAll(): Unit =

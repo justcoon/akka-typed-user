@@ -1,3 +1,5 @@
+DROP KEYSPACE IF EXISTS test_c_user_journal;
+
 CREATE KEYSPACE IF NOT EXISTS test_c_user_journal WITH REPLICATION = {'class' : 'SimpleStrategy','replication_factor' : 1};
 
 CREATE TABLE IF NOT EXISTS test_c_user_journal.messages (
