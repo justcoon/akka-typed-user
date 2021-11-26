@@ -37,6 +37,7 @@ lazy val `core` =
     .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
+        library.sslConfig,
         library.akkaDiscovery,
         library.akkaClusterTyped,
         library.akkaPersistenceTyped,
@@ -188,18 +189,19 @@ lazy val library =
       val akkaProjection           = "1.2.2"
       val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
-      val logback                  = "1.2.6"
+      val logback                  = "1.2.7"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.15.1"
-      val pureconfig               = "0.17.0"
+      val elastic4s                = "7.15.3"
+      val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.3.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.27"
-      val tapir                    = "0.19.0-M14"
+      val tapir                    = "0.19.0"
       val cats                     = "2.6.1"
+      val sslConfig                = "0.6.0"
 
-      val kamon           = "2.3.1"
+      val kamon           = "2.4.1"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
@@ -207,8 +209,8 @@ lazy val library =
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.10"
-      val gatling             = "3.5.1"
-      val gatlingGrpc         = "0.11.1"
+      val gatling             = "3.6.1"
+      val gatlingGrpc         = "0.12.0"
     }
 
     val akkaDiscoveryKubernetes        = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % Version.akkaManagement
@@ -256,6 +258,7 @@ lazy val library =
     val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
     val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
+    val sslConfig           = "com.typesafe"           %% "ssl-config-core"       % Version.sslConfig
 
     val tapirAkkaHttpServer = "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.tapir
     val tapirSwaggerUi      = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui"       % Version.tapir
