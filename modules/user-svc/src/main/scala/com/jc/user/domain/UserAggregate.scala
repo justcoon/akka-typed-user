@@ -134,7 +134,7 @@ object UserAggregate {
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEntity.UserEvent] = {
     case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created, _) =>
-      Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address))
+      Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address, payload.value.department))
     case _ =>
       //      logError(s"Received user event $otherEvent before actual user booking")
       None

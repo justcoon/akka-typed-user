@@ -41,9 +41,17 @@ class UserServiceSpec extends AsyncWordSpecLike with Matchers with BeforeAndAfte
         userCreateRes <- userService.sendCommand(
           UserAggregate.CreateUserCommand(userId, "d", "d@dd.com", "p", department = Some(DepartmentRef(depId)))
         )
+        userGetRes <- userService.sendCommand(
+          UserAggregate.GetUserCommand(userId)
+        )
       } yield {
         depCreateRes shouldBe DepartmentAggregate.DepartmentCreatedReply(depId)
         userCreateRes shouldBe UserAggregate.UserCreatedReply(userId)
+        val getRes = userGetRes match {
+          case UserAggregate.UserReply(user) if user.id == userId && user.department.exists(_.id == depId) => true
+          case _                                                                                           => false
+        }
+        getRes shouldBe true
       }
     }
 
