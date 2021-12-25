@@ -2,6 +2,7 @@ package com.jc.user.api
 
 import com.github.phisgr.gatling.grpc.Predef._
 import com.github.phisgr.gatling.pb._
+import com.jc.auth.JwtAuthenticator
 import com.jc.user.api.proto._
 import com.jc.user.domain.proto.DepartmentRef
 import com.jc.user.domain.DepartmentEntity._
@@ -10,6 +11,8 @@ import io.gatling.core.Predef.{ stringToExpression => _, _ }
 import io.gatling.core.session.Expression
 import pureconfig.ConfigSource
 import eu.timepit.refined.auto._
+import io.grpc.Metadata
+
 import scala.util.Random
 
 final class UserGrpcApiSimulation extends Simulation {
@@ -32,7 +35,12 @@ final class UserGrpcApiSimulation extends Simulation {
   val mcb      = managedChannelBuilder(name = apiConfig.address, port = apiConfig.port).usePlaintext()
   val grpcConf = grpc(mcb)
 
-  val regUserFeeder = Iterator.continually {
+  val jwtAuthHeader: Metadata.Key[String] = Metadata.Key.of(JwtAuthenticator.AuthHeader, Metadata.ASCII_STRING_MARSHALLER)
+
+  val jwtToken =
+    "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ6aW8tdXNlci1zZWFyY2giLCJzdWIiOiJ0ZXN0IiwiZXhwIjoyMjE1MDc4MTYwLCJpYXQiOjE2MTAyNzgxNjB9.CCTmZT-Iy-0bq2WnoEbr6E5hhP-VYI_YlaUUolH5y00kvBA5AYgR2BQyLSCO6QhG1i2Yv0_2Xv4w8PWoqfvcZg"
+
+  val registerUserFeeder = Iterator.continually {
     val deps   = List("d1", "d2", "d3", "d4")
     val name   = Random.alphanumeric.take(5).mkString
     val pass   = Random.alphanumeric.take(5).mkString
@@ -71,6 +79,7 @@ final class UserGrpcApiSimulation extends Simulation {
   val getDepartmentSuccessfulCall = grpc("getDepartment")
     .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.getDepartmentDescriptor)
     .payload(getDepartmentPayload)
+    .header(jwtAuthHeader)(jwtToken)
 
   val searchUsersSuccessfulCall = grpc("searchUsers")
     .rpc(com.jc.user.api.proto.UserApiService.MethodDescriptors.searchUsersDescriptor)
@@ -82,7 +91,7 @@ final class UserGrpcApiSimulation extends Simulation {
 
   val s = scenario("UserGrpcApi")
     .repeat(1) {
-      feed(regUserFeeder)
+      feed(registerUserFeeder)
         .exec(registerUserSuccessfulCall)
         .feed(departmentIdFeeder)
         .exec(getDepartmentSuccessfulCall)

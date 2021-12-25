@@ -121,7 +121,7 @@ object DepartmentAggregate {
       //      logError(s"Received department event $otherEvent before actual department booking")
       None
   }
-//
+
   implicit val eventApplier: EventApplier[Department, DepartmentEntity.DepartmentEvent] = (department, event) =>
     event match {
       case DepartmentPayloadEvent(_, _, payload: DepartmentPayloadEvent.Payload.Updated, _) =>
@@ -147,12 +147,7 @@ sealed class DepartmentAggregate()
 
   import scala.concurrent.duration._
 
-  def entityIdFromString(id: String): DepartmentEntity.DepartmentId = {
-    import DepartmentEntity._
-    id.asDepartmentId
-  }
-
-  def entityIdToString(id: DepartmentEntity.DepartmentId): String = id.toString
+  override def entityId(command: DepartmentCommand[_]): String = command.entityId.toString
 
   val snapshotAdapter: SnapshotAdapter[EntityState] = new SnapshotAdapter[EntityState] {
     override def toJournal(state: EntityState): Any =
@@ -169,18 +164,17 @@ sealed class DepartmentAggregate()
   }
 
   override def configureEntityBehavior(
-      id: DepartmentEntity.DepartmentId,
       behavior: EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, EntityState],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, DepartmentEntity.DepartmentEvent, EntityState] =
     behavior
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>
-          actorContext.log.info(s"Successful recovery of Department entity $id in state $state")
+          actorContext.log.info(s"Successful recovery of Department entity ${state.id} in state $state")
         case (Uninitialized, _) =>
-          actorContext.log.info(s"Department entity $id created in uninitialized state")
+          actorContext.log.info(s"Department entity created in uninitialized state")
         case (state, RecoveryFailed(error)) =>
-          actorContext.log.error(s"Failed recovery of Department entity $id in state $state: $error")
+          actorContext.log.error(s"Failed recovery of Department entity in state $state: $error")
       }
       .withTagger(DepartmentAggregate.departmentEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))

@@ -7,7 +7,7 @@ import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCod
 import akka.http.scaladsl.server.{ Directives, Route }
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
-import com.jc.api.openapi.OpenApiMerger
+import com.jc.api.openapi.OpenApiCirceMerger
 import com.jc.auth.JwtAuthenticator
 import com.jc.logging.LoggingSystem
 import com.jc.logging.api.LoggingSystemOpenApi
@@ -16,16 +16,17 @@ import com.jc.user.api.openapi.definitions.{
   CreateUser,
   Department,
   PropertySuggestion,
+  SuggestResponse,
   User,
-  UserSearchResponse,
-  UserSuggestResponse
+  UserSearchResponse
 }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
-import sttp.tapir.swagger.akkahttp.SwaggerAkka
+import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
+import sttp.tapir.swagger.SwaggerUI
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -91,9 +92,10 @@ object UserOpenApi {
   def docRoute(): Route = {
     val y1   = Source.fromResource("UserOpenApi.yaml").mkString
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
-    val my   = OpenApiMerger.mergeYamls(y1, y2 :: Nil)
+    val my   = OpenApiCirceMerger().mergeYamls(y1, y2)
     val yaml = my.getOrElse("")
-    new SwaggerAkka(yaml).routes
+
+    AkkaHttpServerInterpreter().toRoute(SwaggerUI[Future](yaml))
   }
 
   def route(
@@ -269,7 +271,7 @@ object UserOpenApi {
         userRepository.suggest(query.getOrElse("")).map {
           case Right(res) =>
             val items = res.items.map(_.transformInto[PropertySuggestion]).toVector
-            UserResource.SuggestUsersResponseOK(UserSuggestResponse(items))
+            UserResource.SuggestUsersResponseOK(SuggestResponse(items))
           case Left(e) =>
             UserResource.SuggestUsersResponseBadRequest(e.error)
         }

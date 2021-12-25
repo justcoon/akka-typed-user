@@ -29,8 +29,8 @@ trait BasicPersistentEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entit
   )
 
   override def sendCommand[R](command: C[R]): Future[R] =
-    entityFor(command.entityId) ? CommandExpectingReply(command)
+    entityFor(command) ? CommandExpectingReply(command)
 
-  private def entityFor(id: ID) =
-    sharding.entityRefFor(persistentEntity.entityTypeKey, persistentEntity.entityIdToString(id))
+  private def entityFor[R](command: C[R]) =
+    sharding.entityRefFor(persistentEntity.entityTypeKey, persistentEntity.entityId(command))
 }

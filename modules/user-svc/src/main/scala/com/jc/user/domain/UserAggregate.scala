@@ -134,7 +134,7 @@ object UserAggregate {
 
   implicit val initialEventApplier: InitialEventApplier[User, UserEntity.UserEvent] = {
     case UserPayloadEvent(entityId, _, payload: UserPayloadEvent.Payload.Created, _) =>
-      Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address))
+      Some(User(entityId, payload.value.username, payload.value.email, payload.value.pass, payload.value.address, payload.value.department))
     case _ =>
       //      logError(s"Received user event $otherEvent before actual user booking")
       None
@@ -182,12 +182,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 
   import scala.concurrent.duration._
 
-  def entityIdFromString(id: String): UserEntity.UserId = {
-    import UserEntity._
-    id.asUserId
-  }
-
-  def entityIdToString(id: UserEntity.UserId): String = id.toString
+  override def entityId(command: UserAggregate.UserCommand[_]): String = command.entityId.toString
 
   val snapshotAdapter: SnapshotAdapter[EntityState] = new SnapshotAdapter[EntityState] {
     override def toJournal(state: EntityState): Any =
@@ -204,18 +199,17 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
   }
 
   override def configureEntityBehavior(
-      id: UserEntity.UserId,
       behavior: EventSourcedBehavior[Command, UserEntity.UserEvent, EntityState],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, UserEntity.UserEvent, EntityState] =
     behavior
       .receiveSignal {
         case (Initialized(state), RecoveryCompleted) =>
-          actorContext.log.info(s"Successful recovery of User entity $id in state $state")
+          actorContext.log.info(s"Successful recovery of User entity ${state.id} in state $state")
         case (Uninitialized, _) =>
-          actorContext.log.info(s"User entity $id created in uninitialized state")
+          actorContext.log.info("User entity created in uninitialized state")
         case (state, RecoveryFailed(error)) =>
-          actorContext.log.error(s"Failed recovery of User entity $id in state $state: $error")
+          actorContext.log.error(s"Failed recovery of User entity in state $state: $error")
       }
       .withTagger(UserAggregate.userEventTagger.tags)
       .withRetention(RetentionCriteria.snapshotEvery(numberOfEvents = 100, keepNSnapshots = 2))
@@ -300,7 +294,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
         CommandProcessResult.withCmdEventsReply(cmd)(events, UserAggregate.UserPasswordChangedReply(cmd.entityId))
       case cmd: UserAggregate.ChangeUserAddressCommand =>
         implicit val ec = actorContext.executionContext
-        BasicPersistentEntity.validated[Command, String](
+        BasicPersistentEntity.validated[Command, String, Done](
           addressValidator(cmd.address),
           v => command.transformUnsafe(cmd.toValidated(v)),
           BasicPersistentEntity.errorMessageToValidated
@@ -321,7 +315,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
         }
       case cmd: UserAggregate.ChangeUserDepartmentCommand =>
         implicit val ec = actorContext.executionContext
-        BasicPersistentEntity.validated[Command, String](
+        BasicPersistentEntity.validated[Command, String, Done](
           departmentValidator(cmd.department),
           v => command.transformUnsafe(cmd.toValidated(v)),
           BasicPersistentEntity.errorMessageToValidated

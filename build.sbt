@@ -1,9 +1,9 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
 
-//Scope.Global / scalaVersion := "2.13.6"
-Scope.Global / scalaVersion := "3.0.0"
-Scope.Global / crossScalaVersions ++= Seq("2.13.6", "3.0.0")
+//Scope.Global / scalaVersion := "2.13.7"
+Scope.Global / scalaVersion := "3.1.0"
+Scope.Global / crossScalaVersions ++= Seq("2.13.7", "3.1.0")
 
 // *****************************************************************************
 // Projects
@@ -40,6 +40,7 @@ lazy val `core` =
     .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
+        library.sslConfig,
         library.akkaDiscovery,
         library.akkaClusterTyped,
         library.akkaPersistenceTyped,
@@ -58,6 +59,7 @@ lazy val `core` =
         library.circeGeneric,
         library.circeGenericExtras,
         library.circeRefined,
+        library.circeYaml,
         library.catsCore,
         library.logbackCore,
         library.logbackClassic,
@@ -67,10 +69,9 @@ lazy val `core` =
         library.pauldijouJwtCirce,
         library.chimney,
         library.scalapbRuntimeGrpc,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test,
-        library.swaggerParser
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
 
@@ -122,7 +123,8 @@ lazy val `user-svc` =
         library.akkaHttp2Support,
         library.akkaHttpCirce,
         library.akkaHttpSprayJson,
-        library.tapirSwaggerUiAkkaHttp,
+        library.tapirAkkaHttpServer,
+        library.tapirSwaggerUi,
         library.akkaKryo,
         library.akkaSlf4j,
         library.akkaPersistenceQuery,
@@ -151,9 +153,9 @@ lazy val `user-svc` =
         library.kamonSystem,
         library.kamonCassandra,
         library.chimney,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
     .aggregate(`user-api`)
@@ -182,35 +184,36 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.16"
-      val akkaHttp                 = "10.2.6"
-      val akkaHttpJson             = "1.37.0"
+      val akka                     = "2.6.18"
+      val akkaHttp                 = "10.2.7"
+      val akkaHttpJson             = "1.39.2"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.1"
-      val akkaProjection           = "1.2.2"
+      val akkaProjection           = "1.2.3"
       val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
-      val logback                  = "1.2.5"
+      val logback                  = "1.2.10"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.14.0"
-      val pureconfig               = "0.16.0"
+      val elastic4s                = "7.16.1"
+      val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.2.0"
+      val akkaKryo                 = "2.3.0"
       val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.27"
-      val tapir                    = "0.18.3"
-      val cats                     = "2.6.1"
+      val refined                  = "0.9.28"
+      val tapir                    = "0.19.3"
+      val cats                     = "2.7.0"
+      val sslConfig                = "0.6.0"
 
-      val kamon           = "2.2.3"
+      val kamon           = "2.4.2"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
-      val kamonKanela     = "1.0.11"
+      val kamonKanela     = "1.0.14"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.9"
-      val gatling             = "3.5.1"
-      val gatlingGrpc         = "0.11.1"
+      val scalaTest           = "3.2.10"
+      val gatling             = "3.6.1"
+      val gatlingGrpc         = "0.12.0"
     }
 
     val akkaDiscoveryKubernetes =
@@ -245,11 +248,12 @@ lazy val library =
 
     val akkaStreamKafka = ("com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka).cross(CrossVersion.for3Use2_13)
 
-    val akkaTestkit = ("com.typesafe.akka" %% "akka-testkit" % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaTestkitTyped = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version.akka
 
-    val circeGeneric       = ("io.circe" %% "circe-generic"        % Version.circe).cross(CrossVersion.for3Use2_13)
-    val circeGenericExtras = ("io.circe" %% "circe-generic-extras" % Version.circe).cross(CrossVersion.for3Use2_13)
-    val circeRefined       = ("io.circe" %% "circe-refined"        % Version.circe).cross(CrossVersion.for3Use2_13)
+    val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
+    val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
+    val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
+    val circeYaml          = "io.circe" %% "circe-yaml"           % Version.circe
 
     val catsCore = ("org.typelevel" %% "cats-core" % Version.cats).cross(CrossVersion.for3Use2_13)
 
@@ -259,13 +263,14 @@ lazy val library =
     val bcrypt              = ("com.github.t3hnar"      %% "scala-bcrypt"          % Version.bcrypt).cross(CrossVersion.for3Use2_13)
     val elastic4sClientAkka = "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % Version.elastic4s
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
-    val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
     val pureconfig          = ("com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig).cross(CrossVersion.for3Use2_13)
     val refinedPureconfig   = ("eu.timepit"             %% "refined-pureconfig"    % Version.refined).cross(CrossVersion.for3Use2_13)
     val pauldijouJwtCirce   = ("com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt).cross(CrossVersion.for3Use2_13)
     val chimney             = ("io.scalaland"           %% "chimney"               % Version.chimney).cross(CrossVersion.for3Use2_13)
+    val sslConfig           = "com.typesafe"           %% "ssl-config-core"       % Version.sslConfig
 
-    val tapirSwaggerUiAkkaHttp = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % Version.tapir
+    val tapirAkkaHttpServer = "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.tapir
+    val tapirSwaggerUi      = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui"       % Version.tapir
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
@@ -282,8 +287,6 @@ lazy val library =
     val gatlingCharts       = "io.gatling.highcharts" % "gatling-charts-highcharts" % Version.gatling
     val gatlingTest         = "io.gatling"            % "gatling-test-framework"    % Version.gatling
     val gatlingGrpc         = "com.github.phisgr"     % "gatling-grpc"              % Version.gatlingGrpc
-
-    val swaggerParser = "io.swagger.parser.v3" % "swagger-parser" % "2.0.27"
   }
 
 // *****************************************************************************

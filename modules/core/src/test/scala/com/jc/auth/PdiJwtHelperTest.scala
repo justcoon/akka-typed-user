@@ -9,7 +9,7 @@ import pdi.jwt.JwtClaim
 
 import scala.util.Try
 
-class PdiJwtHelperTest extends AnyWordSpecLike with should.Matchers with BeforeAndAfterAll {
+class PdiJwtHelperTest extends AnyWordSpecLike with should.Matchers {
   import eu.timepit.refined.auto._
   import com.jc.refined.auto._
   implicit val clock: Clock = Clock.systemUTC
