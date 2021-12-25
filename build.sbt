@@ -181,23 +181,23 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.17"
+      val akka                     = "2.6.18"
       val akkaHttp                 = "10.2.7"
-      val akkaHttpJson             = "1.38.2"
+      val akkaHttpJson             = "1.39.2"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "2.1.1"
-      val akkaProjection           = "1.2.2"
+      val akkaProjection           = "1.2.3"
       val akkaManagement           = "1.1.1"
       val circe                    = "0.14.1"
-      val logback                  = "1.2.7"
+      val logback                  = "1.2.10"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.15.5"
+      val elastic4s                = "7.16.1"
       val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.3.0"
       val pauldijouJwt             = "5.0.0"
       val refined                  = "0.9.28"
-      val tapir                    = "0.19.1"
+      val tapir                    = "0.19.3"
       val cats                     = "2.7.0"
       val sslConfig                = "0.6.0"
 
@@ -205,7 +205,7 @@ lazy val library =
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
-      val kamonKanela     = "1.0.13"
+      val kamonKanela     = "1.0.14"
 
       val randomDataGenerator = "2.9"
       val scalaTest           = "3.2.10"
