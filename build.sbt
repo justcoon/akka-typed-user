@@ -217,20 +217,20 @@ lazy val library =
     }
 
     val akkaDiscoveryKubernetes =
-      ("com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
+      ("com.lightbend.akka.discovery" %% "akka-discovery-kubernetes-api" % Version.akkaManagement)//.cross(CrossVersion.for3Use2_13)
     val akkaManagementClusterBootstrap =
-      ("com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
+      ("com.lightbend.akka.management" %% "akka-management-cluster-bootstrap" % Version.akkaManagement)//.cross(CrossVersion.for3Use2_13)
     val akkaManagementClusterHttp =
-      ("com.lightbend.akka.management" %% "akka-management-cluster-http" % Version.akkaManagement).cross(CrossVersion.for3Use2_13)
+      ("com.lightbend.akka.management" %% "akka-management-cluster-http" % Version.akkaManagement)//.cross(CrossVersion.for3Use2_13)
 
-    val akkaPersistenceQuery = ("com.typesafe.akka" %% "akka-persistence-query" % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaPersistenceQuery = ("com.typesafe.akka" %% "akka-persistence-query" % Version.akka)//.cross(CrossVersion.for3Use2_13)
     val akkaPersistenceCassandra =
       ("com.typesafe.akka" %% "akka-persistence-cassandra" % Version.akkaPersistenceCassandra).cross(CrossVersion.for3Use2_13)
-    val akkaDiscovery = ("com.typesafe.akka" %% "akka-discovery" % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaDiscovery = ("com.typesafe.akka" %% "akka-discovery" % Version.akka)//.cross(CrossVersion.for3Use2_13)
 
-    val akkaClusterTyped         = ("com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka).cross(CrossVersion.for3Use2_13)
-    val akkaPersistenceTyped     = ("com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka).cross(CrossVersion.for3Use2_13)
-    val akkaClusterShardingTyped = ("com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka).cross(CrossVersion.for3Use2_13)
+    val akkaClusterTyped         = ("com.typesafe.akka" %% "akka-cluster-typed"          % Version.akka)//.cross(CrossVersion.for3Use2_13)
+    val akkaPersistenceTyped     = ("com.typesafe.akka" %% "akka-persistence-typed"      % Version.akka)//.cross(CrossVersion.for3Use2_13)
+    val akkaClusterShardingTyped = ("com.typesafe.akka" %% "akka-cluster-sharding-typed" % Version.akka)//.cross(CrossVersion.for3Use2_13)
 
     val akkaProjectionCassandra =
       ("com.lightbend.akka" %% "akka-projection-cassandra" % Version.akkaProjection).cross(CrossVersion.for3Use2_13)
@@ -251,7 +251,7 @@ lazy val library =
     val akkaTestkitTyped = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version.akka
 
     val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
-    val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
+    val circeGenericExtras = ("io.circe" %% "circe-generic-extras" % Version.circe).cross(CrossVersion.for3Use2_13)
     val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
     val circeYaml          = "io.circe" %% "circe-yaml"           % Version.circe
 
