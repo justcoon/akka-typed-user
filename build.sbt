@@ -1,7 +1,7 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
 import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
 
-Scope.Global / scalaVersion := "2.13.7"
+Scope.Global / scalaVersion := "2.13.8"
 
 // *****************************************************************************
 // Projects
@@ -185,13 +185,13 @@ lazy val library =
       val akkaHttp                 = "10.2.7"
       val akkaHttpJson             = "1.39.2"
       val akkaPersistenceCassandra = "1.0.5"
-      val akkaStreamKafka          = "2.1.1"
+      val akkaStreamKafka          = "3.0.0"
       val akkaProjection           = "1.2.3"
-      val akkaManagement           = "1.1.1"
+      val akkaManagement           = "1.1.2"
       val circe                    = "0.14.1"
       val logback                  = "1.2.10"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.16.1"
+      val elastic4s                = "7.16.3"
       val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.3.0"
