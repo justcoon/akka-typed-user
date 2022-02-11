@@ -1,5 +1,6 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
-import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
+import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType}
+import scalapb.GeneratorOption.FlatPackage
 
 Scope.Global / scalaVersion := "2.13.8"
 
@@ -87,7 +88,9 @@ lazy val `user-api` =
           tracing = false,
           customExtraction = true
         )
-      )
+      ),
+      Compile / PB.targets +=
+        scalapb.validate.gen(FlatPackage) -> (Compile / akkaGrpcCodeGeneratorSettings / target).value
     )
     .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
@@ -100,7 +103,8 @@ lazy val `user-api` =
         library.circeGeneric,
         library.circeRefined,
         library.catsCore,
-        library.scalapbRuntimeGrpc
+        library.scalapbRuntimeGrpc,
+        library.scalapbValidate
       )
     )
     .dependsOn(`core`)
@@ -187,11 +191,11 @@ lazy val library =
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "3.0.0"
       val akkaProjection           = "1.2.3"
-      val akkaManagement           = "1.1.2"
+      val akkaManagement           = "1.1.3"
       val circe                    = "0.14.1"
       val logback                  = "1.2.10"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.16.3"
+      val elastic4s                = "7.17.0"
       val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.3.0"
@@ -201,14 +205,14 @@ lazy val library =
       val cats                     = "2.7.0"
       val sslConfig                = "0.6.0"
 
-      val kamon           = "2.4.2"
+      val kamon           = "2.4.7"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
       val kamonKanela     = "1.0.14"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.10"
+      val scalaTest           = "3.2.11"
       val gatling             = "3.6.1"
       val gatlingGrpc         = "0.12.0"
     }
@@ -272,6 +276,7 @@ lazy val library =
 
     val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
     val scalaPbRuntime     = "com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf"
+    val scalapbValidate    = "com.thesamet.scalapb" %% "scalapb-validate-core" % scalapb.validate.compiler.BuildInfo.version % "protobuf"
 
     val randomDataGenerator = "com.danielasfregola"  %% "random-data-generator"     % Version.randomDataGenerator
     val scalaTest           = "org.scalatest"        %% "scalatest"                 % Version.scalaTest
