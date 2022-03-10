@@ -2,17 +2,17 @@ package com.jc.cqrs
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity }
+import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityRef}
 import akka.util.Timeout
 import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 
 import scala.concurrent.Future
 
-trait EntityService[F[_], ID, S, C[R] <: EntityCommand[ID, S, R]] {
-  def sendCommand[R](command: C[R]): F[R]
+trait EntityService[F[_], ID, S, C <: EntityCommand[ID, S, _]] {
+  def sendCommand(command: C): F[command.Reply]
 }
 
-trait BasicPersistentEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entity <: BasicPersistentEntity[ID, S, C, _]]
+trait BasicPersistentEntityService[ID, S, C <: EntityCommand[ID, S, _], Entity <: BasicPersistentEntity[ID, S, C, _]]
     extends EntityService[Future, ID, S, C] {
   implicit def sharding: ClusterSharding
 
@@ -28,9 +28,11 @@ trait BasicPersistentEntityService[ID, S, C[R] <: EntityCommand[ID, S, R], Entit
     }
   )
 
-  override def sendCommand[R](command: C[R]): Future[R] =
-    entityFor(command) ? CommandExpectingReply(command)
+  override def sendCommand(command: C): Future[command.Reply] = {
 
-  private def entityFor[R](command: C[R]) =
+    entityFor(command) ? CommandExpectingReply(command)
+  }
+
+  private def entityFor(command: C) =
     sharding.entityRefFor(persistentEntity.entityTypeKey, persistentEntity.entityId(command))
 }

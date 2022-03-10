@@ -14,7 +14,7 @@ import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
 
-abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: EntityEvent[ID]](
+abstract class BasicPersistentEntity[ID, S, C <: EntityCommand[ID, S, _], E <: EntityEvent[ID]](
     val entityName: String
 ) {
 
@@ -24,7 +24,7 @@ abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <
 
   case object Uninitialized extends EntityState
 
-  type Command = CommandExpectingReply[_, S, C]
+  type Command = CommandExpectingReply[S, C]
 
   val entityTypeKey: EntityTypeKey[Command] = EntityTypeKey[Command](entityName)
 
@@ -32,7 +32,7 @@ abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <
 
   protected def eventHandler(actorContext: ActorContext[Command]): (EntityState, E) => EntityState
 
-  def entityId(command: C[_]): String
+  def entityId(command: C): String
 
   final def eventSourcedEntity(
       entityContext: EntityContext[Command],
@@ -62,7 +62,7 @@ abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <
     )
 }
 
-abstract class PersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: EntityEvent[ID]](
+abstract class PersistentEntity[ID, S, C <: EntityCommand[ID, S, _], E <: EntityEvent[ID]](
     entityName: String
 )(implicit
     initialProcessor: InitialCommandProcessor[C, E],
@@ -96,17 +96,17 @@ abstract class PersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <: Ent
 
 object BasicPersistentEntity {
 
-  final case class CommandExpectingReply[R, S, C[R] <: EntityCommand[_, S, R]](command: C[R])(val replyTo: ActorRef[R]) {
-    def transform[NC[R] <: EntityCommand[_, S, R]](newCommand: NC[R]): CommandExpectingReply[R, S, NC] =
-      CommandExpectingReply[R, S, NC](newCommand)(replyTo)
+  final case class CommandExpectingReply[S, C <: EntityCommand[_, S, _]](command: C)(val replyTo: ActorRef[command.Reply]) {
+    def transform[NC <: EntityCommand[_, S, _]](newCommand: NC): CommandExpectingReply[S, NC] =
+      CommandExpectingReply[S, NC](newCommand)(replyTo)
 
-    def transformUnsafe[NR, NC[NR] <: EntityCommand[_, S, NR]](newCommand: NC[NR]): CommandExpectingReply[NR, S, NC] =
-      CommandExpectingReply[NR, S, NC](newCommand)(replyTo.asInstanceOf[ActorRef[NR]])
+    def transformUnsafe[NC <: EntityCommand[_, S, _]](newCommand: NC): CommandExpectingReply [S, NC] =
+      CommandExpectingReply[S, NC](newCommand)(replyTo.asInstanceOf[ActorRef[newCommand.Reply]])
   }
 
-  def handleProcessResult2[R, E <: EntityEvent[_], S, S1, C[R] <: EntityCommand[_, S1, R]](
+  def handleProcessResult2[R, E <: EntityEvent[_], S, S1, C <: EntityCommand[_, S1, R]](
       result: CommandProcessResult[E, R],
-      command: CommandExpectingReply[R, S1, C]
+      command: CommandExpectingReply[S1, C]
   ): ReplyEffect[E, S] = {
     val effect: EffectBuilder[E, S] = if (result.events.nonEmpty) Effect.persist(result.events) else Effect.none
     result.reply match {
