@@ -23,7 +23,7 @@ object UserService {
       val sharding: ClusterSharding,
       val actorSystem: ActorSystem[_],
       val askTimeout: Timeout
-  ) extends BasicPersistentEntityService[UserEntity.UserId, User, UserAggregate.UserCommand, UserAggregate]
+  ) extends BasicPersistentEntityService[UserEntity.UserId, User, UserAggregate.UserCommand[_], UserAggregate]
       with UserService {
     implicit val executionContext: ExecutionContext = actorSystem.executionContext
     lazy val persistentEntity                       = UserAggregate(departmentService, addressValidationService)

@@ -22,7 +22,7 @@ object DepartmentService {
   ) extends BasicPersistentEntityService[
         DepartmentEntity.DepartmentId,
         Department,
-        DepartmentAggregate.DepartmentCommand,
+        DepartmentAggregate.DepartmentCommand[_],
         DepartmentAggregate
       ]
       with DepartmentService {

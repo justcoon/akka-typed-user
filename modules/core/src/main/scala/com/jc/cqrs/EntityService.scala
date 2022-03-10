@@ -2,7 +2,7 @@ package com.jc.cqrs
 
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.Behaviors
-import akka.cluster.sharding.typed.scaladsl.{ClusterSharding, Entity, EntityRef}
+import akka.cluster.sharding.typed.scaladsl.{ ClusterSharding, Entity }
 import akka.util.Timeout
 import com.jc.cqrs.BasicPersistentEntity.CommandExpectingReply
 
@@ -28,10 +28,8 @@ trait BasicPersistentEntityService[ID, S, C <: EntityCommand[ID, S, _], Entity <
     }
   )
 
-  override def sendCommand(command: C): Future[command.Reply] = {
-
-    entityFor(command) ? CommandExpectingReply(command)
-  }
+  override def sendCommand(command: C): Future[command.Reply] =
+    entityFor(command) ? CommandExpectingReply[S, C](command)
 
   private def entityFor(command: C) =
     sharding.entityRefFor(persistentEntity.entityTypeKey, persistentEntity.entityId(command))

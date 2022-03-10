@@ -176,7 +176,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
 ) extends BasicPersistentEntity[
       UserEntity.UserId,
       User,
-      UserAggregate.UserCommand,
+      UserAggregate.UserCommand[_],
       UserEntity.UserEvent
     ](UserAggregate.entityName) {
 

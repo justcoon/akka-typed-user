@@ -79,7 +79,7 @@ object DepartmentAggregate {
       with RemoveDepartmentReply
       with UpdateDepartmentReply
 
-  implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand, DepartmentEntity.DepartmentEvent] = {
+  implicit val initialCommandProcessor: InitialCommandProcessor[DepartmentCommand[_], DepartmentEntity.DepartmentEvent] = {
     case cmd: CreateDepartmentCommand =>
       val event =
         DepartmentPayloadEvent(
@@ -93,7 +93,7 @@ object DepartmentAggregate {
       CommandProcessResult.withReply(DepartmentNotExistsReply(otherCommand.entityId))
   }
 
-  implicit val commandProcessor: CommandProcessor[Department, DepartmentCommand, DepartmentEntity.DepartmentEvent] =
+  implicit val commandProcessor: CommandProcessor[Department, DepartmentCommand[_], DepartmentEntity.DepartmentEvent] =
     (state, command) =>
       command match {
         case cmd: CreateDepartmentCommand =>
@@ -141,7 +141,7 @@ sealed class DepartmentAggregate()
     extends PersistentEntity[
       DepartmentEntity.DepartmentId,
       Department,
-      domain.DepartmentAggregate.DepartmentCommand,
+      domain.DepartmentAggregate.DepartmentCommand[_],
       DepartmentEntity.DepartmentEvent
     ](DepartmentAggregate.entityName) {
 
