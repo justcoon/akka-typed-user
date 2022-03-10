@@ -274,7 +274,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
   protected def commandHandlerInitialized(
       actorContext: ActorContext[Command]
   ): (User, Command) => ReplyEffect[UserEntity.UserEvent, EntityState] = (state, command) => {
-    val result = command.command match {
+    val result: CommandProcessResult[UserEntity.UserEvent, command.command.Reply] = command.command match {
       case cmd: UserAggregate.ChangeUserEmailCommand =>
         val events =
           UserPayloadEvent(
@@ -282,7 +282,7 @@ sealed class UserAggregate(departmentService: DepartmentService, addressValidati
             Instant.now,
             UserPayloadEvent.Payload.EmailUpdated(UserEmailUpdatedPayload(cmd.email))
           ) :: Nil
-        CommandProcessResult.withReply(events, UserAggregate.UserEmailChangedReply(cmd.entityId))
+        CommandProcessResult.withReply[UserEntity.UserEvent, cmd.Reply](events, UserAggregate.UserEmailChangedReply(cmd.entityId))
       case cmd: UserAggregate.ChangeUserPasswordCommand =>
         val encryptedPass = cmd.pass.boundedBcrypt
         val events =
