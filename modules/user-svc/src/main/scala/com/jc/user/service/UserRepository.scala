@@ -81,33 +81,15 @@ object UserRepository {
 
 object UserESRepository {
 
-  def apply(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext): UserRepository[Future] = {
-    val repo       = new ESRepository[UserEntity.UserId, UserRepository.User](indexName, elasticClient)
-    val searchRepo = new ESSearchRepository[UserRepository.User](indexName, UserESRepositoryInitializer.suggestProperties, elasticClient)
+  def apply(indexName: String, elasticClient: ElasticClient)(implicit ec: ExecutionContext): UserRepository[Future] =
+    new AbstractCombinedRepository[Future, UserEntity.UserId, UserRepository.User] with UserRepository[Future] {
+      override protected val repository: Repository[Future, UserId, UserRepository.User] =
+        new ESRepository[UserEntity.UserId, UserRepository.User](indexName, elasticClient)
 
-    new UserRepository[Future] {
-      override def insert(value: UserRepository.User): Future[Boolean] = repo.insert(value)
-
-      override def update(value: UserRepository.User): Future[Boolean] = repo.update(value)
-
-      override def delete(id: UserId): Future[Boolean] = repo.delete(id)
-
-      override def find(id: UserId): Future[Option[UserRepository.User]] = repo.find(id)
-
-      override def findAll(): Future[Seq[UserRepository.User]] = repo.findAll()
-
-      override def search(
-          query: Option[String],
-          page: Int,
-          pageSize: Int,
-          sorts: Iterable[SearchRepository.FieldSort]
-      ): Future[Either[SearchRepository.SearchError, SearchRepository.PaginatedSequence[UserRepository.User]]] =
-        searchRepo.search(query, page, pageSize, sorts)
-
-      override def suggest(query: String): Future[Either[SearchRepository.SuggestError, SearchRepository.SuggestResponse]] =
-        searchRepo.suggest(query)
+      override protected val searchRepository: SearchRepository[Future, UserRepository.User] =
+        new ESSearchRepository[UserRepository.User](indexName, UserESRepositoryInitializer.suggestProperties, elasticClient)
     }
-  }
+
 }
 
 object UserESRepositoryInitializer {

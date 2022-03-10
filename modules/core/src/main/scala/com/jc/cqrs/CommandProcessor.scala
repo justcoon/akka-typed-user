@@ -15,18 +15,18 @@ final case class CommandProcessResult[E <: EntityEvent[_], +R](events: List[E], 
 object CommandProcessResult {
 
   def withCmdReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](command: C)(
-      reply: command.Reply
+    reply: command.Reply
   ): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(Nil, CommandReply.Reply(reply))
 
   def withCmdEventsReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](
-      command: C
-  )(events: List[E], reply: command.Reply): CommandProcessResult[E, command.Reply] =
+                                                                            command: C
+                                                                          )(events: List[E], reply: command.Reply): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(events, CommandReply.Reply(reply))
 
   def withCmdEventReply[E <: EntityEvent[_], C <: EntityCommand[_, _, _]](
-      command: C
-  )(event: E, reply: command.Reply): CommandProcessResult[E, command.Reply] =
+                                                                           command: C
+                                                                         )(event: E, reply: command.Reply): CommandProcessResult[E, command.Reply] =
     CommandProcessResult(event :: Nil, CommandReply.Reply(reply))
 
   def withReply[E <: EntityEvent[_], R](reply: R): CommandProcessResult[E, R] =

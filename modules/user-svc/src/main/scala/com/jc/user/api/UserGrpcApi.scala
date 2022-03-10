@@ -125,33 +125,62 @@ object UserGrpcApi {
         case None          => FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.UNAUTHENTICATED, metadata))
       }
     }
+
+    def getValidationMessage(e: scalapb.validate.Failure): String =
+      new scalapb.validate.FieldValidationException(e).getMessage
+
+    def validationFailed[R](e: scalapb.validate.Failure): Future[R] = {
+      val m = getValidationMessage(e)
+      FastFuture.failed(new akka.grpc.GrpcServiceException(io.grpc.Status.INVALID_ARGUMENT.withDescription(m)))
+    }
+
+    def validated[T, R](
+        data: T
+    )(
+        failure: scalapb.validate.Failure => Future[R]
+    )(success: => Future[R])(implicit validator: scalapb.validate.Validator[T]): Future[R] =
+      validator.validate(data) match {
+        case scalapb.validate.Success    => success
+        case e: scalapb.validate.Failure => failure(e)
+      }
+
     import io.scalaland.chimney.dsl._
 
     new UserApiServicePowerApi {
 
-      override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] = {
-        val id  = in.id
-        val cmd = in.into[DepartmentAggregate.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
-        departmentService.sendCommand(cmd).map {
-          case reply: DepartmentAggregate.DepartmentCreatedReply =>
-            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department created"))
-          case reply: DepartmentAggregate.DepartmentAlreadyExistsReply =>
-            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure("Department already exits"))
-          case reply: DepartmentAggregate.DepartmentCreatedFailedReply =>
-            CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure(s"Department create error (${reply.error})"))
+      override def createDepartment(in: CreateDepartmentReq, metadata: Metadata): Future[CreateDepartmentRes] =
+        validated(in)(e =>
+          FastFuture.successful(
+            CreateDepartmentRes(in.id, CreateDepartmentRes.Result.Failure(s"Department create error (${getValidationMessage(e)})"))
+          )
+        ) {
+          val id  = in.id
+          val cmd = in.into[DepartmentAggregate.CreateDepartmentCommand].withFieldConst(_.entityId, id).transform
+          departmentService.sendCommand(cmd).map {
+            case reply: DepartmentAggregate.DepartmentCreatedReply =>
+              CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Success("Department created"))
+            case reply: DepartmentAggregate.DepartmentAlreadyExistsReply =>
+              CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure("Department already exist"))
+            case reply: DepartmentAggregate.DepartmentCreatedFailedReply =>
+              CreateDepartmentRes(reply.entityId, CreateDepartmentRes.Result.Failure(s"Department create error (${reply.error})"))
+          }
         }
-      }
 
-      override def updateDepartment(in: UpdateDepartmentReq, metadata: Metadata): Future[UpdateDepartmentRes] = {
-        val id  = in.id
-        val cmd = in.into[DepartmentAggregate.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
-        departmentService.sendCommand(cmd).map {
-          case reply: DepartmentAggregate.DepartmentUpdatedReply =>
-            UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Success("Department updated"))
-          case reply: DepartmentAggregate.DepartmentNotExistsReply =>
-            UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Failure("Department not exits"))
+      override def updateDepartment(in: UpdateDepartmentReq, metadata: Metadata): Future[UpdateDepartmentRes] =
+        validated(in)(e =>
+          FastFuture.successful(
+            UpdateDepartmentRes(in.id, UpdateDepartmentRes.Result.Failure(s"Department update error (${getValidationMessage(e)})"))
+          )
+        ) {
+          val id  = in.id
+          val cmd = in.into[DepartmentAggregate.UpdateDepartmentCommand].withFieldConst(_.entityId, id).transform
+          departmentService.sendCommand(cmd).map {
+            case reply: DepartmentAggregate.DepartmentUpdatedReply =>
+              UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Success("Department updated"))
+            case reply: DepartmentAggregate.DepartmentNotExistsReply =>
+              UpdateDepartmentRes(reply.entityId, UpdateDepartmentRes.Result.Failure("Department not exits"))
+          }
         }
-      }
 
       override def getDepartment(in: GetDepartmentReq, metadata: Metadata): Future[GetDepartmentRes] =
         departmentRepository.find(in.id).map(r => GetDepartmentRes(r.map(_.transformInto[proto.Department])))
@@ -161,15 +190,19 @@ object UserGrpcApi {
 
       override def registerUser(in: RegisterUserReq, metadata: Metadata): Future[RegisterUserRes] = {
         import UserEntity._
-        val id  = in.username.asUserId
-        val cmd = in.into[UserAggregate.CreateUserCommand].withFieldConst(_.entityId, id).transform
-        userService.sendCommand(cmd).map {
-          case reply: UserAggregate.UserCreatedReply =>
-            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
-          case reply: UserAggregate.UserAlreadyExistsReply =>
-            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure("User already exits"))
-          case reply: UserAggregate.UserCreatedFailedReply =>
-            RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure(s"User register error (${reply.error})"))
+        val id = in.username.asUserId
+        validated(in)(e =>
+          FastFuture.successful(RegisterUserRes(id, RegisterUserRes.Result.Failure(s"User register error (${getValidationMessage(e)})")))
+        ) {
+          val cmd = in.into[UserAggregate.CreateUserCommand].withFieldConst(_.entityId, id).transform
+          userService.sendCommand(cmd).map {
+            case reply: UserAggregate.UserCreatedReply =>
+              RegisterUserRes(reply.entityId, RegisterUserRes.Result.Success("User registered"))
+            case reply: UserAggregate.UserAlreadyExistsReply =>
+              RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure("User already exits"))
+            case reply: UserAggregate.UserCreatedFailedReply =>
+              RegisterUserRes(reply.entityId, RegisterUserRes.Result.Failure(s"User register error (${reply.error})"))
+          }
         }
       }
 
@@ -186,38 +219,54 @@ object UserGrpcApi {
 
       override def updateUserEmail(in: UpdateUserEmailReq, metadata: Metadata): Future[UpdateUserEmailRes] =
         authenticated(metadata) { _ =>
-          val cmd = UserAggregate.ChangeUserEmailCommand(in.id, in.email)
-          userService.sendCommand(cmd).map {
-            case reply: UserAggregate.UserEmailChangedReply =>
-              UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Success("User email updated"))
-            case reply: UserAggregate.UserNotExistsReply =>
-              UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Failure("User not exits"))
+          validated(in)(e =>
+            FastFuture.successful(
+              UpdateUserEmailRes(in.id, UpdateUserEmailRes.Result.Failure(s"User email update error (${getValidationMessage(e)})"))
+            )
+          ) {
+            val cmd = UserAggregate.ChangeUserEmailCommand(in.id, in.email)
+            userService.sendCommand(cmd).map {
+              case reply: UserAggregate.UserEmailChangedReply =>
+                UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Success("User email updated"))
+              case reply: UserAggregate.UserNotExistsReply =>
+                UpdateUserEmailRes(reply.entityId, UpdateUserEmailRes.Result.Failure("User not exits"))
+            }
           }
         }
 
       override def updateUserPassword(in: UpdateUserPasswordReq, metadata: Metadata): Future[UpdateUserPasswordRes] =
         authenticated(metadata) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserPasswordCommand(in.id, in.pass)
-          userService.sendCommand(cmd).map {
-            case reply: UserAggregate.UserPasswordChangedReply =>
-              UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Success("User password updated"))
-            case reply: UserAggregate.UserNotExistsReply =>
-              UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Failure("User not exists"))
+          validated(in)(e =>
+            FastFuture.successful(
+              UpdateUserPasswordRes(in.id, UpdateUserPasswordRes.Result.Failure(s"User password update error (${getValidationMessage(e)})"))
+            )
+          ) {
+            val cmd = UserAggregate.ChangeUserPasswordCommand(in.id, in.pass)
+            userService.sendCommand(cmd).map {
+              case reply: UserAggregate.UserPasswordChangedReply =>
+                UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Success("User password updated"))
+              case reply: UserAggregate.UserNotExistsReply =>
+                UpdateUserPasswordRes(reply.entityId, UpdateUserPasswordRes.Result.Failure("User not exists"))
+            }
           }
         }
 
       override def updateUserAddress(in: UpdateUserAddressReq, metadata: Metadata): Future[UpdateUserAddressRes] =
         authenticated(metadata) { _ =>
-          import UserEntity._
-          val cmd = UserAggregate.ChangeUserAddressCommand(in.id, in.address)
-          userService.sendCommand(cmd).map {
-            case reply: UserAggregate.UserAddressChangedReply =>
-              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Success("User address updated"))
-            case reply: UserAggregate.UserNotExistsReply =>
-              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure("User not exists"))
-            case reply: UserAggregate.UserAddressChangedFailedReply =>
-              UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+          validated(in)(e =>
+            FastFuture.successful(
+              UpdateUserAddressRes(in.id, UpdateUserAddressRes.Result.Failure(s"User address update error (${getValidationMessage(e)})"))
+            )
+          ) {
+            val cmd = UserAggregate.ChangeUserAddressCommand(in.id, in.address)
+            userService.sendCommand(cmd).map {
+              case reply: UserAggregate.UserAddressChangedReply =>
+                UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Success("User address updated"))
+              case reply: UserAggregate.UserNotExistsReply =>
+                UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure("User not exists"))
+              case reply: UserAggregate.UserAddressChangedFailedReply =>
+                UpdateUserAddressRes(reply.entityId, UpdateUserAddressRes.Result.Failure(s"User address update error (${reply.error})"))
+            }
           }
         }
 

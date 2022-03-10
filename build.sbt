@@ -1,7 +1,8 @@
 import com.typesafe.sbt.packager.docker.DockerPlugin.autoImport.dockerEntrypoint
-import com.typesafe.sbt.packager.docker.{ Cmd, DockerChmodType }
+import com.typesafe.sbt.packager.docker.{Cmd, DockerChmodType}
+import scalapb.GeneratorOption.FlatPackage
 
-Scope.Global / scalaVersion := "2.13.6"
+Scope.Global / scalaVersion := "2.13.8"
 
 // *****************************************************************************
 // Projects
@@ -24,10 +25,20 @@ lazy val `core` =
     .settings(settings)
     .enablePlugins(AkkaGrpcPlugin)
     .settings(
-      akkaGrpcCodeGeneratorSettings += "server_power_apis"
+      akkaGrpcCodeGeneratorSettings += "server_power_apis",
+      Compile / guardrailTasks := List(
+        ScalaServer(
+          file(s"${baseDirectory.value}/src/main/openapi/LoggingSystemOpenApi.yaml"),
+          pkg = "com.jc.logging.openapi",
+          tracing = false,
+          customExtraction = true
+        )
+      )
     )
+    .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
       libraryDependencies ++= Seq(
+        library.sslConfig,
         library.akkaDiscovery,
         library.akkaClusterTyped,
         library.akkaPersistenceTyped,
@@ -46,6 +57,7 @@ lazy val `core` =
         library.circeGeneric,
         library.circeGenericExtras,
         library.circeRefined,
+        library.circeYaml,
         library.catsCore,
         library.logbackCore,
         library.logbackClassic,
@@ -55,9 +67,9 @@ lazy val `core` =
         library.pauldijouJwtCirce,
         library.chimney,
         library.scalapbRuntimeGrpc,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
 
@@ -76,7 +88,9 @@ lazy val `user-api` =
           tracing = false,
           customExtraction = true
         )
-      )
+      ),
+      Compile / PB.targets +=
+        scalapb.validate.gen(FlatPackage) -> (Compile / akkaGrpcCodeGeneratorSettings / target).value
     )
     .settings(Compile / unmanagedResourceDirectories += baseDirectory.value / "src" / "main" / "openapi")
     .settings(
@@ -89,7 +103,8 @@ lazy val `user-api` =
         library.circeGeneric,
         library.circeRefined,
         library.catsCore,
-        library.scalapbRuntimeGrpc
+        library.scalapbRuntimeGrpc,
+        library.scalapbValidate
       )
     )
     .dependsOn(`core`)
@@ -109,7 +124,8 @@ lazy val `user-svc` =
         library.akkaHttp2Support,
         library.akkaHttpCirce,
         library.akkaHttpSprayJson,
-        library.tapirSwaggerUiAkkaHttp,
+        library.tapirAkkaHttpServer,
+        library.tapirSwaggerUi,
         library.akkaKryo,
         library.akkaSlf4j,
         library.akkaPersistenceQuery,
@@ -138,9 +154,9 @@ lazy val `user-svc` =
         library.kamonSystem,
         library.kamonCassandra,
         library.chimney,
-        library.akkaHttpTestkit % Test,
-        library.akkaTestkit     % Test,
-        library.scalaTest       % Test
+        library.akkaHttpTestkit  % Test,
+        library.akkaTestkitTyped % Test,
+        library.scalaTest        % Test
       )
     )
     .aggregate(`user-api`)
@@ -169,35 +185,36 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.15"
-      val akkaHttp                 = "10.2.5"
-      val akkaHttpJson             = "1.37.0"
+      val akka                     = "2.6.18"
+      val akkaHttp                 = "10.2.9"
+      val akkaHttpJson             = "1.39.2"
       val akkaPersistenceCassandra = "1.0.5"
-      val akkaStreamKafka          = "2.1.1"
-      val akkaProjection           = "1.2.1"
-      val akkaManagement           = "1.1.1"
+      val akkaStreamKafka          = "3.0.0"
+      val akkaProjection           = "1.2.3"
+      val akkaManagement           = "1.1.3"
       val circe                    = "0.14.1"
-      val logback                  = "1.2.5"
+      val logback                  = "1.2.11"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.13.0"
-      val pureconfig               = "0.16.0"
+      val elastic4s                = "7.17.1"
+      val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.2.0"
+      val akkaKryo                 = "2.4.1"
       val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.27"
-      val tapir                    = "0.18.1"
-      val cats                     = "2.6.1"
+      val refined                  = "0.9.28"
+      val tapir                    = "0.20.1"
+      val cats                     = "2.7.0"
+      val sslConfig                = "0.6.0"
 
-      val kamon           = "2.2.3"
+      val kamon           = "2.5.0"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
-      val kamonKanela     = "1.0.11"
+      val kamonKanela     = "1.0.14"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.9"
-      val gatling             = "3.5.1"
-      val gatlingGrpc         = "0.11.1"
+      val scalaTest           = "3.2.11"
+      val gatling             = "3.6.1"
+      val gatlingGrpc         = "0.12.0"
     }
 
     val akkaDiscoveryKubernetes        = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % Version.akkaManagement
@@ -226,11 +243,12 @@ lazy val library =
 
     val akkaStreamKafka = "com.typesafe.akka" %% "akka-stream-kafka" % Version.akkaStreamKafka
 
-    val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % Version.akka
+    val akkaTestkitTyped = "com.typesafe.akka" %% "akka-actor-testkit-typed" % Version.akka
 
     val circeGeneric       = "io.circe" %% "circe-generic"        % Version.circe
     val circeGenericExtras = "io.circe" %% "circe-generic-extras" % Version.circe
     val circeRefined       = "io.circe" %% "circe-refined"        % Version.circe
+    val circeYaml          = "io.circe" %% "circe-yaml"           % Version.circe
 
     val catsCore = "org.typelevel" %% "cats-core" % Version.cats
 
@@ -240,23 +258,25 @@ lazy val library =
     val bcrypt              = "com.github.t3hnar"      %% "scala-bcrypt"          % Version.bcrypt
     val elastic4sClientAkka = "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % Version.elastic4s
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
-    val elastic4sEmbedded   = "com.sksamuel.elastic4s" %% "elastic4s-embedded"    % Version.elastic4s
     val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
     val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
     val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
+    val sslConfig           = "com.typesafe"           %% "ssl-config-core"       % Version.sslConfig
 
-    val tapirSwaggerUiAkkaHttp = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui-akka-http" % Version.tapir
+    val tapirAkkaHttpServer = "com.softwaremill.sttp.tapir" %% "tapir-akka-http-server" % Version.tapir
+    val tapirSwaggerUi      = "com.softwaremill.sttp.tapir" %% "tapir-swagger-ui"       % Version.tapir
 
     val kamonAkka        = "io.kamon" %% "kamon-akka"           % Version.kamonAkka
     val kamonAkkaHttp    = "io.kamon" %% "kamon-akka-http"      % Version.kamonAkkaHttp
     val kamonPrometheus  = "io.kamon" %% "kamon-prometheus"     % Version.kamonPrometheus
     val kamonSystem      = "io.kamon" %% "kamon-system-metrics" % Version.kamonPrometheus
-    val kamonCassandra        = "io.kamon" %% "kamon-cassandra"           % Version.kamon
+    val kamonCassandra   = "io.kamon" %% "kamon-cassandra"      % Version.kamon
     val kamonKanelaAgent = "io.kamon"  % "kanela-agent"         % Version.kamonKanela
 
     val scalapbRuntimeGrpc = "com.thesamet.scalapb" %% "scalapb-runtime-grpc" % scalapb.compiler.Version.scalapbVersion
     val scalaPbRuntime     = "com.thesamet.scalapb" %% "scalapb-runtime"      % scalapb.compiler.Version.scalapbVersion % "protobuf"
+    val scalapbValidate    = "com.thesamet.scalapb" %% "scalapb-validate-core" % scalapb.validate.compiler.BuildInfo.version % "protobuf"
 
     val randomDataGenerator = "com.danielasfregola"  %% "random-data-generator"     % Version.randomDataGenerator
     val scalaTest           = "org.scalatest"        %% "scalatest"                 % Version.scalaTest

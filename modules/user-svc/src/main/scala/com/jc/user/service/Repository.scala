@@ -58,6 +58,34 @@ object SearchRepository {
 
 }
 
+abstract class AbstractCombinedRepository[F[_], ID, E <: Repository.Entity[ID]] extends Repository[F, ID, E] with SearchRepository[F, E] {
+
+  protected def repository: Repository[F, ID, E]
+
+  protected def searchRepository: SearchRepository[F, E]
+
+  override def insert(value: E): F[Boolean] = repository.insert(value)
+
+  override def update(value: E): F[Boolean] = repository.update(value)
+
+  override def delete(id: ID): F[Boolean] = repository.delete(id)
+
+  override def find(id: ID): F[Option[E]] = repository.find(id)
+
+  override def findAll(): F[Seq[E]] = repository.findAll()
+
+  override def search(
+      query: Option[String],
+      page: Int,
+      pageSize: Int,
+      sorts: Iterable[SearchRepository.FieldSort]
+  ): F[Either[SearchRepository.SearchError, SearchRepository.PaginatedSequence[E]]] =
+    searchRepository.search(query, page, pageSize, sorts)
+
+  override def suggest(query: String): F[Either[SearchRepository.SuggestError, SearchRepository.SuggestResponse]] =
+    searchRepository.suggest(query)
+}
+
 class ESRepository[ID: Encoder: Decoder, E <: Repository.Entity[ID]: Encoder: Decoder: ClassTag](
     indexName: String,
     elasticClient: ElasticClient

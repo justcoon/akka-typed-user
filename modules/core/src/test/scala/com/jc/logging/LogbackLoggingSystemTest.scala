@@ -5,7 +5,7 @@ import org.scalatest.matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.slf4j.LoggerFactory
 
-class LogbackLoggingSystemTest extends AnyWordSpecLike with should.Matchers with BeforeAndAfterAll {
+class LogbackLoggingSystemTest extends AnyWordSpecLike with should.Matchers {
 
   "LoggingSystem" must {
     import io.circe.syntax._

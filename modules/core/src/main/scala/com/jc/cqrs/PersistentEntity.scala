@@ -32,25 +32,20 @@ abstract class BasicPersistentEntity[ID, S, C[R] <: EntityCommand[ID, S, R], E <
 
   protected def eventHandler(actorContext: ActorContext[Command]): (EntityState, E) => EntityState
 
-  def entityIdFromString(id: String): ID
-
-  def entityIdToString(id: ID): String
+  def entityId(command: C[_]): String
 
   final def eventSourcedEntity(
       entityContext: EntityContext[Command],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, E, EntityState] = {
-    val id            = entityIdFromString(entityContext.entityId)
     val persistenceId = PersistenceId(entityContext.entityTypeKey.name, entityContext.entityId)
     configureEntityBehavior(
-      id,
       createEventSourcedEntity(persistenceId, actorContext),
       actorContext
     )
   }
 
   protected def configureEntityBehavior(
-      id: ID,
       behavior: EventSourcedBehavior[Command, E, EntityState],
       actorContext: ActorContext[Command]
   ): EventSourcedBehavior[Command, E, EntityState]
@@ -138,10 +133,10 @@ object BasicPersistentEntity {
   def errorMessageToValidated(error: Throwable): ValidatedNec[String, Done] =
     error.getMessage.invalidNec
 
-  def validated[C, E](
-      validator: () => Future[ValidatedNec[E, Done]],
-      validatedToCommand: ValidatedNec[E, Done] => C,
-      errorToValidated: Throwable => ValidatedNec[E, Done]
+  def validated[C, E, R](
+      validator: () => Future[ValidatedNec[E, R]],
+      validatedToCommand: ValidatedNec[E, R] => C,
+      errorToValidated: Throwable => ValidatedNec[E, R]
   )(
       actorContext: ActorContext[C]
   ): Unit =
@@ -163,7 +158,24 @@ object BasicPersistentEntity {
 
     implicit val doneMonoid = Monoid.instance[Done](Done, (_, _) => Done)
 
-    val validator = () => Future.traverse(validators)(_()).map(_.combineAll)
+    val validator = () => Future.traverse(validators)(validator => validator()).map(_.combineAll)
+
+    validated(validator, validatedToCommand, errorToValidated)(actorContext)
+  }
+
+  def validated2[C, E, R](
+      validators: List[() => Future[ValidatedNec[E, R]]],
+      validatedToCommand: ValidatedNec[E, List[R]] => C,
+      errorToValidated: Throwable => ValidatedNec[E, List[R]]
+  )(
+      actorContext: ActorContext[C]
+  ): Unit = {
+    implicit val ec = actorContext.executionContext
+
+    val validator = () =>
+      Future.traverse(validators)(validator => validator()).map { results =>
+        results.map(_.map(_ :: Nil)).combineAll
+      }
 
     validated(validator, validatedToCommand, errorToValidated)(actorContext)
   }

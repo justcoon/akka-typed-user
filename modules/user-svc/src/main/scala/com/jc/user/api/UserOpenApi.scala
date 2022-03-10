@@ -7,22 +7,26 @@ import akka.http.scaladsl.model.{ HttpHeader, IllegalRequestException, StatusCod
 import akka.http.scaladsl.server.{ Directives, Route }
 import akka.http.scaladsl.util.FastFuture
 import akka.util.Timeout
+import com.jc.api.openapi.OpenApiCirceMerger
 import com.jc.auth.JwtAuthenticator
+import com.jc.logging.LoggingSystem
+import com.jc.logging.api.LoggingSystemOpenApi
 import com.jc.user.api.openapi.definitions.{
   Address,
   CreateUser,
   Department,
   PropertySuggestion,
+  SuggestResponse,
   User,
-  UserSearchResponse,
-  UserSuggestResponse
+  UserSearchResponse
 }
 import com.jc.user.api.openapi.user.{ UserHandler, UserResource }
 import com.jc.user.config.HttpApiConfig
 import com.jc.user.domain.{ proto, DepartmentEntity, DepartmentService, UserAggregate, UserEntity, UserService }
 import com.jc.user.service.{ DepartmentRepository, SearchRepository, UserRepository }
 import org.slf4j.LoggerFactory
-import sttp.tapir.swagger.akkahttp.SwaggerAkka
+import sttp.tapir.server.akkahttp.AkkaHttpServerInterpreter
+import sttp.tapir.swagger.SwaggerUI
 
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
@@ -38,6 +42,7 @@ object UserOpenApi {
       userRepository: UserRepository[Future],
       departmentService: DepartmentService,
       departmentRepository: DepartmentRepository[Future],
+      loggingSystem: LoggingSystem,
       jwtAuthenticator: JwtAuthenticator[String],
       config: HttpApiConfig
   )(implicit ec: ExecutionContext, mat: akka.stream.Materializer, sys: ActorSystem, shutdown: CoordinatedShutdown): Unit = {
@@ -45,18 +50,24 @@ object UserOpenApi {
 
     val log = LoggerFactory.getLogger(this.getClass)
 
-    def isAuthenticated(headers: Seq[HttpHeader]) =
+    def isAuthenticatedUser(headers: Seq[HttpHeader]) =
       for {
-        header  <- headers.find(h => h.is(JwtAuthenticator.AuthHeader.toLowerCase))
-        subject <- jwtAuthenticator.authenticated(header.value)
+        header <- headers.find(h => h.is(JwtAuthenticator.AuthHeader.toLowerCase))
+        token = JwtAuthenticator.sanitizeBearerAuthToken(header.value)
+        subject <- jwtAuthenticator.authenticated(token)
       } yield subject
 
+    def isAuthenticatedLogging(headers: Seq[HttpHeader]): Boolean =
+      isAuthenticatedUser(headers).isDefined
+
     val userApiRoutes =
-      route(userService, userRepository, departmentService, departmentRepository, isAuthenticated)(config.repositoryTimeout, ec, mat)
+      route(userService, userRepository, departmentService, departmentRepository, isAuthenticatedUser)(config.repositoryTimeout, ec, mat)
+
+    val loggingApiRoutes = LoggingSystemOpenApi.route(loggingSystem, isAuthenticatedLogging)
 
     val docRoutes = docRoute()
 
-    val restApiRoutes = Directives.concat(userApiRoutes, docRoutes)
+    val restApiRoutes = Directives.concat(userApiRoutes, loggingApiRoutes, docRoutes)
 
     Http(sys)
       .newServerAt(config.address, config.port)
@@ -79,8 +90,12 @@ object UserOpenApi {
   }
 
   def docRoute(): Route = {
-    val yaml = Source.fromResource("UserOpenApi.yaml").mkString
-    new SwaggerAkka(yaml).routes
+    val y1   = Source.fromResource("UserOpenApi.yaml").mkString
+    val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
+    val my   = OpenApiCirceMerger().mergeYamls(y1, y2)
+    val yaml = my.getOrElse("")
+
+    AkkaHttpServerInterpreter().toRoute(SwaggerUI[Future](yaml))
   }
 
   def route(
@@ -256,7 +271,7 @@ object UserOpenApi {
         userRepository.suggest(query.getOrElse("")).map {
           case Right(res) =>
             val items = res.items.map(_.transformInto[PropertySuggestion]).toVector
-            UserResource.SuggestUsersResponseOK(UserSuggestResponse(items))
+            UserResource.SuggestUsersResponseOK(SuggestResponse(items))
           case Left(e) =>
             UserResource.SuggestUsersResponseBadRequest(e.error)
         }
