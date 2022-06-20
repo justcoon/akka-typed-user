@@ -1,6 +1,5 @@
 package com.jc.api.openapi
 
-import io.circe.yaml._
 import io.circe.{ yaml, Json }
 
 class OpenApiCirceMerger(customMerge: Map[List[String], OpenApiCirceMerger.MergeFn]) {
@@ -33,9 +32,7 @@ class OpenApiCirceMerger(customMerge: Map[List[String], OpenApiCirceMerger.Merge
     yaml.parser.parse(y).left.map(_.message)
 
   def toYaml(j: Json): String =
-    io.circe.yaml
-      .Printer(dropNullKeys = true, mappingStyle = Printer.FlowStyle.Block)
-      .pretty(j)
+    yaml.Printer(dropNullKeys = true, mappingStyle = yaml.Printer.FlowStyle.Block).pretty(j)
 
   def mergeYamls(main: String, others: Iterable[String]): Either[String, String] = {
     val m = parseYaml(main)

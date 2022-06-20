@@ -1,6 +1,5 @@
 package com.jc.api.openapi
 
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers._
 import org.scalatest.wordspec.AnyWordSpecLike
 

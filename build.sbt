@@ -64,7 +64,7 @@ lazy val `core` =
         library.bcrypt,
         library.pureconfig,
         library.refinedPureconfig,
-        library.pauldijouJwtCirce,
+        library.jwtCirce,
         library.chimney,
         library.scalapbRuntimeGrpc,
         library.akkaHttpTestkit  % Test,
@@ -147,7 +147,7 @@ lazy val `user-svc` =
         library.refinedPureconfig,
         library.elastic4sClientAkka,
         library.elastic4sCirce,
-        library.pauldijouJwtCirce,
+        library.jwtCirce,
         library.kamonAkka,
         library.kamonAkkaHttp,
         library.kamonPrometheus,
@@ -185,36 +185,36 @@ lazy val library =
   new {
 
     object Version {
-      val akka                     = "2.6.18"
+      val akka                     = "2.6.19"
       val akkaHttp                 = "10.2.9"
       val akkaHttpJson             = "1.39.2"
       val akkaPersistenceCassandra = "1.0.5"
       val akkaStreamKafka          = "3.0.0"
-      val akkaProjection           = "1.2.3"
+      val akkaProjection           = "1.2.4"
       val akkaManagement           = "1.1.3"
       val circe                    = "0.14.1"
       val logback                  = "1.2.11"
       val bcrypt                   = "4.3.0"
-      val elastic4s                = "7.17.1"
+      val elastic4s                = "8.2.0"
       val pureconfig               = "0.17.1"
       val chimney                  = "0.6.1"
-      val akkaKryo                 = "2.4.1"
-      val pauldijouJwt             = "5.0.0"
-      val refined                  = "0.9.28"
-      val tapir                    = "0.20.1"
-      val cats                     = "2.7.0"
-      val sslConfig                = "0.6.0"
+      val akkaKryo                 = "2.4.3"
+      val scalaJwt                 = "9.0.5"
+      val refined                  = "0.9.29"
+      val tapir                    = "1.0.0"
+      val cats                     = "2.8.0"
+      val sslConfig                = "0.6.1"
 
-      val kamon           = "2.5.0"
+      val kamon           = "2.5.4"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
       val kamonKanela     = "1.0.14"
 
       val randomDataGenerator = "2.9"
-      val scalaTest           = "3.2.11"
-      val gatling             = "3.6.1"
-      val gatlingGrpc         = "0.12.0"
+      val scalaTest           = "3.2.12"
+      val gatling             = "3.7.6"
+      val gatlingGrpc         = "0.13.0"
     }
 
     val akkaDiscoveryKubernetes        = "com.lightbend.akka.discovery"  %% "akka-discovery-kubernetes-api"     % Version.akkaManagement
@@ -260,7 +260,7 @@ lazy val library =
     val elastic4sCirce      = "com.sksamuel.elastic4s" %% "elastic4s-json-circe"  % Version.elastic4s
     val pureconfig          = "com.github.pureconfig"  %% "pureconfig"            % Version.pureconfig
     val refinedPureconfig   = "eu.timepit"             %% "refined-pureconfig"    % Version.refined
-    val pauldijouJwtCirce   = "com.pauldijou"          %% "jwt-circe"             % Version.pauldijouJwt
+    val jwtCirce   = "com.github.jwt-scala"          %% "jwt-circe"             % Version.scalaJwt
     val chimney             = "io.scalaland"           %% "chimney"               % Version.chimney
     val sslConfig           = "com.typesafe"           %% "ssl-config-core"       % Version.sslConfig
 

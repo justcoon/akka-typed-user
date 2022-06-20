@@ -3,8 +3,8 @@ addSbtPlugin("org.scalameta"           % "sbt-scalafmt"         % "2.4.3")
 addSbtPlugin("com.typesafe.sbt"        % "sbt-git"              % "1.0.0")
 addSbtPlugin("com.github.sbt"          % "sbt-native-packager"  % "1.9.7")
 addSbtPlugin("net.virtual-void"        % "sbt-dependency-graph" % "0.10.0-RC1")
-addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc"        % "2.1.3")
-addSbtPlugin("dev.guardrail"           % "sbt-guardrail"        % "0.69.0.1")
+addSbtPlugin("com.lightbend.akka.grpc" % "sbt-akka-grpc"        % "2.1.4")
+addSbtPlugin("dev.guardrail"           % "sbt-guardrail"        % "0.72.0")
 addSbtPlugin("io.gatling"              % "gatling-sbt"          % "4.0.0")
 
 //FIXME scala plugin 2.13

@@ -89,7 +89,7 @@ object UserOpenApi {
       }
   }
 
-  def docRoute(): Route = {
+  def docRoute()(implicit ec: ExecutionContext): Route = {
     val y1   = Source.fromResource("UserOpenApi.yaml").mkString
     val y2   = Source.fromResource("LoggingSystemOpenApi.yaml").mkString
     val my   = OpenApiCirceMerger().mergeYamls(y1, y2)
