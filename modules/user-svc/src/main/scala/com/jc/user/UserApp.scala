@@ -14,7 +14,7 @@ import akka.stream.Materializer
 import akka.util.Timeout
 import com.jc.auth.PdiJwtAuthenticator
 import com.jc.cqrs.offsetstore.CassandraProjectionOffsetStore
-import com.jc.logging.LogbackLoggingSystem
+import com.jc.logging.{ ClusterSetLoggingSystem, LogbackLoggingSystem }
 import com.jc.user.api.{ UserGrpcApi, UserOpenApi }
 import com.jc.user.domain.{ DepartmentService, SimpleAddressValidationService, UserService }
 import com.jc.user.service._
@@ -45,7 +45,7 @@ object UserApp {
 
       val appConfig = ConfigSource.fromConfig(sys.settings.config).loadOrThrow[AppConfig]
 
-      val loggingSystem = LogbackLoggingSystem()
+      val loggingSystem = ClusterSetLoggingSystem(LogbackLoggingSystem())(ctx, mat)
       // log.info(sys.settings.toString)
 
       log.info("kamon - init")

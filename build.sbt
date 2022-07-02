@@ -200,12 +200,12 @@ lazy val library =
       val chimney                  = "0.6.1"
       val akkaKryo                 = "2.4.3"
       val scalaJwt                 = "9.0.5"
-      val refined                  = "0.9.29"
+      val refined                  = "0.10.0"
       val tapir                    = "1.0.0"
       val cats                     = "2.8.0"
       val sslConfig                = "0.6.1"
 
-      val kamon           = "2.5.4"
+      val kamon           = "2.5.5"
       val kamonPrometheus = kamon
       val kamonAkka       = kamon
       val kamonAkkaHttp   = kamon
